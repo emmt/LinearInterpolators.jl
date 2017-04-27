@@ -71,8 +71,9 @@ end
 function apply_adjoint!{T,S,B}(dst::Array{T,2},
                                ker::Kernel{T,S,B},
                                R::AffineTransform2D{T},
-                               src::Array{T,2})
-    apply_adjoint!(dst, ker, ker, R, src)
+                               src::Array{T,2};
+                               kwds...)
+    apply_adjoint!(dst, ker, ker, R, src; kwds...)
 end
 
 function apply_adjoint!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
@@ -96,9 +97,9 @@ function apply_adjoint!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
         @inbounds for i1 in 1:m1
             pos1 = T(i1)
             j11, j12, j13, j14,
-            w11, w12, w13, w14 = getcoefs(I1, R.xx*pos1 + off1)
+            w11, w12, w13, w14 = getcoefs(ker1, lim1, R.xx*pos1 + off1)
             j21, j22, j23, j24,
-            w21, w22, w23, w24 = getcoefs(I2, R.yx*pos1 + off2)
+            w21, w22, w23, w24 = getcoefs(ker2, lim2, R.yx*pos1 + off2)
             a = src[i1,i2]
             w21a = w21*a
             dst[j11,j21] += w11*w21a
