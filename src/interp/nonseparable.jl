@@ -9,6 +9,8 @@
 # This file is part of TiPi.  All rights reserved.
 #
 
+# FIXME: if axis are aligned, use separable interpolation.
+
 #------------------------------------------------------------------------------
 # Direct operations.
 
@@ -20,7 +22,7 @@ function apply_direct!{T,S,B}(dst::Array{T,2},
 end
 
 function apply_direct!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
-    dst::Array{T,2}, ker1::Kernel{T,4,B1}, ker2::Kernel{T,4,B2},
+    dst::Array{T,2}, ker1::Kernel{T,1,B1}, ker2::Kernel{T,1,B2},
     R::AffineTransform2D{T}, src::Array{T,2})
 
     # Get dimensions and limits.
@@ -29,7 +31,95 @@ function apply_direct!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
     lim1 = limits(ker1, n1)
     lim2 = limits(ker2, n2)
 
-    # FIXME: if axis are aligned, use separable interpolation.
+    # Apply the operator.
+    for i2 in 1:m2
+        pos2 = T(i2)
+        off1 = R.xy*pos2 + R.x
+        off2 = R.yy*pos2 + R.y
+        @inbounds for i1 in 1:m1
+            pos1 = T(i1)
+            j1, w1 = getcoefs(ker1, lim1, R.xx*pos1 + off1)
+            j2, w2 = getcoefs(ker2, lim2, R.yx*pos1 + off2)
+            dst[i1,i2] = (w1*w2)*src[j1,j2]
+        end
+    end
+    return dst
+end
+
+function apply_direct!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
+    dst::Array{T,2}, ker1::Kernel{T,2,B1}, ker2::Kernel{T,2,B2},
+    R::AffineTransform2D{T}, src::Array{T,2})
+
+    # Get dimensions and limits.
+    m1, m2 = size(dst)
+    n1, n2 = size(src)
+    lim1 = limits(ker1, n1)
+    lim2 = limits(ker2, n2)
+
+    # Apply the operator.
+    for i2 in 1:m2
+        pos2 = T(i2)
+        off1 = R.xy*pos2 + R.x
+        off2 = R.yy*pos2 + R.y
+        @inbounds for i1 in 1:m1
+            pos1 = T(i1)
+            j11, j12,
+            w11, w12 = getcoefs(ker1, lim1, R.xx*pos1 + off1)
+            j21, j22,
+            w21, w22 = getcoefs(ker2, lim2, R.yx*pos1 + off2)
+            dst[i1,i2] = ((src[j11,j21]*w11 +
+                           src[j12,j21]*w12)*w21 +
+                          (src[j11,j22]*w11 +
+                           src[j12,j22]*w12)*w22)
+        end
+    end
+    return dst
+end
+
+function apply_direct!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
+    dst::Array{T,2}, ker1::Kernel{T,3,B1}, ker2::Kernel{T,3,B2},
+    R::AffineTransform2D{T}, src::Array{T,2})
+
+    # Get dimensions and limits.
+    m1, m2 = size(dst)
+    n1, n2 = size(src)
+    lim1 = limits(ker1, n1)
+    lim2 = limits(ker2, n2)
+
+    # Apply the operator.
+    for i2 in 1:m2
+        pos2 = T(i2)
+        off1 = R.xy*pos2 + R.x
+        off2 = R.yy*pos2 + R.y
+        @inbounds for i1 in 1:m1
+            pos1 = T(i1)
+            j11, j12, j13,
+            w11, w12, w13 = getcoefs(ker1, lim1, R.xx*pos1 + off1)
+            j21, j22, j23,
+            w21, w22, w23 = getcoefs(ker2, lim2, R.yx*pos1 + off2)
+            dst[i1,i2] = ((src[j11,j21]*w11 +
+                           src[j12,j21]*w12 +
+                           src[j13,j21]*w13)*w21 +
+                          (src[j11,j22]*w11 +
+                           src[j12,j22]*w12 +
+                           src[j13,j22]*w13)*w22 +
+                          (src[j11,j23]*w11 +
+                           src[j12,j23]*w12 +
+                           src[j13,j23]*w13)*w23)
+        end
+    end
+    return dst
+end
+
+function apply_direct!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
+    dst::Array{T,2}, ker1::Kernel{T,4,B1}, ker2::Kernel{T,4,B2},
+    R::AffineTransform2D{T}, src::Array{T,2})
+
+    # Get dimensions and limits.
+    m1, m2 = size(dst)
+    n1, n2 = size(src)
+    lim1 = limits(ker1, n1)
+    lim2 = limits(ker2, n2)
 
     # Apply the operator.
     for i2 in 1:m2
@@ -60,7 +150,6 @@ function apply_direct!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
                            src[j14,j24]*w14)*w24)
         end
     end
-
     return dst
 end
 
@@ -74,6 +163,110 @@ function apply_adjoint!{T,S,B}(dst::Array{T,2},
                                src::Array{T,2};
                                kwds...)
     apply_adjoint!(dst, ker, ker, R, src; kwds...)
+end
+
+function apply_adjoint!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
+    dst::Array{T,2}, ker1::Kernel{T,1,B1}, ker2::Kernel{T,1,B2},
+    R::AffineTransform2D{T}, src::Array{T,2}; clr::Bool = true)
+
+    # Get dimensions and limits.
+    m1, m2 = size(src)
+    n1, n2 = size(dst)
+    lim1 = limits(ker1, n1)
+    lim2 = limits(ker2, n2)
+
+    # Apply adjoint operator.
+    if clr
+        fill!(dst, zero(T))
+    end
+    for i2 in 1:m2
+        pos2 = T(i2)
+        off1 = R.xy*pos2 + R.x
+        off2 = R.yy*pos2 + R.y
+        @inbounds for i1 in 1:m1
+            pos1 = T(i1)
+            j1, w1 = getcoefs(ker1, lim1, R.xx*pos1 + off1)
+            j2, w2 = getcoefs(ker2, lim2, R.yx*pos1 + off2)
+            dst[j1,j2] += (w1*w2)*src[i1,i2]
+        end
+    end
+    return dst
+end
+
+function apply_adjoint!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
+    dst::Array{T,2}, ker1::Kernel{T,2,B1}, ker2::Kernel{T,2,B2},
+    R::AffineTransform2D{T}, src::Array{T,2}; clr::Bool = true)
+
+    # Get dimensions and limits.
+    m1, m2 = size(src)
+    n1, n2 = size(dst)
+    lim1 = limits(ker1, n1)
+    lim2 = limits(ker2, n2)
+
+    # Apply adjoint operator.
+    if clr
+        fill!(dst, zero(T))
+    end
+    for i2 in 1:m2
+        pos2 = T(i2)
+        off1 = R.xy*pos2 + R.x
+        off2 = R.yy*pos2 + R.y
+        @inbounds for i1 in 1:m1
+            pos1 = T(i1)
+            j11, j12, w11, w12 = getcoefs(ker1, lim1, R.xx*pos1 + off1)
+            j21, j22, w21, w22 = getcoefs(ker2, lim2, R.yx*pos1 + off2)
+            a = src[i1,i2]
+            w21a = w21*a
+            dst[j11,j21] += w11*w21a
+            dst[j12,j21] += w12*w21a
+            w22a = w22*a
+            dst[j11,j22] += w11*w22a
+            dst[j12,j22] += w12*w22a
+        end
+    end
+    return dst
+end
+
+function apply_adjoint!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
+    dst::Array{T,2}, ker1::Kernel{T,3,B1}, ker2::Kernel{T,3,B2},
+    R::AffineTransform2D{T}, src::Array{T,2}; clr::Bool = true)
+
+    # Get dimensions and limits.
+    m1, m2 = size(src)
+    n1, n2 = size(dst)
+    lim1 = limits(ker1, n1)
+    lim2 = limits(ker2, n2)
+
+    # Apply adjoint operator.
+    if clr
+        fill!(dst, zero(T))
+    end
+    for i2 in 1:m2
+        pos2 = T(i2)
+        off1 = R.xy*pos2 + R.x
+        off2 = R.yy*pos2 + R.y
+        @inbounds for i1 in 1:m1
+            pos1 = T(i1)
+            j11, j12, j13,
+            w11, w12, w13 = getcoefs(ker1, lim1, R.xx*pos1 + off1)
+            j21, j22, j23
+            w21, w22, w23 = getcoefs(ker2, lim2, R.yx*pos1 + off2)
+            a = src[i1,i2]
+            w21a = w21*a
+            dst[j11,j21] += w11*w21a
+            dst[j12,j21] += w12*w21a
+            dst[j13,j21] += w13*w21a
+            w22a = w22*a
+            dst[j11,j22] += w11*w22a
+            dst[j12,j22] += w12*w22a
+            dst[j13,j22] += w13*w22a
+            w23a = w23*a
+            dst[j11,j23] += w11*w23a
+            dst[j12,j23] += w12*w23a
+            dst[j13,j23] += w13*w23a
+        end
+    end
+    return dst
 end
 
 function apply_adjoint!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
@@ -123,6 +316,5 @@ function apply_adjoint!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
             dst[j14,j24] += w14*w24a
         end
     end
-
     return dst
 end
