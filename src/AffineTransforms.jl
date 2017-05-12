@@ -6,7 +6,7 @@
 #
 #------------------------------------------------------------------------------
 #
-# Copyright (C) 2015-2016, Éric Thiébaut <eric.thiebaut@univ-lyon1.fr>
+# Copyright (C) 2015-2017, Éric Thiébaut <eric.thiebaut@univ-lyon1.fr>
 #
 # This file is free software; as a special exception the author gives unlimited
 # permission to copy and/or distribute it, with or without modifications, as
@@ -20,9 +20,15 @@
 
 module AffineTransforms
 
-export AffineTransform2D,
-   combine, rotate, translate, intercept,
-   jacobian
+export
+    AffineTransform2D,
+    combine,
+    multiply,
+    chain,
+    rotate,
+    translate,
+    intercept,
+    jacobian
 
 import Base: convert, det, inv, scale, show, *, +, /, \
 """
@@ -51,7 +57,7 @@ Many operations are available to manage or apply affine transforms:
 
   B = convert(T, A)     # convert coefficients of transform A to be of type T
 
-  C = combine(A, B)     # combine 2 transforms, C = apply B then A
+  C = multiply(A, B)    # multiply 2 transforms, C = apply B then A
   C = A*B               # idem
 
   B = translate(tx, ty, A)   # B = apply A then translate by (tx,ty)
@@ -71,8 +77,8 @@ Many operations are available to manage or apply affine transforms:
   C = A*ρ            # idem
 
   B = inv(A)         # reciprocal coordinate transform
-  C = A/B            # right division, same as: C = combine(A, inv(B))
-  C = A\B            # left division, same as: C = combine(inv(A), B)
+  C = A/B            # right division, same as: C = multiply(A, inv(B))
+  C = A\B            # left division, same as: C = multiply(inv(A), B)
 ```
 
 """
@@ -287,18 +293,31 @@ function inv{T<:AbstractFloat}(A::AffineTransform2D{T})
 end
 
 """
-`combine(A,B)` yields `A*B`, the affine transform which combines the two
+`multiply(A,B)` yields `A*B`, the affine transform which combines the two
 affine transforms `A` and `B`, that is the affine transform which applies
 `B` and then `A`.
 """
-function combine{T<:AbstractFloat}(A::AffineTransform2D{T},
-                                   B::AffineTransform2D{T})
+function multiply{T<:AbstractFloat}(A::AffineTransform2D{T},
+                                    B::AffineTransform2D{T})
     AffineTransform2D{T}(A.xx*B.xx + A.xy*B.yx,
                          A.xx*B.xy + A.xy*B.yy,
                          A.xx*B.x  + A.xy*B.y + A.x,
                          A.yx*B.xx + A.yy*B.yx,
                          A.yx*B.xy + A.yy*B.yy,
                          A.yx*B.x  + A.yy*B.y + A.y)
+end
+
+"""
+`chain(A,B,C,...)` yields `...*C*B*A`, the affine transform which applies `A`
+ then `B`, then `C`, etc.  Note that `chain(A,B)` is the same as `B*A =
+ multiply(B,A)` (order is reversed).
+"""
+function chain{T<:AbstractFloat}(A::AffineTransform2D{T},
+                                 args::AffineTransform2D{T}...)
+    for B in args
+        A = multiply(B, A)
+    end
+    return A
 end
 
 """
@@ -340,7 +359,7 @@ function leftdivide{T<:AbstractFloat}(A::AffineTransform2D{T},
                          Tyx*Tx   + Tyy*Ty)
 end
 
-for func in (:combine, :rightdivide, :leftdivide)
+for func in (:multiply, :rightdivide, :leftdivide)
     @eval begin
         function $func{R<:AbstractFloat,
             S<:AbstractFloat}(A::AffineTransform2D{R},
@@ -366,7 +385,7 @@ end
 +{T<:AbstractFloat}(A::AffineTransform2D{T}, t::NTuple{2}) = translate(A, t)
 
 *{R<:AbstractFloat,S<:AbstractFloat}(A::AffineTransform2D{R},
-                                     B::AffineTransform2D{S}) = combine(A, B)
+                                     B::AffineTransform2D{S}) = multiply(A, B)
 
 *{T<:AbstractFloat}(A::AffineTransform2D{T}, t::NTuple{2}) = A(t)
 
@@ -393,7 +412,7 @@ function runtests()
     A = inv(B)
     show(A)
     println()
-    C = combine(A, B)
+    C = multiply(A, B)
     show(C)
     println()
     U = convert(AffineTransform2D{Float16},C)
@@ -419,5 +438,7 @@ function runtests()
     println("$xy --> $xpyp")
     nothing
 end
+
+@deprecate combine multiply
 
 end # module
