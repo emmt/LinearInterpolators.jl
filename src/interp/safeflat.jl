@@ -15,10 +15,10 @@ immutable SafeFlatLimits{T<:AbstractFloat} <: Limits{T}
     inf::T   # bound for all neighbors before range
     sup::T   # bound for all neighbors after range
     len::Int # length of dimension in interpolated array
-    function SafeFlatLimits(inf, sup, len::Integer)
+    function (::SafeFlatLimits)(inf, sup, len::Integer)
         @assert inf < sup
         @assert len ≥ 1
-        new(inf, sup, len)
+        new{T}(inf, sup, len)
     end
 end
 

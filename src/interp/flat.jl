@@ -13,9 +13,9 @@
 
 immutable FlatLimits{T<:AbstractFloat} <: Limits{T}
     len::Int # length of dimension in interpolated array
-    function FlatLimits(len::Integer)
+    function (::FlatLimits)(len::Integer)
         @assert len ≥ 1
-        new(len)
+        new{T}(len)
     end
 end
 

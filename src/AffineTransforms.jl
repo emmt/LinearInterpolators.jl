@@ -30,7 +30,12 @@ export
     intercept,
     jacobian
 
-import Base: convert, det, inv, scale, show, *, +, /, \
+import Base: convert, det, inv, show, *, +, \, /
+
+@static if isdefined(Base, :scale)
+    import Base.scale
+end
+
 """
 # Affine 2D Transforms
 
@@ -89,9 +94,9 @@ immutable AffineTransform2D{T<:AbstractFloat}
     yx::T
     yy::T
     y ::T
-    function AffineTransform2D(xx::Real, xy::Real, x::Real,
-                               yx::Real, yy::Real, y::Real)
-        new(xx, xy, x, yx, yy, y)
+    function (::AffineTransform2D{T}){T}(xx::Real, xy::Real, x::Real,
+                                yx::Real, yy::Real, y::Real)
+        new{T}(xx, xy, x, yx, yy, y)
     end
 end
 

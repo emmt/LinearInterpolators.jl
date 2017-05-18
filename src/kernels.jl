@@ -12,6 +12,8 @@
 
 module Kernels
 
+using Compat
+
 import Base: eltype, length, size, convert
 
 export
@@ -36,7 +38,7 @@ export
 All extrapolation methods (a.k.a. boundary conditions) are singletons and
 inherit from the abstract type `Boundaries`.
 """
-abstract Boundaries
+@compat abstract type Boundaries end
 
 immutable Flat     <: Boundaries; end
 immutable SafeFlat <: Boundaries; end
@@ -47,7 +49,8 @@ immutable SafeFlat <: Boundaries; end
 # INTERPOLATION KERNELS
 
 # This function is needed for rational constants.
-@inline _{T<:AbstractFloat}(::Type{T}, num::Real, den::Real) = T(num)/T(den)
+@inline rc{T<:AbstractFloat}(::Type{T}, num::Real, den::Real) =
+    T(num)/T(den) :: T
 
 two{T<:Number}(::Type{T}) = convert(T,2)
 three{T<:Number}(::Type{T}) = convert(T,3)
@@ -100,7 +103,7 @@ yields the type of the boundary conditions applied for extrapolation; finally:
 yields the `S` interpolation weights for offset `t ∈ [0,1]` if `S` is even or
 or for `t ∈ [-1/2,+1/2]` is `S` is odd.
 """
-abstract Kernel{T<:AbstractFloat,S,B<:Boundaries}
+@compat abstract type Kernel{T<:AbstractFloat,S,B<:Boundaries} end
 
 eltype{T,S,B}(::Kernel{T,S,B}) = T
 eltype{T,S,B}(::Type{Kernel{T,S,B}}) = T
@@ -181,13 +184,13 @@ isnormalized{K<:QuadraticSpline}(::Type{K}) = true
 
 function (ker::QuadraticSpline{T,B}){T<:AbstractFloat,B<:Boundaries}(x::T)
     t = abs(x)
-    if t ≥ _(T,3,2)
+    if t ≥ rc(T,3,2)
         return zero(T)
-    elseif t ≤ _(T,1,2)
-        return _(T,3,4) - t*t
+    elseif t ≤ rc(T,1,2)
+        return rc(T,3,4) - t*t
     else
-        t -= _(T,3,2)
-        return _(T,1,2)*t*t
+        t -= rc(T,3,2)
+        return rc(T,1,2)*t*t
     end
 end
 
@@ -228,10 +231,10 @@ function (::Type{CubicSpline{T,B}}){T<:AbstractFloat,B}(x::T)
     if t ≥ T(2)
         return zero(T)
     elseif t ≤ one(T)
-        return (_(T,1,2)*t - one(T))*t*t + _(T,2,3)
+        return (rc(T,1,2)*t - one(T))*t*t + rc(T,2,3)
     else
         t = T(2) - t
-        return _(T,1,6)*t*t*t
+        return rc(T,1,6)*t*t*t
     end
 end
 
@@ -251,8 +254,8 @@ isnormalized{K<:CatmullRomSpline}(::Type{K}) = true
 function (ker::CatmullRomSpline{T,B}){T<:AbstractFloat,B}(x::T)
     t = abs(x)
     t ≥ two(T) ? zero(T) :
-    t ≤ one(T) ? (_(T,3,2)*t - _(T,5,2))*t*t + one(T) :
-    ((_(T,5,2) - _(T,1,2)*t)*t - T(4))*t + T(2)
+    t ≤ one(T) ? (rc(T,3,2)*t - rc(T,5,2))*t*t + one(T) :
+    ((rc(T,5,2) - rc(T,1,2)*t)*t - T(4))*t + T(2)
 end
 
 @inline function getweights{T<:AbstractFloat,B}(::CatmullRomSpline{T,B}, t::T)
@@ -280,9 +283,9 @@ tangents, `c = -1` yields a truncated approximation of a cardinal sine.
 immutable CardinalCubicSpline{T,B} <: Kernel{T,4,B}
     α::T
     β::T
-    function CardinalCubicSpline(c::Real)
+    function (::CardinalCubicSpline)(c::Real)
         #@assert c ≤ 1
-        new((c - 1)/2, (c + 1)/2)
+        new{T,B}((c - 1)/2, (c + 1)/2)
     end
 end
 
@@ -377,15 +380,15 @@ immutable MitchellNetraviliSpline{T,B} <: Kernel{T,4,B}
     q1::T
     q2::T
     q3::T
-    function MitchellNetraviliSpline(b::Real, c::Real)
-        new(b, c,
-            (   6 -  2*b       )/6,
-            ( -18 + 12*b +  6*c)/6,
-            (  12 -  9*b -  6*c)/6,
-            (        8*b + 24*c)/6,
-            (     - 12*b - 48*c)/6,
-            (        6*b + 30*c)/6,
-            (     -    b -  6*c)/6)
+    function (::MitchellNetraviliSpline)(b::Real, c::Real)
+        new{T,B}(b, c,
+                 (   6 -  2*b       )/6,
+                 ( -18 + 12*b +  6*c)/6,
+                 (  12 -  9*b -  6*c)/6,
+                 (        8*b + 24*c)/6,
+                 (     - 12*b - 48*c)/6,
+                 (        6*b + 30*c)/6,
+                 (     -    b -  6*c)/6)
     end
 end
 
@@ -397,7 +400,7 @@ end
 # Create Mitchell-Netravali kernel with default parameters.
 function MitchellNetraviliSpline{T<:AbstractFloat,B<:Boundaries}(
     ::Type{T} = Float64, ::Type{B} = Flat)
-    MitchellNetraviliSpline{T,B}(_(T,1,3), _(T,1,3))
+    MitchellNetraviliSpline{T,B}(rc(T,1,3), rc(T,1,3))
 end
 
 iscardinal{T<:AbstractFloat,B}(ker::MitchellNetraviliSpline{T,B}) =
@@ -440,8 +443,8 @@ immutable KeysSpline{T,B} <: Kernel{T,4,B}
     q1::T
     q2::T
     q3::T
-    function KeysSpline(a::Real)
-        new(a, 1, -a - 3, a + 2, -4*a, 8*a, -5*a, a)
+    function (::KeysSpline)(a::Real)
+        new{T,B}(a, 1, -a - 3, a + 2, -4*a, 8*a, -5*a, a)
     end
 end
 
@@ -485,11 +488,11 @@ immutable LanczosKernel{T,S,B} <: Kernel{T,S,B}
     a::T   # 1/2 support
     b::T   # a/pi^2
     c::T   # pi/a
-    function LanczosKernel()
+    function (::LanczosKernel)()
         @assert S > 0
         @assert iseven(S)
         a = T(S)/2
-        new(a, a/pi^2, pi/a)
+        new{T,S,B}(a, a/pi^2, pi/a)
     end
 end
 

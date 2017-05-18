@@ -11,6 +11,8 @@
 
 module Interpolations
 
+using Compat
+
 import Base: eltype, length, size, first, last, clamp, convert
 
 importall TiPi.Kernels
@@ -40,7 +42,7 @@ All interpolation limits inherit from the abstract type `Limits` and are the
 combination of an extrapolation method and the length the dimension to
 interpolate.
 """
-abstract Limits{T<:AbstractFloat} # FIXME: add parameter S
+@compat abstract type Limits{T<:AbstractFloat} end # FIXME: add parameter S
 
 eltype{T}(::Limits{T}) = T
 length{T}(B::Limits{T}) = B.len
@@ -126,8 +128,8 @@ result of the operation.
     apply_adjoint!(dst, ker,        R, src, clr=true) -> dst
     apply_adjoint!(dst, ker1, ker2, R, src, clr=true) -> dst
 
-applies the adjoint of the interpolation by and stores the result in `dst` which
-is returned.  See `interp_direct!` for the arguments.
+applies the adjoint of the interpolation by and stores the result in `dst`
+which is returned.  See `interp_direct!` for the arguments.
 
 """
 function apply_adjoint! end
