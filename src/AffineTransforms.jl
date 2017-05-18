@@ -94,10 +94,6 @@ immutable AffineTransform2D{T<:AbstractFloat}
     yx::T
     yy::T
     y ::T
-    function (::AffineTransform2D{T}){T}(xx::Real, xy::Real, x::Real,
-                                yx::Real, yy::Real, y::Real)
-        new{T}(xx, xy, x, yx, yy, y)
-    end
 end
 
 # Use Cdouble type by default.
