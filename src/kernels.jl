@@ -14,7 +14,7 @@ module Kernels
 
 using Compat
 
-import Base: eltype, length, size, convert
+import Base: convert
 
 export
     boundaries,
@@ -105,11 +105,11 @@ or for `t ∈ [-1/2,+1/2]` is `S` is odd.
 """
 @compat abstract type Kernel{T<:AbstractFloat,S,B<:Boundaries} end
 
-eltype{T,S,B}(::Kernel{T,S,B}) = T
-eltype{T,S,B}(::Type{Kernel{T,S,B}}) = T
-length{T,S,B}(::Kernel{T,S,B}) = S
-size{T,S,B}(::Kernel{T,S,B}) = S
-#length{T,S}(::Type{Kernel{T,S,B}}) = S  # FIXME: does not work with Julia 0.5
+Base.eltype{T,S,B}(::Kernel{T,S,B}) = T
+Base.eltype{T,S,B}(::Type{Kernel{T,S,B}}) = T
+Base.length{T,S,B}(::Kernel{T,S,B}) = S
+Base.size{T,S,B}(::Kernel{T,S,B}) = S
+#Base.length{T,S}(::Type{Kernel{T,S,B}}) = S  # FIXME: does not work with Julia 0.5
 
 """
 `boundaries(ker)` yields the type of the boundary conditions applied for
@@ -122,13 +122,13 @@ boundaries{T,S,B}(::Kernel{T,S,B}) = B
 the partition of unity property.  That is, the sum of the values computed by
 the kernel `ker` on a unit spaced grid is equal to one.
 """
-isnormalized{K<:Kernel}(::K) = isnormalized(K)
+function isnormalized end
 
 """
 `iscardinal(ker)` returns a boolean indicating whether the kernel `ker`
 is zero for non-zero integer arguments.
 """
-iscardinal{K<:Kernel}(::K) = iscardinal(K)
+function iscardinal end
 
 #------------------------------------------------------------------------------
 """
@@ -142,8 +142,10 @@ and `0` elsewhere.
 immutable RectangularSpline{T,B} <: Kernel{T,1,B}; end
 
 iscardinal{K<:RectangularSpline}(::Type{K}) = true
+iscardinal{K<:RectangularSpline}(::K) = true
 
 isnormalized{K<:RectangularSpline}(::Type{K}) = true
+isnormalized{K<:RectangularSpline}(::K) = true
 
 (ker::RectangularSpline{T,B}){T<:AbstractFloat,B}(x::T) =
     -half(T) ≤ x < half(T) ? one(T) : zero(T)
@@ -161,8 +163,10 @@ window) is a 2nd order (linear) B-spline.
 immutable LinearSpline{T,B} <: Kernel{T,2,B}; end
 
 iscardinal{K<:LinearSpline}(::Type{K}) = true
+iscardinal{K<:LinearSpline}(::K) = true
 
 isnormalized{K<:LinearSpline}(::Type{K}) = true
+isnormalized{K<:LinearSpline}(::K) = true
 
 (ker::LinearSpline{T,B}){T<:AbstractFloat,B}(x::T) =
     (a = abs(x); a < one(T) ? one(T) - a : zero(T))
@@ -179,8 +183,10 @@ The quadratic spline is 3rd order (quadratic) B-spline.
 immutable QuadraticSpline{T,B} <: Kernel{T,3,B}; end
 
 iscardinal{K<:QuadraticSpline}(::Type{K}) = false
+iscardinal{K<:QuadraticSpline}(::K) = false
 
 isnormalized{K<:QuadraticSpline}(::Type{K}) = true
+isnormalized{K<:QuadraticSpline}(::K) = true
 
 function (ker::QuadraticSpline{T,B}){T<:AbstractFloat,B<:Boundaries}(x::T)
     t = abs(x)
@@ -223,10 +229,12 @@ Vallée Poussin window.
 immutable CubicSpline{T,B} <: Kernel{T,4,B}; end
 
 iscardinal{K<:CubicSpline}(::Type{K}) = false
+iscardinal{K<:CubicSpline}(::K) = false
 
 isnormalized{K<:CubicSpline}(::Type{K}) = true
+isnormalized{K<:CubicSpline}(::K) = true
 
-function (::Type{CubicSpline{T,B}}){T<:AbstractFloat,B}(x::T)
+function (::CubicSpline{T,B}){T<:AbstractFloat,B}(x::T)
     t = abs(x);
     if t ≥ T(2)
         return zero(T)
@@ -248,8 +256,10 @@ end
 immutable CatmullRomSpline{T,B} <: Kernel{T,4,B}; end
 
 iscardinal{K<:CatmullRomSpline}(::Type{K}) = true
+iscardinal{K<:CatmullRomSpline}(::K) = true
 
 isnormalized{K<:CatmullRomSpline}(::Type{K}) = true
+isnormalized{K<:CatmullRomSpline}(::K) = true
 
 function (ker::CatmullRomSpline{T,B}){T<:AbstractFloat,B}(x::T)
     t = abs(x)
@@ -283,29 +293,33 @@ tangents, `c = -1` yields a truncated approximation of a cardinal sine.
 immutable CardinalCubicSpline{T,B} <: Kernel{T,4,B}
     α::T
     β::T
-    function (::CardinalCubicSpline)(c::Real)
+
+    (::Type{Kernels.CardinalCubicSpline{T,B}}){T,B}(α::Real, β::Real) =
+        new{T,B}(α, β)
+
+    function (::Type{Kernels.CardinalCubicSpline{T,B}}){T,B}(c::Real)
         #@assert c ≤ 1
         new{T,B}((c - 1)/2, (c + 1)/2)
     end
 end
 
+function CardinalCubicSpline{T<:AbstractFloat,B<:Boundaries}(
+    ::Type{T}, c::Real, ::Type{B} = Flat)
+    CardinalCubicSpline{T,B}(c)
+end
+
+CardinalCubicSpline{B<:Boundaries}(c::Real, ::Type{B} = Flat) =
+    CardinalCubicSpline(Float64, c, B)
+
 iscardinal{K<:CardinalCubicSpline}(::Type{K}) = true
+iscardinal{K<:CardinalCubicSpline}(::K) = true
 
 isnormalized{K<:CardinalCubicSpline}(::Type{K}) = true
+isnormalized{K<:CardinalCubicSpline}(::K) = true
 
-function CardinalCubicSpline{T<:AbstractFloat,B<:Boundaries}(::Type{T}, c::Real,
-                                                             ::Type{B} = Flat)
-    CardinalCubicSpline{T,B}(c)
-end
-
-function CardinalCubicSpline{T<:AbstractFloat,B<:Boundaries}(c::T,
-                                                             ::Type{B} = Flat)
-    CardinalCubicSpline{T,B}(c)
-end
-
-function convert{T<:AbstractFloat,B<:Boundaries}(::Type{CardinalCubicSpline{T,B}},
-                                                 ker::CardinalCubicSpline)
-    CardinalCubicSpline{T,B}(ker.α + ker.β)
+function convert{T<:AbstractFloat,B<:Boundaries}(
+    ::Type{CardinalCubicSpline{T,B}}, ker::CardinalCubicSpline)
+    CardinalCubicSpline(T, ker.α + ker.β, B)
 end
 
 function (ker::CardinalCubicSpline{T,B}){T<:AbstractFloat,B}(x::T)
@@ -380,24 +394,30 @@ immutable MitchellNetraviliSpline{T,B} <: Kernel{T,4,B}
     q1::T
     q2::T
     q3::T
-    function (::MitchellNetraviliSpline)(b::Real, c::Real)
-        new{T,B}(b, c,
-                 (   6 -  2*b       )/6,
-                 ( -18 + 12*b +  6*c)/6,
-                 (  12 -  9*b -  6*c)/6,
-                 (        8*b + 24*c)/6,
-                 (     - 12*b - 48*c)/6,
-                 (        6*b + 30*c)/6,
-                 (     -    b -  6*c)/6)
+    function (::Type{MitchellNetraviliSpline{T,B}}){T,B}(b::Real, c::Real)
+        new{T,B}(
+            b, c,
+            (   6 -  2*b       )/6,
+            ( -18 + 12*b +  6*c)/6,
+            (  12 -  9*b -  6*c)/6,
+            (        8*b + 24*c)/6,
+            (     - 12*b - 48*c)/6,
+            (        6*b + 30*c)/6,
+            (     -    b -  6*c)/6)
     end
 end
 
 function MitchellNetraviliSpline{T<:AbstractFloat,B<:Boundaries}(
     ::Type{T}, b::Real, c::Real, ::Type{B} = Flat)
-    MitchellNetraviliSpline{T,B}(T(b), T(c))
+    MitchellNetraviliSpline{T,B}(b, c)
 end
 
-# Create Mitchell-Netravali kernel with default parameters.
+function MitchellNetraviliSpline{B<:Boundaries}(
+    b::Real, c::Real, ::Type{B} = Flat)
+    MitchellNetraviliSpline(Float64, b, c, B)
+end
+
+# Create Mitchell-Netravali kernel with default "good" parameters.
 function MitchellNetraviliSpline{T<:AbstractFloat,B<:Boundaries}(
     ::Type{T} = Float64, ::Type{B} = Flat)
     MitchellNetraviliSpline{T,B}(rc(T,1,3), rc(T,1,3))
@@ -406,7 +426,13 @@ end
 iscardinal{T<:AbstractFloat,B}(ker::MitchellNetraviliSpline{T,B}) =
     (ker.b == zero(T))
 
-isnormalized{T<:MitchellNetraviliSpline}(::Type{T}) = true
+isnormalized{K<:MitchellNetraviliSpline}(::Type{K}) = true
+isnormalized{K<:MitchellNetraviliSpline}(::K) = true
+
+function convert{T<:AbstractFloat,B<:Boundaries}(
+    ::Type{MitchellNetraviliSpline{T,B}}, ker::MitchellNetraviliSpline)
+    MitchellNetraviliSpline(T, ker.b, ker.c, B)
+end
 
 function (ker::MitchellNetraviliSpline{T,B}){T<:AbstractFloat,B}(x::T)
     t = abs(x)
@@ -443,7 +469,7 @@ immutable KeysSpline{T,B} <: Kernel{T,4,B}
     q1::T
     q2::T
     q3::T
-    function (::KeysSpline)(a::Real)
+    function (::Type{KeysSpline{T,B}}){T,B}(a::Real)
         new{T,B}(a, 1, -a - 3, a + 2, -4*a, 8*a, -5*a, a)
     end
 end
@@ -453,14 +479,19 @@ function KeysSpline{T<:AbstractFloat,B<:Boundaries}(
     KeysSpline{T,B}(a)
 end
 
-function KeysSpline{B<:Boundaries}(
-    a::Real, ::Type{B} = Flat)
-    KeysSpline{Float64,B}(a)
-end
+KeysSpline{B<:Boundaries}(a::Real, ::Type{B} = Flat) =
+    KeysSpline(Float64, a, B)
 
 iscardinal{K<:KeysSpline}(::Type{K}) = true
+iscardinal{K<:KeysSpline}(::K) = true
 
 isnormalized{K<:KeysSpline}(::Type{K}) = true
+isnormalized{K<:KeysSpline}(::K) = true
+
+function convert{T<:AbstractFloat,B<:Boundaries}(
+    ::Type{KeysSpline{T,B}}, ker::KeysSpline)
+    KeysSpline(T, ker.a, B)
+end
 
 function (ker::KeysSpline{T,B}){T<:AbstractFloat,B}(x::T)
     t = abs(x)
@@ -488,10 +519,9 @@ immutable LanczosKernel{T,S,B} <: Kernel{T,S,B}
     a::T   # 1/2 support
     b::T   # a/pi^2
     c::T   # pi/a
-    function (::LanczosKernel)()
-        @assert S > 0
-        @assert iseven(S)
-        a = T(S)/2
+    function (::Type{LanczosKernel{T,S,B}}){T,S,B}()
+        @assert typeof(S) == Int && S > 0 && iseven(S)
+        a = S/2
         new{T,S,B}(a, a/pi^2, pi/a)
     end
 end
@@ -507,8 +537,17 @@ function LanczosKernel{B<:Boundaries}(
 end
 
 iscardinal{K<:LanczosKernel}(::Type{K}) = true
+iscardinal{K<:LanczosKernel}(::K) = true
 
 isnormalized{K<:LanczosKernel}(::Type{K}) = false
+isnormalized{K<:LanczosKernel}(::K) = false
+
+# `convert` should give something which is almost equivalent, so here we
+# enforce the same support size.
+function convert{T<:AbstractFloat,S,B<:Boundaries,Told,Bold}(
+    ::Type{LanczosKernel{T,S,B}}, ::LanczosKernel{Told,S,Bold})
+    LanczosKernel{T,S,B}()
+end
 
 function (ker::LanczosKernel{T,S,B}){T<:AbstractFloat,S,B}(x::T)
     abs(x) ≥ ker.a ? zero(T) :
@@ -563,13 +602,18 @@ for K in subtypes(Kernel)
         end
     end
 
-    @eval begin
-        # Calling the kernel on an array.
-        (ker::$K{T,B}){T<:AbstractFloat,B<:Boundaries}(A::AbstractArray) =
-            map((x) -> ker(x), A)
+    # Calling the kernel on an array.
+    if K <: LanczosKernel
+        @eval (ker::$K{T,S,B}){T<:AbstractFloat,S,B<:Boundaries}(
+            A::AbstractArray) = map((x) -> ker(x), A)
+    else
+        @eval (ker::$K{T,B}){T<:AbstractFloat,B<:Boundaries}(
+            A::AbstractArray) = map((x) -> ker(x), A)
+    end
 
-        # Calling the kernel as a function to convert to another floating-point
-        # type and/or other boundary conditions.
+    # Calling the kernel as a function to convert to another floating-point
+    # type and/or other boundary conditions.
+    @eval begin
         (ker::$K{oldT,oldB}){
             oldT<:AbstractFloat, oldB<:Boundaries,
             newT<:AbstractFloat, newB<:Boundaries
@@ -589,13 +633,12 @@ for K in subtypes(Kernel)
             oldT<:AbstractFloat, oldB<:Boundaries,
             newB<:Boundaries
         }(::Type{newB}) = convert($K{oldT,newB}, ker)
+    end
 
-        # Conversion to the same type.
-        function convert{T<:AbstractFloat,B<:Boundaries}(::Type{$K{T,B}},
-                                                         ker::$K{T,B})
-            ker
-        end
-
+    # Conversion to the same type.
+    @eval function convert{T<:AbstractFloat,B<:Boundaries}(::Type{$K{T,B}},
+                                                           ker::$K{T,B})
+        ker
     end
 end
 
