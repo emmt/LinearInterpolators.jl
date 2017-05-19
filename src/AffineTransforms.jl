@@ -100,7 +100,7 @@ end
 AffineTransform2D() = AffineTransform2D(Cdouble)
 AffineTransform2D(xx::Real, xy::Real, x::Real,
                   yx::Real, yy::Real, y::Real) =
-                      AffineTransform2D(Cdouble, xx, xy, x, yx, yy, y)
+                      AffineTransform2D{Cdouble}(xx, xy, x, yx, yy, y)
 
 function AffineTransform2D{T<:AbstractFloat}(::Type{T})
     const ZERO = zero(T)

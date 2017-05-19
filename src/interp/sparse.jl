@@ -18,10 +18,10 @@ immutable SparseInterpolator{T<:AbstractFloat, S, N} <:
     nrows::Int
     ncols::Int
     dims::NTuple{N,Int} # dimensions of result
-    function (::SparseInterpolator{T,N}){T,N}(C::Vector{T},
-                                              J::Vector{Int},
-                                              dims::NTuple{N,Int},
-                                              ncols::Int)
+    function (::Type{SparseInterpolator{T,N}}){T,N}(C::Vector{T},
+                                                    J::Vector{Int},
+                                                    dims::NTuple{N,Int},
+                                                    ncols::Int)
         @assert S ≥ 1
         @assert minimum(dims) ≥ 1
         nrows = prod(dims)
