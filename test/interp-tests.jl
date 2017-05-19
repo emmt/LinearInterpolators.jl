@@ -2,7 +2,7 @@ module InterpTests
 
 const PLOTTING = true
 if PLOTTING
-    using PyCall; pygui(:gtk); # can be: :wx, :gtk, :qt
+    using PyCall; #pygui(:qt); # can be: :wx, :gtk, :qt
     using LaTeXStrings
     import PyPlot; const plt = PyPlot
 end
