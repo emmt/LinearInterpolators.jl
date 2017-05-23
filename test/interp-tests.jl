@@ -8,14 +8,12 @@ if PLOTTING
 end
 
 using TiPi
-#include("../src/TiPi.jl")
-#importall TiPi
 
 importall TiPi.Kernels
 importall TiPi.Interpolations
 importall TiPi.Algebra
 
-function interp_tests{T<:AbstractFloat}(::Type{T} = Float64)
+function demos{T<:AbstractFloat}(::Type{T} = Float64)
 
     z = convert(Array{T}, [0.5, 0.3, 0.1, 0.0, -0.2, -0.7, -0.7, 0.0, 1.7])
 
@@ -50,7 +48,7 @@ function interp_tests{T<:AbstractFloat}(::Type{T} = Float64)
        plt.imshow(I(z));
    end
 end
-#interp_tests()
+#demos()
 #------------------------------------------------------------------------------
 
 const CPU = 2.94e9
