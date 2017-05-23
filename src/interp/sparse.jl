@@ -11,17 +11,16 @@
 
 import Base: sparse, eltype
 
-immutable SparseInterpolator{T<:AbstractFloat, S, N} <:
-    LinearOperator{AbstractArray{T,N}, AbstractVector{T}}
+immutable SparseInterpolator{T<:AbstractFloat, S, N} <: LinearOperator{AbstractArray{T,N}, AbstractVector{T}}
     C::Vector{T}
     J::Vector{Int}
     nrows::Int
     ncols::Int
     dims::NTuple{N,Int} # dimensions of result
-    function (::Type{SparseInterpolator{T,N}}){T,N}(C::Vector{T},
-                                                    J::Vector{Int},
-                                                    dims::NTuple{N,Int},
-                                                    ncols::Int)
+    function (::Type{SparseInterpolator{T,S,N}}){T,S,N}(C::Vector{T},
+                                                        J::Vector{Int},
+                                                        dims::NTuple{N,Int},
+                                                        ncols::Int)
         @assert S ≥ 1
         @assert minimum(dims) ≥ 1
         nrows = prod(dims)
