@@ -26,6 +26,7 @@ export
     multiply,
     chain,
     rotate,
+    scale,
     translate,
     intercept,
     jacobian
