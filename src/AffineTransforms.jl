@@ -51,9 +51,11 @@ by:
 The immutable type `AffineTransform2D` is used to store an affine 2D transform
 `C`, it can be created by:
 ```
-  C = AffineTransform2D(T) # yields the identity with type T
-  C = AffineTransform2D(Cxx, Cxy, Cx, Cyx, Cyy, Cy)
+  C = AffineTransform2D{T}() # yields the identity with type T
+  C = AffineTransform2D{T}(Cxx, Cxy, Cx, Cyx, Cyy, Cy)
 ```
+The `{T}` above is used to specify the floating-point type for the
+coefficients; if omitted, `T = Cdouble` is assumed.
 
 Many operations are available to manage or apply affine transforms:
 ```
@@ -95,25 +97,27 @@ immutable AffineTransform2D{T<:AbstractFloat}
     yx::T
     yy::T
     y ::T
+    (::Type{AffineTransform2D{T}}){T}() = new{T}(1,0,0, 0,1,0)
+    (::Type{AffineTransform2D{T}}){T}(a11::Real, a12::Real, a13::Real,
+                                      a21::Real, a22::Real, a23::Real) =
+                                          new{T}(a11,a12,a13, a21,a22,a23)
 end
 
 # Use Cdouble type by default.
-AffineTransform2D() = AffineTransform2D(Cdouble)
-AffineTransform2D(xx::Real, xy::Real, x::Real,
-                  yx::Real, yy::Real, y::Real) =
-                      AffineTransform2D{Cdouble}(xx, xy, x, yx, yy, y)
+AffineTransform2D() = AffineTransform2D{Cdouble}()
+AffineTransform2D(a11::Real, a12::Real, a13::Real,
+                  a21::Real, a22::Real, a23::Real) =
+    AffineTransform2D{Cdouble}(a11,a12,a13, a21,a22,a23)
 
-function AffineTransform2D{T<:AbstractFloat}(::Type{T})
-    const ZERO = zero(T)
-    const ONE = one(T)
-    AffineTransform2D{T}(ONE, ZERO, ZERO, ZERO, ONE, ZERO)
-end
+@deprecate(
+    AffineTransform2D{T<:AbstractFloat}(::Type{T}),
+    AffineTransform2D{T}())
 
-function AffineTransform2D{T<:AbstractFloat}(::Type{T},
-                                             xx::Real, xy::Real, x::Real,
-                                             yx::Real, yy::Real, y::Real)
-    AffineTransform2D{T}(xx, xy, x, yx, yy, y)
-end
+@deprecate(
+    AffineTransform2D{T<:AbstractFloat}(::Type{T},
+                                        a11::Real, a12::Real, a13::Real,
+                                        a21::Real, a22::Real, a23::Real),
+    AffineTransform2D{T}(a11,a12,a13, a21,a22,a23))
 
 # The following is a no-op when the destination type matches that of the
 # source.
