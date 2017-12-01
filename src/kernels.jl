@@ -102,6 +102,7 @@ or for `t ∈ [-1/2,+1/2]` is `S` is odd.
 Base.eltype{T,S,B}(::Kernel{T,S,B}) = T
 Base.eltype{T,S,B}(::Type{Kernel{T,S,B}}) = T
 Base.length{T,S,B}(::Kernel{T,S,B}) = S
+Base.length{T,S,B}(::Type{Kernel{T,S,B}}) = S
 Base.size{T,S,B}(::Kernel{T,S,B}) = S
 #Base.length{T,S}(::Type{Kernel{T,S,B}}) = S  # FIXME: does not work with Julia 0.5
 
@@ -135,11 +136,9 @@ and `0` elsewhere.
 """
 immutable RectangularSpline{T,B} <: Kernel{T,1,B}; end
 
-iscardinal{K<:RectangularSpline}(::Type{K}) = true
-iscardinal{K<:RectangularSpline}(::K) = true
-
-isnormalized{K<:RectangularSpline}(::Type{K}) = true
-isnormalized{K<:RectangularSpline}(::K) = true
+Base.length{K<:RectangularSpline}(::Union{K,Type{K}}) = 1
+iscardinal{K<:RectangularSpline}(::Union{K,Type{K}}) = true
+isnormalized{K<:RectangularSpline}(::Union{K,Type{K}}) = true
 
 (ker::RectangularSpline{T,B}){T<:AbstractFloat,B}(x::T) =
     T(-1/2) ≤ x < T(1/2) ? T(1) : T(0)
@@ -156,11 +155,9 @@ window) is a 2nd order (linear) B-spline.
 """
 immutable LinearSpline{T,B} <: Kernel{T,2,B}; end
 
-iscardinal{K<:LinearSpline}(::Type{K}) = true
-iscardinal{K<:LinearSpline}(::K) = true
-
-isnormalized{K<:LinearSpline}(::Type{K}) = true
-isnormalized{K<:LinearSpline}(::K) = true
+Base.length{K<:LinearSpline}(::Union{K,Type{K}}) = 2
+iscardinal{K<:LinearSpline}(::Union{K,Type{K}}) = true
+isnormalized{K<:LinearSpline}(::Union{K,Type{K}}) = true
 
 (ker::LinearSpline{T,B}){T<:AbstractFloat,B}(x::T) =
     (a = abs(x); a < T(1) ? T(1) - a : T(0))
@@ -176,11 +173,9 @@ The quadratic spline is 3rd order (quadratic) B-spline.
 """
 immutable QuadraticSpline{T,B} <: Kernel{T,3,B}; end
 
-iscardinal{K<:QuadraticSpline}(::Type{K}) = false
-iscardinal{K<:QuadraticSpline}(::K) = false
-
-isnormalized{K<:QuadraticSpline}(::Type{K}) = true
-isnormalized{K<:QuadraticSpline}(::K) = true
+Base.length{K<:QuadraticSpline}(::Union{K,Type{K}}) = 3
+iscardinal{K<:QuadraticSpline}(::Union{K,Type{K}}) = false
+isnormalized{K<:QuadraticSpline}(::Union{K,Type{K}}) = true
 
 function (ker::QuadraticSpline{T,B}){T<:AbstractFloat,B<:Boundaries}(x::T)
     a = abs(x)
@@ -217,11 +212,9 @@ Vallée Poussin window.
 """
 immutable CubicSpline{T,B} <: Kernel{T,4,B}; end
 
-iscardinal{K<:CubicSpline}(::Type{K}) = false
-iscardinal{K<:CubicSpline}(::K) = false
-
-isnormalized{K<:CubicSpline}(::Type{K}) = true
-isnormalized{K<:CubicSpline}(::K) = true
+Base.length{K<:CubicSpline}(::Union{K,Type{K}}) = 4
+iscardinal{K<:CubicSpline}(::Union{K,Type{K}}) = false
+isnormalized{K<:CubicSpline}(::Union{K,Type{K}}) = true
 
 function (::CubicSpline{T,B}){T<:AbstractFloat,B}(x::T)
     a = abs(x)
@@ -239,11 +232,9 @@ end
 
 immutable CatmullRomSpline{T,B} <: Kernel{T,4,B}; end
 
-iscardinal{K<:CatmullRomSpline}(::Type{K}) = true
-iscardinal{K<:CatmullRomSpline}(::K) = true
-
-isnormalized{K<:CatmullRomSpline}(::Type{K}) = true
-isnormalized{K<:CatmullRomSpline}(::K) = true
+Base.length{K<:CatmullRomSpline}(::Union{K,Type{K}}) = 4
+iscardinal{K<:CatmullRomSpline}(::Union{K,Type{K}}) = true
+isnormalized{K<:CatmullRomSpline}(::Union{K,Type{K}}) = true
 
 function (ker::CatmullRomSpline{T,B}){T<:AbstractFloat,B}(x::T)
     a = abs(x)
@@ -295,11 +286,9 @@ end
 CardinalCubicSpline{B<:Boundaries}(c::Real, ::Type{B} = Flat) =
     CardinalCubicSpline(Float64, c, B)
 
-iscardinal{K<:CardinalCubicSpline}(::Type{K}) = true
-iscardinal{K<:CardinalCubicSpline}(::K) = true
-
-isnormalized{K<:CardinalCubicSpline}(::Type{K}) = true
-isnormalized{K<:CardinalCubicSpline}(::K) = true
+Base.length{K<:CardinalCubicSpline}(::Union{K,Type{K}}) = 4
+iscardinal{K<:CardinalCubicSpline}(::Union{K,Type{K}}) = true
+isnormalized{K<:CardinalCubicSpline}(::Union{K,Type{K}}) = true
 
 function convert{T<:AbstractFloat,B<:Boundaries}(
     ::Type{CardinalCubicSpline{T,B}}, ker::CardinalCubicSpline)
@@ -400,11 +389,12 @@ function MitchellNetraviliSpline{T<:AbstractFloat,B<:Boundaries}(
     MitchellNetraviliSpline{T,B}(T(1/3), T(1/3))
 end
 
+Base.length{K<:MitchellNetraviliSpline}(::Union{K,Type{K}}) = 4
+
 iscardinal{T<:AbstractFloat,B}(ker::MitchellNetraviliSpline{T,B}) =
     (ker.b == T(0))
 
-isnormalized{K<:MitchellNetraviliSpline}(::Type{K}) = true
-isnormalized{K<:MitchellNetraviliSpline}(::K) = true
+isnormalized{K<:MitchellNetraviliSpline}(::Union{K,Type{K}}) = true
 
 function convert{T<:AbstractFloat,B<:Boundaries}(
     ::Type{MitchellNetraviliSpline{T,B}}, ker::MitchellNetraviliSpline)
@@ -459,11 +449,9 @@ end
 KeysSpline{B<:Boundaries}(a::Real, ::Type{B} = Flat) =
     KeysSpline(Float64, a, B)
 
-iscardinal{K<:KeysSpline}(::Type{K}) = true
-iscardinal{K<:KeysSpline}(::K) = true
-
-isnormalized{K<:KeysSpline}(::Type{K}) = true
-isnormalized{K<:KeysSpline}(::K) = true
+Base.length{K<:KeysSpline}(::Union{K,Type{K}}) = 4
+iscardinal{K<:KeysSpline}(::Union{K,Type{K}}) = true
+isnormalized{K<:KeysSpline}(::Union{K,Type{K}}) = true
 
 function convert{T<:AbstractFloat,B<:Boundaries}(
     ::Type{KeysSpline{T,B}}, ker::KeysSpline)
@@ -513,11 +501,8 @@ function LanczosKernel{B<:Boundaries}(
     LanczosKernel{Float64,Int(s),B}()
 end
 
-iscardinal{K<:LanczosKernel}(::Type{K}) = true
-iscardinal{K<:LanczosKernel}(::K) = true
-
-isnormalized{K<:LanczosKernel}(::Type{K}) = false
-isnormalized{K<:LanczosKernel}(::K) = false
+iscardinal{K<:LanczosKernel}(::Union{K,Type{K}}) = true
+isnormalized{K<:LanczosKernel}(::Union{K,Type{K}}) = false
 
 # `convert` should give something which is almost equivalent, so here we
 # enforce the same support size.
