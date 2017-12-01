@@ -48,8 +48,10 @@ immutable SafeFlat <: Boundaries; end
 #------------------------------------------------------------------------------
 # INTERPOLATION KERNELS
 
-two{T<:Number}(::Type{T}) = convert(T,2)
-three{T<:Number}(::Type{T}) = convert(T,3)
+@inline two{T<:Number}(::Type{T}) = convert(T,2)
+@inline three{T<:Number}(::Type{T}) = convert(T,3)
+@inline square(x) = x*x
+@inline cube(x) = x*x*x
 
 """
 # Interpolation Kernels
@@ -140,9 +142,9 @@ isnormalized{K<:RectangularSpline}(::Type{K}) = true
 isnormalized{K<:RectangularSpline}(::K) = true
 
 (ker::RectangularSpline{T,B}){T<:AbstractFloat,B}(x::T) =
-    T(-1/2) ≤ x < T(1/2) ? one(T) : zero(T)
+    T(-1/2) ≤ x < T(1/2) ? T(1) : T(0)
 
-@inline getweights{T<:AbstractFloat,B}(::RectangularSpline{T,B}, t::T) = one(T)
+@inline getweights{T<:AbstractFloat,B}(::RectangularSpline{T,B}, t::T) = T(1)
 
 #------------------------------------------------------------------------------
 """
@@ -161,10 +163,10 @@ isnormalized{K<:LinearSpline}(::Type{K}) = true
 isnormalized{K<:LinearSpline}(::K) = true
 
 (ker::LinearSpline{T,B}){T<:AbstractFloat,B}(x::T) =
-    (a = abs(x); a < one(T) ? one(T) - a : zero(T))
+    (a = abs(x); a < T(1) ? T(1) - a : T(0))
 
 @inline getweights{T<:AbstractFloat,B}(::LinearSpline{T,B}, t::T) =
-    one(T) - t, t
+    T(1) - t, t
 
 #------------------------------------------------------------------------------
 """
@@ -181,24 +183,19 @@ isnormalized{K<:QuadraticSpline}(::Type{K}) = true
 isnormalized{K<:QuadraticSpline}(::K) = true
 
 function (ker::QuadraticSpline{T,B}){T<:AbstractFloat,B<:Boundaries}(x::T)
-    t = abs(x)
-    if t ≥ T(3/2)
-        return zero(T)
-    elseif t ≤ T(1/2)
-        return T(3/4) - t*t
-    else
-        t -= T(3/2)
-        return T(1/2)*t*t
-    end
+    a = abs(x)
+    return (a ≥ T(3/2) ? T(0) :
+            a ≤ T(1/2) ? T(3/4) - a*a :
+            square(a - T(3/2))*T(1/2))
 end
 
 @inline function getweights{T<:AbstractFloat,B}(::QuadraticSpline{T,B}, t::T)
-    #return (T(1/8)*(one(T) - two(T)*t)^2,
+    #return (T(1/8)*(T(1) - T(2)*t)^2,
     #        T(3/4) - t^2,
-    #        T(1/8)*(one(T) + two(T)*t)^2)
-    const c1 = T(0.35355339059327376220042218105242451964241796884424)
-    const c2 = T(0.70710678118654752440084436210484903928483593768847)
-    const c3 = T(3)/T(4)
+    #        T(1/8)*(T(1) + T(2)*t)^2)
+    const c1 = T(0.35355339059327376220042218105242451964241796884424) # 1/sqrt(8)
+    const c2 = T(0.70710678118654752440084436210484903928483593768847) # 2/sqrt(8)
+    const c3 = T(3/4)
     c2t = c2*t
     q1 = c1 - c2t
     q3 = c1 + c2t
@@ -227,15 +224,10 @@ isnormalized{K<:CubicSpline}(::Type{K}) = true
 isnormalized{K<:CubicSpline}(::K) = true
 
 function (::CubicSpline{T,B}){T<:AbstractFloat,B}(x::T)
-    t = abs(x);
-    if t ≥ T(2)
-        return zero(T)
-    elseif t ≤ one(T)
-        return (T(1/2)*t - one(T))*t*t + T(2/3)
-    else
-        t = T(2) - t
-        return T(1/6)*t*t*t
-    end
+    a = abs(x)
+    return (a ≥ T(2) ? T(0) :
+            a ≥ T(1) ? cube(T(2) - a)*T(1/6) :
+            (T(1/2)*a - T(1))*a*a + T(2/3))
 end
 
 @inline function getweights{T<:AbstractFloat,B}(ker::CubicSpline{T,B}, t::T)
@@ -254,16 +246,16 @@ isnormalized{K<:CatmullRomSpline}(::Type{K}) = true
 isnormalized{K<:CatmullRomSpline}(::K) = true
 
 function (ker::CatmullRomSpline{T,B}){T<:AbstractFloat,B}(x::T)
-    t = abs(x)
-    t ≥ two(T) ? zero(T) :
-    t ≤ one(T) ? (T(3/2)*t - T(5/2))*t*t + one(T) :
-    ((T(5/2) - T(1/2)*t)*t - T(4))*t + T(2)
+    a = abs(x)
+    return (a ≥ T(2) ? T(0) :
+            a ≤ T(1) ? (T(3/2)*a - T(5/2))*a*a + T(1) :
+            ((T(5/2) - T(1/2)*a)*a - T(4))*a + T(2))
 end
 
 @inline function getweights{T<:AbstractFloat,B}(::CatmullRomSpline{T,B}, t::T)
     # 10 operations
-    s = one(T) - t
-    q = (T(-1)/T(2))*t*s
+    s = T(1) - t
+    q = T(-1/2)*t*s
     w1 = q*s
     w4 = q*t
     r = w4 - w1
@@ -315,17 +307,10 @@ function convert{T<:AbstractFloat,B<:Boundaries}(
 end
 
 function (ker::CardinalCubicSpline{T,B}){T<:AbstractFloat,B}(x::T)
-    t = abs(x)
-    if t < one(T)
-        const l = one(T)
-        return ((ker.β*t + t)*t - t - l)*(t - l)
-    elseif t < two(T)
-        r = two(T) - t
-        s = t - one(T)
-        return ker.α*s*r*r
-    else
-        return zero(T)
-    end
+    a = abs(x)
+    return (a ≥ T(2) ? T(0) :
+            a ≥ T(1) ? ker.α*(a - T(1))*square(T(2) - a) :
+            ((ker.β*a + a)*a - a - T(1))*(a - T(1)))
 end
 
 @inline function getweights{T<:AbstractFloat,B}(ker::CardinalCubicSpline{T,B},
@@ -338,7 +323,7 @@ end
     #     w3 = t + t² s - β s² t
     #     w4 = α s t²
     # with s = 1 - t in 13 operations.
-    s = one(T) - t
+    s = T(1) - t
     st = s*t
     ast = α*st
     return (ast*s,
@@ -416,7 +401,7 @@ function MitchellNetraviliSpline{T<:AbstractFloat,B<:Boundaries}(
 end
 
 iscardinal{T<:AbstractFloat,B}(ker::MitchellNetraviliSpline{T,B}) =
-    (ker.b == zero(T))
+    (ker.b == T(0))
 
 isnormalized{K<:MitchellNetraviliSpline}(::Type{K}) = true
 isnormalized{K<:MitchellNetraviliSpline}(::K) = true
@@ -427,10 +412,10 @@ function convert{T<:AbstractFloat,B<:Boundaries}(
 end
 
 function (ker::MitchellNetraviliSpline{T,B}){T<:AbstractFloat,B}(x::T)
-    t = abs(x)
-    t ≥ T(2) ? zero(T) :
-    t ≤ one(T) ? (ker.p3*t + ker.p2)*t*t + ker.p0 :
-    ((ker.q3*t + ker.q2)*t + ker.q1)*t + ker.q0
+    a = abs(x)
+    return (a ≥ T(2) ? T(0) :
+            a ≤ T(1) ? (ker.p3*a + ker.p2)*a*a + ker.p0 :
+            ((ker.q3*a + ker.q2)*a + ker.q1)*a + ker.q0)
 end
 
 @inline function getweights{T<:AbstractFloat,B}(
@@ -486,10 +471,10 @@ function convert{T<:AbstractFloat,B<:Boundaries}(
 end
 
 function (ker::KeysSpline{T,B}){T<:AbstractFloat,B}(x::T)
-    t = abs(x)
-    t ≥ T(2) ? zero(T) :
-    t ≤ one(T) ? (ker.p3*t + ker.p2)*t*t + ker.p0 :
-    ((ker.q3*t + ker.q2)*t + ker.q1)*t + ker.q0
+    a = abs(x)
+    return (a ≥ T(2) ? T(0) :
+            a ≤ T(1) ? (ker.p3*a + ker.p2)*a*a + ker.p0 :
+            ((ker.q3*a + ker.q2)*a + ker.q1)*a + ker.q0)
 end
 
 @inline function getweights{T<:AbstractFloat,B}(ker::KeysSpline{T,B}, t::T)
@@ -542,9 +527,9 @@ function convert{T<:AbstractFloat,S,B<:Boundaries,Told,Bold}(
 end
 
 function (ker::LanczosKernel{T,S,B}){T<:AbstractFloat,S,B}(x::T)
-    abs(x) ≥ ker.a ? zero(T) :
-    x == zero(T) ? one(T) :
-    ker.b*sin(pi*x)*sin(ker.c*x)/(x*x)
+    return (abs(x) ≥ ker.a ? T(0) :
+            x == T(0) ? T(1) :
+            ker.b*sin(pi*x)*sin(ker.c*x)/(x*x))
 end
 
 @inline function getweights{T<:AbstractFloat,S,B}(
