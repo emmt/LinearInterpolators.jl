@@ -48,16 +48,8 @@ immutable SafeFlat <: Boundaries; end
 #------------------------------------------------------------------------------
 # INTERPOLATION KERNELS
 
-# This function is needed for rational constants.
-@inline rc{T<:AbstractFloat}(::Type{T}, num::Real, den::Real) =
-    T(num)/T(den) :: T
-
 two{T<:Number}(::Type{T}) = convert(T,2)
 three{T<:Number}(::Type{T}) = convert(T,3)
-half{T<:AbstractFloat}(::Type{T}, n::Integer) = convert(T,n)/two(T)
-for T in subtypes(AbstractFloat)
-    @eval half(::Type{$T}) = $(half(T,1))
-end
 
 """
 # Interpolation Kernels
@@ -148,7 +140,7 @@ isnormalized{K<:RectangularSpline}(::Type{K}) = true
 isnormalized{K<:RectangularSpline}(::K) = true
 
 (ker::RectangularSpline{T,B}){T<:AbstractFloat,B}(x::T) =
-    -half(T) ≤ x < half(T) ? one(T) : zero(T)
+    T(-1/2) ≤ x < T(1/2) ? one(T) : zero(T)
 
 @inline getweights{T<:AbstractFloat,B}(::RectangularSpline{T,B}, t::T) = one(T)
 
@@ -190,13 +182,13 @@ isnormalized{K<:QuadraticSpline}(::K) = true
 
 function (ker::QuadraticSpline{T,B}){T<:AbstractFloat,B<:Boundaries}(x::T)
     t = abs(x)
-    if t ≥ rc(T,3,2)
+    if t ≥ T(3/2)
         return zero(T)
-    elseif t ≤ rc(T,1,2)
-        return rc(T,3,4) - t*t
+    elseif t ≤ T(1/2)
+        return T(3/4) - t*t
     else
-        t -= rc(T,3,2)
-        return rc(T,1,2)*t*t
+        t -= T(3/2)
+        return T(1/2)*t*t
     end
 end
 
@@ -239,10 +231,10 @@ function (::CubicSpline{T,B}){T<:AbstractFloat,B}(x::T)
     if t ≥ T(2)
         return zero(T)
     elseif t ≤ one(T)
-        return (rc(T,1,2)*t - one(T))*t*t + rc(T,2,3)
+        return (T(1/2)*t - one(T))*t*t + T(2/3)
     else
         t = T(2) - t
-        return rc(T,1,6)*t*t*t
+        return T(1/6)*t*t*t
     end
 end
 
@@ -264,8 +256,8 @@ isnormalized{K<:CatmullRomSpline}(::K) = true
 function (ker::CatmullRomSpline{T,B}){T<:AbstractFloat,B}(x::T)
     t = abs(x)
     t ≥ two(T) ? zero(T) :
-    t ≤ one(T) ? (rc(T,3,2)*t - rc(T,5,2))*t*t + one(T) :
-    ((rc(T,5,2) - rc(T,1,2)*t)*t - T(4))*t + T(2)
+    t ≤ one(T) ? (T(3/2)*t - T(5/2))*t*t + one(T) :
+    ((T(5/2) - T(1/2)*t)*t - T(4))*t + T(2)
 end
 
 @inline function getweights{T<:AbstractFloat,B}(::CatmullRomSpline{T,B}, t::T)
@@ -420,7 +412,7 @@ end
 # Create Mitchell-Netravali kernel with default "good" parameters.
 function MitchellNetraviliSpline{T<:AbstractFloat,B<:Boundaries}(
     ::Type{T} = Float64, ::Type{B} = Flat)
-    MitchellNetraviliSpline{T,B}(rc(T,1,3), rc(T,1,3))
+    MitchellNetraviliSpline{T,B}(T(1/3), T(1/3))
 end
 
 iscardinal{T<:AbstractFloat,B}(ker::MitchellNetraviliSpline{T,B}) =
