@@ -12,8 +12,6 @@
 
 module Kernels
 
-using Compat
-
 import Base: convert
 
 export
@@ -38,18 +36,18 @@ export
 All extrapolation methods (a.k.a. boundary conditions) are singletons and
 inherit from the abstract type `Boundaries`.
 """
-@compat abstract type Boundaries end
+abstract type Boundaries end
 
-immutable Flat     <: Boundaries; end
-immutable SafeFlat <: Boundaries; end
-#immutable Periodic <: Boundaries; end
-#immutable Reflect  <: Boundaries; end
+struct Flat     <: Boundaries; end
+struct SafeFlat <: Boundaries; end
+#struct Periodic <: Boundaries; end
+#struct Reflect  <: Boundaries; end
 
 #------------------------------------------------------------------------------
 # INTERPOLATION KERNELS
 
-@inline two{T<:Number}(::Type{T}) = convert(T,2)
-@inline three{T<:Number}(::Type{T}) = convert(T,3)
+@inline two(::Type{T}) where {T<:Number} = convert(T,2)
+@inline three(::Type{T}) where {T<:Number} = convert(T,3)
 @inline square(x) = x*x
 @inline cube(x) = x*x*x
 
@@ -58,8 +56,8 @@ immutable SafeFlat <: Boundaries; end
 
 An interpolation kernel `Interpolations.Kernel{T,S,B}` is parametrized by the
 floating-point type `T` of its coefficients, by the size `S` of its support and
-by the boundary conditions to apply for extrapolation.  For efficiency reasons,
-only kernels with (small) finite size supports are implemented.
+by the boundary conditions `B` to apply for extrapolation.  For efficiency
+reasons, only kernels with (small) finite size supports are implemented.
 
 A kernel may be used as a function wit a real argument:
 
@@ -69,7 +67,7 @@ yields kernel value at offset `x`.  All kernel supports are symmetric; that is
 `ker(x)` is zero if `abs(x) > S/2`.  The argument can also be a floating-point
 type and/or a boundary conditions type:
 
-    ker(::Type{T}, ::Type{B}) where {T<:AbstractFloat,B<:Boundaries}
+    ker(::Type{T}, ::Type{B}) where {T<:AbstractFloat, B<:Boundaries}
 
 to convert the kernel to operate with given floating-point type `T` and use
 boundary conditions `B` (any of which can be omitted and their order is
@@ -91,26 +89,24 @@ involved in an interpolation by this kernel,
 
 yields the type of the boundary conditions applied for extrapolation; finally:
 
-
     getweights(ker, t) -> w1, w2, ..., wS
 
 yields the `S` interpolation weights for offset `t ∈ [0,1]` if `S` is even or
 or for `t ∈ [-1/2,+1/2]` is `S` is odd.
 """
-@compat abstract type Kernel{T<:AbstractFloat,S,B<:Boundaries} end
+abstract type Kernel{T<:AbstractFloat,S,B<:Boundaries} end
 
-Base.eltype{T,S,B}(::Kernel{T,S,B}) = T
-Base.eltype{T,S,B}(::Type{Kernel{T,S,B}}) = T
-Base.length{T,S,B}(::Kernel{T,S,B}) = S
-Base.length{T,S,B}(::Type{Kernel{T,S,B}}) = S
-Base.size{T,S,B}(::Kernel{T,S,B}) = S
-#Base.length{T,S}(::Type{Kernel{T,S,B}}) = S  # FIXME: does not work with Julia 0.5
+Base.eltype(::Kernel{T,S,B})       where {T,S,B} = T
+Base.eltype(::Type{Kernel{T,S,B}}) where {T,S,B} = T
+Base.length(::Kernel{T,S,B})       where {T,S,B} = S
+Base.length(::Type{Kernel{T,S,B}}) where {T,S,B} = S
+Base.size(::Kernel{T,S,B})         where {T,S,B} = S
 
 """
 `boundaries(ker)` yields the type of the boundary conditions applied for
 extrapolation with kernel `ker`.
 """
-boundaries{T,S,B}(::Kernel{T,S,B}) = B
+boundaries(::Kernel{T,S,B}) where {T,S,B} = B
 
 """
 `isnormalized(ker)` returns a boolean indicating whether the kernel `ker` has
@@ -130,61 +126,63 @@ function iscardinal end
 # Rectangular Spline
 
 The rectangular spline (also known as box kernel or Fourier window or Dirichlet
-window) is a 1st order (constant) B-spline equals to `1` on `[-1/2,+1/2)`,
+window) is the 1st order (constant) B-spline equals to `1` on `[-1/2,+1/2)`,
 and `0` elsewhere.
 
 """
-immutable RectangularSpline{T,B} <: Kernel{T,1,B}; end
+struct RectangularSpline{T,B} <: Kernel{T,1,B}; end
 
-Base.length{K<:RectangularSpline}(::Union{K,Type{K}}) = 1
-iscardinal{K<:RectangularSpline}(::Union{K,Type{K}}) = true
-isnormalized{K<:RectangularSpline}(::Union{K,Type{K}}) = true
+Base.length(::Union{K,Type{K}}) where {K<:RectangularSpline} = 1
+iscardinal(::Union{K,Type{K}}) where {K<:RectangularSpline} = true
+isnormalized(::Union{K,Type{K}}) where {K<:RectangularSpline} = true
 
-(ker::RectangularSpline{T,B}){T<:AbstractFloat,B}(x::T) =
+(::RectangularSpline{T,B})(x::T) where {T<:AbstractFloat,B} =
     T(-1/2) ≤ x < T(1/2) ? T(1) : T(0)
 
-@inline getweights{T<:AbstractFloat,B}(::RectangularSpline{T,B}, t::T) = T(1)
+@inline getweights(::RectangularSpline{T,B}, t::T) where {T<:AbstractFloat,B} =
+    one(T)
 
 #------------------------------------------------------------------------------
 """
 # Linear Spline
 
 The linear spline (also known as triangle kernel or Bartlett window or Fejér
-window) is a 2nd order (linear) B-spline.
+window) is the 2nd order (linear) B-spline.
 
 """
-immutable LinearSpline{T,B} <: Kernel{T,2,B}; end
+struct LinearSpline{T,B} <: Kernel{T,2,B}; end
 
-Base.length{K<:LinearSpline}(::Union{K,Type{K}}) = 2
-iscardinal{K<:LinearSpline}(::Union{K,Type{K}}) = true
-isnormalized{K<:LinearSpline}(::Union{K,Type{K}}) = true
+Base.length(::Union{K,Type{K}}) where {K<:LinearSpline} = 2
+iscardinal(::Union{K,Type{K}}) where {K<:LinearSpline} = true
+isnormalized(::Union{K,Type{K}}) where {K<:LinearSpline} = true
 
-(ker::LinearSpline{T,B}){T<:AbstractFloat,B}(x::T) =
+(::LinearSpline{T,B})(x::T) where {T<:AbstractFloat,B} =
     (a = abs(x); a < T(1) ? T(1) - a : T(0))
 
-@inline getweights{T<:AbstractFloat,B}(::LinearSpline{T,B}, t::T) =
+@inline getweights(::LinearSpline{T,B}, t::T) where {T<:AbstractFloat,B} =
     T(1) - t, t
 
 #------------------------------------------------------------------------------
 """
 # Quadratic Spline
 
-The quadratic spline is 3rd order (quadratic) B-spline.
+The quadratic spline is the 3rd order (quadratic) B-spline.
 """
-immutable QuadraticSpline{T,B} <: Kernel{T,3,B}; end
+struct QuadraticSpline{T,B} <: Kernel{T,3,B}; end
 
-Base.length{K<:QuadraticSpline}(::Union{K,Type{K}}) = 3
-iscardinal{K<:QuadraticSpline}(::Union{K,Type{K}}) = false
-isnormalized{K<:QuadraticSpline}(::Union{K,Type{K}}) = true
+Base.length(::Union{K,Type{K}}) where {K<:QuadraticSpline} = 3
+iscardinal(::Union{K,Type{K}}) where {K<:QuadraticSpline} = false
+isnormalized(::Union{K,Type{K}}) where {K<:QuadraticSpline} = true
 
-function (ker::QuadraticSpline{T,B}){T<:AbstractFloat,B<:Boundaries}(x::T)
+function (::QuadraticSpline{T,B})(x::T) where {T<:AbstractFloat,B<:Boundaries}
     a = abs(x)
     return (a ≥ T(3/2) ? T(0) :
             a ≤ T(1/2) ? T(3/4) - a*a :
             square(a - T(3/2))*T(1/2))
 end
 
-@inline function getweights{T<:AbstractFloat,B}(::QuadraticSpline{T,B}, t::T)
+@inline function getweights(::QuadraticSpline{T,B},
+                            t::T) where {T<:AbstractFloat,B}
     #return (T(1/8)*(T(1) - T(2)*t)^2,
     #        T(3/4) - t^2,
     #        T(1/8)*(T(1) + T(2)*t)^2)
@@ -210,40 +208,42 @@ which operates with floating-point type `T` and use boundary conditions `B`
 The 4th order (cubic) B-spline kernel is also known as Parzen window or de la
 Vallée Poussin window.
 """
-immutable CubicSpline{T,B} <: Kernel{T,4,B}; end
+struct CubicSpline{T,B} <: Kernel{T,4,B}; end
 
-Base.length{K<:CubicSpline}(::Union{K,Type{K}}) = 4
-iscardinal{K<:CubicSpline}(::Union{K,Type{K}}) = false
-isnormalized{K<:CubicSpline}(::Union{K,Type{K}}) = true
+Base.length(::Union{K,Type{K}}) where {K<:CubicSpline} = 4
+iscardinal(::Union{K,Type{K}}) where {K<:CubicSpline} = false
+isnormalized(::Union{K,Type{K}}) where {K<:CubicSpline} = true
 
-function (::CubicSpline{T,B}){T<:AbstractFloat,B}(x::T)
+function (::CubicSpline{T,B})(x::T) where {T<:AbstractFloat,B}
     a = abs(x)
     return (a ≥ T(2) ? T(0) :
             a ≥ T(1) ? cube(T(2) - a)*T(1/6) :
             (T(1/2)*a - T(1))*a*a + T(2/3))
 end
 
-@inline function getweights{T<:AbstractFloat,B}(ker::CubicSpline{T,B}, t::T)
+@inline function getweights(ker::CubicSpline{T,B},
+                            t::T) where {T<:AbstractFloat,B}
     error("FIXME: not yet implemented")
 end
 
 #------------------------------------------------------------------------------
 # Catmull-Rom kernel is a special case of Mitchell & Netravali kernel.
 
-immutable CatmullRomSpline{T,B} <: Kernel{T,4,B}; end
+struct CatmullRomSpline{T,B} <: Kernel{T,4,B}; end
 
-Base.length{K<:CatmullRomSpline}(::Union{K,Type{K}}) = 4
-iscardinal{K<:CatmullRomSpline}(::Union{K,Type{K}}) = true
-isnormalized{K<:CatmullRomSpline}(::Union{K,Type{K}}) = true
+Base.length(::Union{K,Type{K}}) where {K<:CatmullRomSpline} = 4
+iscardinal(::Union{K,Type{K}}) where {K<:CatmullRomSpline} = true
+isnormalized(::Union{K,Type{K}}) where {K<:CatmullRomSpline} = true
 
-function (ker::CatmullRomSpline{T,B}){T<:AbstractFloat,B}(x::T)
+function (::CatmullRomSpline{T,B})(x::T) where {T<:AbstractFloat,B}
     a = abs(x)
     return (a ≥ T(2) ? T(0) :
             a ≤ T(1) ? (T(3/2)*a - T(5/2))*a*a + T(1) :
             ((T(5/2) - T(1/2)*a)*a - T(4))*a + T(2))
 end
 
-@inline function getweights{T<:AbstractFloat,B}(::CatmullRomSpline{T,B}, t::T)
+@inline function getweights(::CatmullRomSpline{T,B},
+                            t::T) where {T<:AbstractFloat,B}
     # 10 operations
     s = T(1) - t
     q = T(-1/2)*t*s
@@ -257,53 +257,56 @@ end
 
 #------------------------------------------------------------------------------
 """
-    CardinalCubicSpline(T,c) -> ker
+```julia
+CardinalCubicSpline([T=Float64,] c, B=Flat) -> ker
+```
 
 yields a cardinal cubic spline interpolation kernel for floating-point type `T`
-and tension parameter `c`.  The slope at `x = ±1` is `∓(1 - c)/2`.  Usually
-`c ≤ 1`, choosing `c = 0` yields a Catmull-Rom spline, `c = 1` yields all zero
-tangents, `c = -1` yields a truncated approximation of a cardinal sine.
+tension parameter `c` and boundary conditions `B`.  The slope at `x = ±1` is
+`∓(1 - c)/2`.  Usually `c ≤ 1`, choosing `c = 0` yields a Catmull-Rom spline,
+`c = 1` yields all zero tangents, `c = -1` yields a truncated approximation of
+a cardinal sine.
 
 """
-immutable CardinalCubicSpline{T,B} <: Kernel{T,4,B}
+struct CardinalCubicSpline{T,B} <: Kernel{T,4,B}
     α::T
     β::T
 
-    (::Type{Kernels.CardinalCubicSpline{T,B}}){T,B}(α::Real, β::Real) =
+    (::Type{Kernels.CardinalCubicSpline{T,B}})(α::Real, β::Real) where {T,B} =
         new{T,B}(α, β)
 
-    function (::Type{Kernels.CardinalCubicSpline{T,B}}){T,B}(c::Real)
-        #@assert c ≤ 1
+    (::Type{Kernels.CardinalCubicSpline{T,B}})(c::Real) where {T,B} =
         new{T,B}((c - 1)/2, (c + 1)/2)
-    end
 end
 
-function CardinalCubicSpline{T<:AbstractFloat,B<:Boundaries}(
-    ::Type{T}, c::Real, ::Type{B} = Flat)
+function CardinalCubicSpline(::Type{T}, c::Real,
+                             ::Type{B} = Flat) where {T<:AbstractFloat,
+                                                      B<:Boundaries}
     CardinalCubicSpline{T,B}(c)
 end
 
-CardinalCubicSpline{B<:Boundaries}(c::Real, ::Type{B} = Flat) =
+CardinalCubicSpline(c::Real, ::Type{B} = Flat) where {B<:Boundaries} =
     CardinalCubicSpline(Float64, c, B)
 
-Base.length{K<:CardinalCubicSpline}(::Union{K,Type{K}}) = 4
-iscardinal{K<:CardinalCubicSpline}(::Union{K,Type{K}}) = true
-isnormalized{K<:CardinalCubicSpline}(::Union{K,Type{K}}) = true
+Base.length(::Union{K,Type{K}}) where {K<:CardinalCubicSpline} = 4
+iscardinal(::Union{K,Type{K}}) where {K<:CardinalCubicSpline} = true
+isnormalized(::Union{K,Type{K}}) where {K<:CardinalCubicSpline} = true
 
-function convert{T<:AbstractFloat,B<:Boundaries}(
-    ::Type{CardinalCubicSpline{T,B}}, ker::CardinalCubicSpline)
+function convert(::Type{CardinalCubicSpline{T,B}},
+                 ker::CardinalCubicSpline) where {T<:AbstractFloat,
+                                                  B<:Boundaries}
     CardinalCubicSpline(T, ker.α + ker.β, B)
 end
 
-function (ker::CardinalCubicSpline{T,B}){T<:AbstractFloat,B}(x::T)
+function (ker::CardinalCubicSpline{T,B})(x::T) where {T<:AbstractFloat,B}
     a = abs(x)
     return (a ≥ T(2) ? T(0) :
             a ≥ T(1) ? ker.α*(a - T(1))*square(T(2) - a) :
             ((ker.β*a + a)*a - a - T(1))*(a - T(1)))
 end
 
-@inline function getweights{T<:AbstractFloat,B}(ker::CardinalCubicSpline{T,B},
-                                                t::T)
+@inline function getweights(ker::CardinalCubicSpline{T,B},
+                            t::T) where {T<:AbstractFloat,B}
     α = ker.α
     β = ker.β
     # Computation of:
@@ -324,6 +327,14 @@ end
 #------------------------------------------------------------------------------
 """
 # Mitchell & Netravali Kernels
+
+```julia
+MitchellNetraviliSpline([T=Float64,] [b=1/3, c=1/3,] B=Flat) -> ker
+```
+
+yields an interpolation kernel of the Mitchell & Netravali family of kernels
+for floating-point type `T`, parameters `b` and `c` and boundary conditions
+`B`.
 
 These kernels are cubic splines which depends on 2 parameters `b` and `c`.
 whatever the values of `(b,c)`, all these kernels are "normalized", symmetric
@@ -350,7 +361,7 @@ Reference:
   http://www.cs.utexas.edu/users/fussell/courses/cs384g/lectures/mitchell/Mitchell.pdf.
 
 """
-immutable MitchellNetraviliSpline{T,B} <: Kernel{T,4,B}
+struct MitchellNetraviliSpline{T,B} <: Kernel{T,4,B}
     b ::T
     c ::T
     p0::T
@@ -360,7 +371,8 @@ immutable MitchellNetraviliSpline{T,B} <: Kernel{T,4,B}
     q1::T
     q2::T
     q3::T
-    function (::Type{MitchellNetraviliSpline{T,B}}){T,B}(b::Real, c::Real)
+    function (::Type{MitchellNetraviliSpline{T,B}})(b::Real,
+                                                    c::Real) where {T,B}
         new{T,B}(
             b, c,
             (   6 -  2*b       )/6,
@@ -373,49 +385,59 @@ immutable MitchellNetraviliSpline{T,B} <: Kernel{T,4,B}
     end
 end
 
-function MitchellNetraviliSpline{T<:AbstractFloat,B<:Boundaries}(
-    ::Type{T}, b::Real, c::Real, ::Type{B} = Flat)
+function MitchellNetraviliSpline(::Type{T}, b::Real, c::Real,
+                                 ::Type{B} = Flat) where {T<:AbstractFloat,
+                                                          B<:Boundaries}
     MitchellNetraviliSpline{T,B}(b, c)
 end
 
-function MitchellNetraviliSpline{B<:Boundaries}(
-    b::Real, c::Real, ::Type{B} = Flat)
+function MitchellNetraviliSpline(b::Real, c::Real,
+                                 ::Type{B} = Flat) where {B<:Boundaries}
     MitchellNetraviliSpline(Float64, b, c, B)
 end
 
 # Create Mitchell-Netravali kernel with default "good" parameters.
-function MitchellNetraviliSpline{T<:AbstractFloat,B<:Boundaries}(
-    ::Type{T} = Float64, ::Type{B} = Flat)
+function MitchellNetraviliSpline(::Type{T} = Float64,
+                                 ::Type{B} = Flat) where {T<:AbstractFloat,
+                                                          B<:Boundaries}
     MitchellNetraviliSpline{T,B}(T(1/3), T(1/3))
 end
 
-Base.length{K<:MitchellNetraviliSpline}(::Union{K,Type{K}}) = 4
+Base.length(::Union{K,Type{K}}) where {K<:MitchellNetraviliSpline} = 4
 
-iscardinal{T<:AbstractFloat,B}(ker::MitchellNetraviliSpline{T,B}) =
+iscardinal(ker::MitchellNetraviliSpline{T,B}) where {T<:AbstractFloat,B} =
     (ker.b == T(0))
 
-isnormalized{K<:MitchellNetraviliSpline}(::Union{K,Type{K}}) = true
+isnormalized(::Union{K,Type{K}}) where {K<:MitchellNetraviliSpline} = true
 
-function convert{T<:AbstractFloat,B<:Boundaries}(
-    ::Type{MitchellNetraviliSpline{T,B}}, ker::MitchellNetraviliSpline)
+function convert(::Type{MitchellNetraviliSpline{T,B}},
+                 ker::MitchellNetraviliSpline) where {T<:AbstractFloat,
+                                                      B<:Boundaries}
     MitchellNetraviliSpline(T, ker.b, ker.c, B)
 end
 
-function (ker::MitchellNetraviliSpline{T,B}){T<:AbstractFloat,B}(x::T)
+function (ker::MitchellNetraviliSpline{T,B})(x::T) where {T<:AbstractFloat,B}
     a = abs(x)
     return (a ≥ T(2) ? T(0) :
             a ≤ T(1) ? (ker.p3*a + ker.p2)*a*a + ker.p0 :
             ((ker.q3*a + ker.q2)*a + ker.q1)*a + ker.q0)
 end
 
-@inline function getweights{T<:AbstractFloat,B}(
-    ker::MitchellNetraviliSpline{T,B}, t::T)
+@inline function getweights(ker::MitchellNetraviliSpline{T,B},
+                            t::T) where {T<:AbstractFloat,B}
     error("FIXME: not yet implemented")
 end
 
 #------------------------------------------------------------------------------
 """
 # Keys cardinal kernels
+
+```julia
+KeysSpline([T=Float64,] a, B=Flat) -> ker
+```
+
+yields an interpolation kernel of the Keys family of cardinal kernels for
+floating-point type `T`, parameter `a` and boundary conditions `B`.
 
 These kernels are piecewise normalized cardinal cubic spline which depend on
 one parameter `a`.
@@ -427,7 +449,7 @@ Reference:
   Vol. ASSP-29, No. 6, December 1981, pp. 1153-1160.
 
 """
-immutable KeysSpline{T,B} <: Kernel{T,4,B}
+struct KeysSpline{T,B} <: Kernel{T,4,B}
     a ::T
     p0::T
     p2::T
@@ -436,36 +458,37 @@ immutable KeysSpline{T,B} <: Kernel{T,4,B}
     q1::T
     q2::T
     q3::T
-    function (::Type{KeysSpline{T,B}}){T,B}(a::Real)
+    function (::Type{KeysSpline{T,B}})(a::Real) where {T,B}
         new{T,B}(a, 1, -a - 3, a + 2, -4*a, 8*a, -5*a, a)
     end
 end
 
-function KeysSpline{T<:AbstractFloat,B<:Boundaries}(
-    ::Type{T}, a::Real, ::Type{B} = Flat)
+function KeysSpline(::Type{T}, a::Real,
+                    ::Type{B} = Flat) where {T<:AbstractFloat, B<:Boundaries}
     KeysSpline{T,B}(a)
 end
 
-KeysSpline{B<:Boundaries}(a::Real, ::Type{B} = Flat) =
+KeysSpline(a::Real, ::Type{B} = Flat) where {B<:Boundaries} =
     KeysSpline(Float64, a, B)
 
-Base.length{K<:KeysSpline}(::Union{K,Type{K}}) = 4
-iscardinal{K<:KeysSpline}(::Union{K,Type{K}}) = true
-isnormalized{K<:KeysSpline}(::Union{K,Type{K}}) = true
+Base.length(::Union{K,Type{K}}) where {K<:KeysSpline} = 4
+iscardinal(::Union{K,Type{K}}) where {K<:KeysSpline} = true
+isnormalized(::Union{K,Type{K}}) where {K<:KeysSpline} = true
 
-function convert{T<:AbstractFloat,B<:Boundaries}(
-    ::Type{KeysSpline{T,B}}, ker::KeysSpline)
+function convert(::Type{KeysSpline{T,B}},
+                 ker::KeysSpline) where {T<:AbstractFloat, B<:Boundaries}
     KeysSpline(T, ker.a, B)
 end
 
-function (ker::KeysSpline{T,B}){T<:AbstractFloat,B}(x::T)
+function (ker::KeysSpline{T,B})(x::T) where {T<:AbstractFloat, B}
     a = abs(x)
     return (a ≥ T(2) ? T(0) :
             a ≤ T(1) ? (ker.p3*a + ker.p2)*a*a + ker.p0 :
             ((ker.q3*a + ker.q2)*a + ker.q1)*a + ker.q0)
 end
 
-@inline function getweights{T<:AbstractFloat,B}(ker::KeysSpline{T,B}, t::T)
+@inline function getweights(ker::KeysSpline{T,B},
+                            t::T) where {T<:AbstractFloat, B}
     error("FIXME: not yet implemented")
 end
 
@@ -473,52 +496,59 @@ end
 """
 # Lanczos Resampling Kernel
 
-`LanczosKernel(T, S)` creates a Lanczos kernel of support size `S` which must
-be even.
+```julia
+LanczosKernel([T=Float64,] S, B=Flat)
+```
 
-The Lanczos kernel does not have the partition of unity property.  However,
-Lanczos kernel tends to be normalized for large support size.
-[link](https://en.wikipedia.org/wiki/Lanczos_resampling)
+yields a Lanczos kernel of support size `S` (which must be even), for
+floating-point type `T` and boundary conditions `B`..
+
+The Lanczos kernels doe not have the partition of unity property.  However,
+Lanczos kernels tend to be normalized for large support size.
+
+See also: [link](https://en.wikipedia.org/wiki/Lanczos_resampling).
+
 """
-immutable LanczosKernel{T,S,B} <: Kernel{T,S,B}
+struct LanczosKernel{T,S,B} <: Kernel{T,S,B}
     a::T   # 1/2 support
     b::T   # a/pi^2
     c::T   # pi/a
-    function (::Type{LanczosKernel{T,S,B}}){T,S,B}()
+    function (::Type{LanczosKernel{T,S,B}})() where {T,S,B}
         @assert typeof(S) == Int && S > 0 && iseven(S)
         a = S/2
         new{T,S,B}(a, a/pi^2, pi/a)
     end
 end
 
-function LanczosKernel{T<:AbstractFloat,B<:Boundaries}(
-    ::Type{T}, s::Integer, ::Type{B} = Flat)
+function LanczosKernel(::Type{T}, s::Integer,
+                       ::Type{B} = Flat) where {T<:AbstractFloat,
+                                                B<:Boundaries}
     LanczosKernel{T,Int(s),B}()
 end
 
-function LanczosKernel{B<:Boundaries}(
-    s::Integer, ::Type{B} = Flat)
+function LanczosKernel(s::Integer, ::Type{B} = Flat) where {B<:Boundaries}
     LanczosKernel{Float64,Int(s),B}()
 end
 
-iscardinal{K<:LanczosKernel}(::Union{K,Type{K}}) = true
-isnormalized{K<:LanczosKernel}(::Union{K,Type{K}}) = false
+iscardinal(::Union{K,Type{K}}) where {K<:LanczosKernel} = true
+isnormalized(::Union{K,Type{K}}) where {K<:LanczosKernel} = false
 
 # `convert` should give something which is almost equivalent, so here we
 # enforce the same support size.
-function convert{T<:AbstractFloat,S,B<:Boundaries,Told,Bold}(
-    ::Type{LanczosKernel{T,S,B}}, ::LanczosKernel{Told,S,Bold})
+function convert(::Type{LanczosKernel{T,S,B}},
+                 ::LanczosKernel{<:AbstractFloat,S,<:Boundaries}
+                 ) where {T<:AbstractFloat,S,B<:Boundaries}
     LanczosKernel{T,S,B}()
 end
 
-function (ker::LanczosKernel{T,S,B}){T<:AbstractFloat,S,B}(x::T)
+function (ker::LanczosKernel{T,S,B})(x::T) where {T<:AbstractFloat,S,B}
     return (abs(x) ≥ ker.a ? T(0) :
             x == T(0) ? T(1) :
             ker.b*sin(pi*x)*sin(ker.c*x)/(x*x))
 end
 
-@inline function getweights{T<:AbstractFloat,S,B}(
-    ker::LanczosKernel{T,S,B}, t::T)
+@inline function getweights(ker::LanczosKernel{T,S,B},
+                            t::T) where {T<:AbstractFloat,S,B}
     error("FIXME: not yet implemented")
 end
 
@@ -530,18 +560,19 @@ for K in (:RectangularSpline, :LinearSpline, :QuadraticSpline,
     @eval begin
 
         # Constructors.
-        function $K{T<:AbstractFloat,B<:Boundaries}(::Type{T} = Float64,
-                                                    ::Type{B} = Flat)
+        function $K(::Type{T} = Float64, ::Type{B} = Flat
+                    ) where {T<:AbstractFloat,B<:Boundaries}
             $K{T,B}()
         end
 
-        function $K{T<:AbstractFloat,B<:Boundaries}(::Type{B},
-                                                    ::Type{T} = Float64)
+        function $K(::Type{B}, ::Type{T} = Float64
+                    ) where {T<:AbstractFloat,B<:Boundaries}
             $K{T,B}()
         end
 
         # Conversion to different types.
-        function convert{T<:AbstractFloat,B<:Boundaries}(::Type{$K{T,B}}, ::$K)
+        function convert(::Type{$K{T,B}}, ::$K
+                         ) where {T<:AbstractFloat,B<:Boundaries}
             $K{T,B}()
         end
 
@@ -555,53 +586,55 @@ for K in subtypes(Kernel)
     # the floting-point type of the kernel convert the argument.
     # Unfortunately, defining:
     #
-    #     (ker::$K{T,B}){T<:AbstractFloat,B<:Boundaries}(x::Real) = ker(T(x))
+    #     (ker::$K(x::Real) where {T,B}){T<:AbstractFloat,B<:Boundaries} = ker(T(x))
     #
     # leads to ambiguities, the following is ugly but works...
     for T in subtypes(AbstractFloat), R in (subtypes(AbstractFloat)..., Integer)
         if R != T
-            @eval @inline (ker::$K{$T,B}){B<:Boundaries}(x::$R) = ker($T(x))
+            @eval @inline (ker::$K{$T,B})(x::$R) where {B<:Boundaries} =
+                ker($T(x))
         end
     end
 
     # Calling the kernel on an array.
     if K <: LanczosKernel
-        @eval (ker::$K{T,S,B}){T<:AbstractFloat,S,B<:Boundaries}(
-            A::AbstractArray) = map((x) -> ker(x), A)
+        @eval function (ker::$K{T,S,B})(A::AbstractArray
+                                        ) where {T<:AbstractFloat,S,
+                                                 B<:Boundaries}
+            map((x) -> ker(x), A)
+        end
     else
-        @eval (ker::$K{T,B}){T<:AbstractFloat,B<:Boundaries}(
-            A::AbstractArray) = map((x) -> ker(x), A)
+        @eval function (ker::$K{T,B})(A::AbstractArray
+                                      ) where {T<:AbstractFloat,B<:Boundaries}
+            map((x) -> ker(x), A)
+        end
     end
 
     # Calling the kernel as a function to convert to another floating-point
     # type and/or other boundary conditions.
     @eval begin
-        (ker::$K{oldT,oldB}){
+        (ker::$K{oldT,oldB})(::Type{newT}, ::Type{newB}) where {
             oldT<:AbstractFloat, oldB<:Boundaries,
             newT<:AbstractFloat, newB<:Boundaries
-        }(::Type{newT}, ::Type{newB}) = convert($K{newT,newB}, ker)
+        } = convert($K{newT,newB}, ker)
 
-        (ker::$K{oldT,oldB}){
+        (ker::$K{oldT,oldB})(::Type{newB}, ::Type{newT}) where {
             oldT<:AbstractFloat, oldB<:Boundaries,
             newT<:AbstractFloat, newB<:Boundaries
-        }(::Type{newB}, ::Type{newT}) = convert($K{newT,newB}, ker)
+        } = convert($K{newT,newB}, ker)
 
-        (ker::$K{oldT,oldB}){
+        (ker::$K{oldT,oldB})(::Type{newT}) where {
             oldT<:AbstractFloat, oldB<:Boundaries,
-            newT<:AbstractFloat
-        }(::Type{newT}) = convert($K{newT,oldB}, ker)
+            newT<:AbstractFloat} = convert($K{newT,oldB}, ker)
 
-        (ker::$K{oldT,oldB}){
+        (ker::$K{oldT,oldB})(::Type{newB}) where {
             oldT<:AbstractFloat, oldB<:Boundaries,
-            newB<:Boundaries
-        }(::Type{newB}) = convert($K{oldT,newB}, ker)
+            newB<:Boundaries} = convert($K{oldT,newB}, ker)
     end
 
     # Conversion to the same type.
-    @eval function convert{T<:AbstractFloat,B<:Boundaries}(::Type{$K{T,B}},
-                                                           ker::$K{T,B})
-        ker
-    end
+    @eval convert(::Type{$K{T,B}}, ker::$K{T,B}) where {
+        T<:AbstractFloat,B<:Boundaries} = ker
 end
 
 end # module
