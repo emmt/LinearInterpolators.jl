@@ -37,9 +37,12 @@ function maxabserr(err::T, A, B) where {T<:AbstractFloat}
     return err
 end
 
+print_result(success::Bool, value=success) =
+    print_with_color((success ? :green : :red), value)
+
 function print_maxabserror(ker, err; tol::Real=1e-15, pfx::String=" - ")
     print(pfx, summary(ker), ": max. abs. error = ")
-    print_with_color((err < tol ? :green : :red), @sprintf("%.3e\n", err))
+    print_result(err < tol, @sprintf("%.3e\n", err))
 end
 
 function runtests()
@@ -65,7 +68,9 @@ function runtests()
         println(" - normalized: ", Kernels.isnormalized(ker))
         println(" - cardinal: ", Kernels.iscardinal(ker))
         println(" - ker(0): ", ker(0)) # test conversion
-        println(" - ker32(0.1) ≈ ker64(0.1): ", ker32(0.1) ≈ ker64(0.1))
+        print(" - ker32(0.1) ≈ ker64(0.1): ")
+        print_result(ker32(0.1) ≈ ker64(0.1))
+        println()
     end
 
     box = Kernels.RectangularSpline()
@@ -78,6 +83,7 @@ function runtests()
     lanczos2 = Kernels.LanczosKernel(2)
     lanczos4 = Kernels.LanczosKernel(4)
     lanczos6 = Kernels.LanczosKernel(6)
+    lanczos8 = Kernels.LanczosKernel(8)
 
     plt.figure(1)
     plt.clf()
@@ -94,15 +100,15 @@ function runtests()
              linewidth=2.0, linestyle="-");
     plt.plot(x, mitchell_netravili(x), color="violet",
              linewidth=2.0, linestyle="-");
-    plt.plot(x, lanczos6(x), color="black",
+    plt.plot(x, lanczos8(x), color="black",
              linewidth=2.0, linestyle="-");
     plt.title("Some kernel functions");
 
     println("\nChecking weights:")
-    tol = 1e-16
+    offsets = (0.0, 0.1, 0.2, 0.3, 0.4)
     for ker in (lanczos2,)
         err = 0.0
-        for t in (0.0, 0.1, 0.2, 0.3, 0.4)
+        for t in offsets
             err = maxabserr(err, ker.(t .+ (0,-1)),
                             Kernels.getweights(ker, t))
         end
@@ -110,7 +116,7 @@ function runtests()
     end
     for ker in (quadratic,)
         err = 0.0
-        for t in (0.0, 0.1, 0.2, 0.3, 0.4)
+        for t in offsets
             err = maxabserr(err, ker.(t .+ (1,0,-1)),
                             Kernels.getweights(ker, t))
         end
@@ -119,7 +125,7 @@ function runtests()
 
     for ker in (cubic, catmull_rom, mitchell_netravili, keys, lanczos4)
         err = 0.0
-        for t in (1e-4, 0.1, 0.2, 0.3, 0.4)
+        for t in offsets
             err = maxabserr(err, ker.(t .+ (1,0,-1,-2)),
                             Kernels.getweights(ker, t))
         end
@@ -127,8 +133,16 @@ function runtests()
     end
     for ker in (lanczos6,)
         err = 0.0
-        for t in (1e-6, 0.1, 0.2, 0.3, 0.4)
+        for t in offsets
             err = maxabserr(err, ker.(t .+ (2,1,0,-1,-2,-3)),
+                            Kernels.getweights(ker, t))
+        end
+        print_maxabserror(ker, err)
+    end
+    for ker in (lanczos8,)
+        err = 0.0
+        for t in offsets
+            err = maxabserr(err, ker.(t .+ (3,2,1,0,-1,-2,-3,-4)),
                             Kernels.getweights(ker, t))
         end
         print_maxabserror(ker, err)
