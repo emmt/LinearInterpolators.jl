@@ -164,6 +164,7 @@ struct RectangularSpline{T,B} <: Kernel{T,1,B}; end
 Base.length(::Union{K,Type{K}}) where {K<:RectangularSpline} = 1
 iscardinal(::Union{K,Type{K}}) where {K<:RectangularSpline} = true
 isnormalized(::Union{K,Type{K}}) where {K<:RectangularSpline} = true
+Base.summary(::RectangularSpline) = "RectangularSpline()"
 
 (::RectangularSpline{T,B})(x::T) where {T<:AbstractFloat,B} =
     T(-1/2) ≤ x < T(1/2) ? T(1) : T(0)
@@ -184,6 +185,7 @@ struct LinearSpline{T,B} <: Kernel{T,2,B}; end
 Base.length(::Union{K,Type{K}}) where {K<:LinearSpline} = 2
 iscardinal(::Union{K,Type{K}}) where {K<:LinearSpline} = true
 isnormalized(::Union{K,Type{K}}) where {K<:LinearSpline} = true
+Base.summary(::LinearSpline) = "LinearSpline()"
 
 (::LinearSpline{T,B})(x::T) where {T<:AbstractFloat,B} =
     (a = abs(x); a < T(1) ? T(1) - a : T(0))
@@ -202,6 +204,7 @@ struct QuadraticSpline{T,B} <: Kernel{T,3,B}; end
 Base.length(::Union{K,Type{K}}) where {K<:QuadraticSpline} = 3
 iscardinal(::Union{K,Type{K}}) where {K<:QuadraticSpline} = false
 isnormalized(::Union{K,Type{K}}) where {K<:QuadraticSpline} = true
+Base.summary(::QuadraticSpline) = "QuadraticSpline()"
 
 function (::QuadraticSpline{T,B})(x::T) where {T<:AbstractFloat,B<:Boundaries}
     a = abs(x)
@@ -242,6 +245,7 @@ struct CubicSpline{T,B} <: Kernel{T,4,B}; end
 Base.length(::Union{K,Type{K}}) where {K<:CubicSpline} = 4
 iscardinal(::Union{K,Type{K}}) where {K<:CubicSpline} = false
 isnormalized(::Union{K,Type{K}}) where {K<:CubicSpline} = true
+Base.summary(::CubicSpline) = "CubicSpline()"
 
 function (::CubicSpline{T,B})(x::T) where {T<:AbstractFloat,B}
     a = abs(x)
@@ -288,6 +292,7 @@ struct CatmullRomSpline{T,B} <: Kernel{T,4,B}; end
 Base.length(::Union{K,Type{K}}) where {K<:CatmullRomSpline} = 4
 iscardinal(::Union{K,Type{K}}) where {K<:CatmullRomSpline} = true
 isnormalized(::Union{K,Type{K}}) where {K<:CatmullRomSpline} = true
+Base.summary(::CatmullRomSpline) = "CatmullRomSpline()"
 
 function (::CatmullRomSpline{T,B})(x::T) where {T<:AbstractFloat,B}
     a = abs(x)
@@ -345,6 +350,8 @@ CardinalCubicSpline(c::Real, ::Type{B} = Flat) where {B<:Boundaries} =
 Base.length(::Union{K,Type{K}}) where {K<:CardinalCubicSpline} = 4
 iscardinal(::Union{K,Type{K}}) where {K<:CardinalCubicSpline} = true
 isnormalized(::Union{K,Type{K}}) where {K<:CardinalCubicSpline} = true
+Base.summary(ker::CardinalCubicSpline) =
+    @sprintf("CardinalCubicSpline(%.1f)", ker.α + ker.β)
 
 function convert(::Type{CardinalCubicSpline{T,B}},
                  ker::CardinalCubicSpline) where {T<:AbstractFloat,
@@ -464,6 +471,9 @@ iscardinal(ker::MitchellNetraviliSpline{T,B}) where {T<:AbstractFloat,B} =
 
 isnormalized(::Union{K,Type{K}}) where {K<:MitchellNetraviliSpline} = true
 
+Base.summary(ker::MitchellNetraviliSpline{T,B}) where {T,B} =
+    @sprintf("MitchellNetraviliSpline(%.1f,%.1f)", ker.b, ker.c)
+
 function convert(::Type{MitchellNetraviliSpline{T,B}},
                  ker::MitchellNetraviliSpline) where {T<:AbstractFloat,
                                                       B<:Boundaries}
@@ -535,6 +545,7 @@ KeysSpline(a::Real, ::Type{B} = Flat) where {B<:Boundaries} =
 Base.length(::Union{K,Type{K}}) where {K<:KeysSpline} = 4
 iscardinal(::Union{K,Type{K}}) where {K<:KeysSpline} = true
 isnormalized(::Union{K,Type{K}}) where {K<:KeysSpline} = true
+Base.summary(ker::KeysSpline) = @sprintf("KeysSpline(%.1f)", ker.a)
 
 function convert(::Type{KeysSpline{T,B}},
                  ker::KeysSpline) where {T<:AbstractFloat, B<:Boundaries}
@@ -600,6 +611,7 @@ end
 
 iscardinal(::Union{K,Type{K}}) where {K<:LanczosKernel} = true
 isnormalized(::Union{K,Type{K}}) where {K<:LanczosKernel} = false
+Base.summary(::LanczosKernel{T,S,B}) where {T,S,B} = "LanczosKernel($S)"
 
 # `convert` should give something which is almost equivalent, so here we
 # enforce the same support size.
