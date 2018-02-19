@@ -92,7 +92,8 @@ yields the type of the boundary conditions applied for extrapolation; finally:
     getweights(ker, t) -> w1, w2, ..., wS
 
 yields the `S` interpolation weights for offset `t ∈ [0,1]` if `S` is even or
-or for `t ∈ [-1/2,+1/2]` is `S` is odd.
+or for `t ∈ [-1/2,+1/2]` if `S` is odd.
+
 """
 abstract type Kernel{T<:AbstractFloat,S,B<:Boundaries} end
 
@@ -120,6 +121,18 @@ function isnormalized end
 is zero for non-zero integer arguments.
 """
 function iscardinal end
+
+"""
+```julia
+getweights(ker, t) -> w1, w2, ..., wS
+```
+
+yields the interpolation weights for the `S` neighbors of a position `x`.
+Offset `t` between `x` and the nearest neighbor is in the range `[0,1]` for `S`
+even and `[-1/2,+1/2]` for `S` odd.
+
+"""
+function getweights end
 
 #------------------------------------------------------------------------------
 """
@@ -223,7 +236,32 @@ end
 
 @inline function getweights(ker::CubicSpline{T,B},
                             t::T) where {T<:AbstractFloat,B}
-    error("FIXME: not yet implemented")
+    # The weights are:
+    #     w1 = 1/6 - t/2 + t^2/2 - t^3/6
+    #        = 1/6 + (t^2 - t)/2 - t^3/6
+    #        = (1 - t)^3/6
+    #     w2 = 2/3 - t^2 + t^3/2
+    #        = 2/3 + (t/2 - 1)*t^2
+    #     w3 = 1/6 + t/2 + t^2/2 - t^3/2
+    #        = 1/6 + (t + t^2 - t^3)/2
+    #        = 1/6 - ((t - 1)*t - 1)*t/2
+    #        = 4/6 - (1 - t)^2*(t + 1)/2
+    #     w4 = t^3/6
+    #
+    # Horner's scheme takes 6 operations per cubic polynomial, 24 operations
+    # for the 4 weights.  Precomputing the powers of t, t^2 and t^3, takes 2
+    # operations, then 6 operations per cubic polynomial are needed.
+    #
+    # Using factorizations, I manage to only use 15 operations.
+    const q = T(1/6)
+    r = T(1) - t
+    r2 = r*r
+    t2 = t*t
+    w1 = q*r2*r
+    w2 = T(2/3) + (T(1/2)*t - T(1))*t2
+    w3 = T(4/6) - T(1/2)*r2*(t + T(1))
+    w4 = q*t2*t
+    return w1, w2, w3, w4
 end
 
 #------------------------------------------------------------------------------
@@ -416,16 +454,23 @@ function convert(::Type{MitchellNetraviliSpline{T,B}},
     MitchellNetraviliSpline(T, ker.b, ker.c, B)
 end
 
+@inline _p(ker::MitchellNetraviliSpline{T,B}, x::T) where {T,B} =
+    (ker.p3*x + ker.p2)*x*x + ker.p0
+
+@inline _q(ker::MitchellNetraviliSpline{T,B}, x::T) where {T,B} =
+    ((ker.q3*x + ker.q2)*x + ker.q1)*x + ker.q0
+
 function (ker::MitchellNetraviliSpline{T,B})(x::T) where {T<:AbstractFloat,B}
     a = abs(x)
-    return (a ≥ T(2) ? T(0) :
-            a ≤ T(1) ? (ker.p3*a + ker.p2)*a*a + ker.p0 :
-            ((ker.q3*a + ker.q2)*a + ker.q1)*a + ker.q0)
+    return (a ≥ T(2) ? T(0) : a ≤ T(1) ? _p(ker, a) : _q(ker, a))
 end
 
 @inline function getweights(ker::MitchellNetraviliSpline{T,B},
                             t::T) where {T<:AbstractFloat,B}
-    error("FIXME: not yet implemented")
+    return (_q(ker, t + T(1)),
+            _p(ker, t),
+            _p(ker, T(1) - t),
+            _q(ker, T(2) - t))
 end
 
 #------------------------------------------------------------------------------
@@ -480,16 +525,23 @@ function convert(::Type{KeysSpline{T,B}},
     KeysSpline(T, ker.a, B)
 end
 
-function (ker::KeysSpline{T,B})(x::T) where {T<:AbstractFloat, B}
+@inline _p(ker::KeysSpline{T,B}, x::T) where {T,B} =
+    (ker.p3*x + ker.p2)*x*x + ker.p0
+
+@inline _q(ker::KeysSpline{T,B}, x::T) where {T,B} =
+    ((ker.q3*x + ker.q2)*x + ker.q1)*x + ker.q0
+
+function (ker::KeysSpline{T,B})(x::T) where {T<:AbstractFloat,B}
     a = abs(x)
-    return (a ≥ T(2) ? T(0) :
-            a ≤ T(1) ? (ker.p3*a + ker.p2)*a*a + ker.p0 :
-            ((ker.q3*a + ker.q2)*a + ker.q1)*a + ker.q0)
+    return (a ≥ T(2) ? T(0) : a ≤ T(1) ? _p(ker, a) : _q(ker, a))
 end
 
 @inline function getweights(ker::KeysSpline{T,B},
-                            t::T) where {T<:AbstractFloat, B}
-    error("FIXME: not yet implemented")
+                            t::T) where {T<:AbstractFloat,B}
+    return (_q(ker, t + T(1)),
+            _p(ker, t),
+            _p(ker, T(1) - t),
+            _q(ker, T(2) - t))
 end
 
 #------------------------------------------------------------------------------
@@ -541,15 +593,67 @@ function convert(::Type{LanczosKernel{T,S,B}},
     LanczosKernel{T,S,B}()
 end
 
-function (ker::LanczosKernel{T,S,B})(x::T) where {T<:AbstractFloat,S,B}
-    return (abs(x) ≥ ker.a ? T(0) :
-            x == T(0) ? T(1) :
-            ker.b*sin(pi*x)*sin(ker.c*x)/(x*x))
+# Expression for non-zero argument in the range (-S/2,S/2).
+@inline _p(ker::LanczosKernel{T,S,B}, x::T) where {T,S,B} =
+    ker.b*sin(pi*x)*sin(ker.c*x)/(x*x)
+
+(ker::LanczosKernel{T,S,B})(x::T) where {T,S,B} =
+    (abs(x) ≥ ker.a ? T(0) : x == T(0) ? T(1) : _p(ker, x))
+
+@inline function getweights(ker::LanczosKernel{T,2,B}, t::T) where {T,B}
+    local w1::T, w2::T
+    if t == T(0)
+        w1, w2 = 1, 0
+    else
+        w1 = _p(ker, t)
+        w2 = _p(ker, T(1) - t)
+    end
+    return w1, w2
 end
 
-@inline function getweights(ker::LanczosKernel{T,S,B},
-                            t::T) where {T<:AbstractFloat,S,B}
-    error("FIXME: not yet implemented")
+@inline function getweights(ker::LanczosKernel{T,4,B}, t::T) where {T,B}
+    local w1::T, w2::T, w3::T, w4::T
+    if t == T(0)
+        w1, w2, w3, w4 = 0, 1, 0, 0
+    else
+        w1 = _p(ker, t + T(1))
+        w2 = _p(ker, t)
+        w3 = _p(ker, T(1) - t)
+        w4 = _p(ker, T(2) - t)
+    end
+    return w1, w2, w3, w4
+end
+
+@inline function getweights(ker::LanczosKernel{T,6,B}, t::T) where {T,B}
+    local w1::T, w2::T, w3::T, w4::T, w5::T, w6::T
+    if t == T(0)
+        w1, w2, w3, w4, w5, w6 = 0, 0, 1, 0, 0, 0
+    else
+        w1 = _p(ker, t + T(2))
+        w2 = _p(ker, t + T(1))
+        w3 = _p(ker, t)
+        w4 = _p(ker, T(1) - t)
+        w5 = _p(ker, T(2) - t)
+        w6 = _p(ker, T(3) - t)
+    end
+    return w1, w2, w3, w4, w5, w6
+end
+
+@inline function getweights(ker::LanczosKernel{T,8,B}, t::T) where {T,B}
+    local w1::T, w2::T, w3::T, w4::T, w5::T, w6::T, w7::T, w8::T
+    if t == T(0)
+        w1, w2, w3, w4, w5, w6, w7, w8 = 0, 0, 0, 1, 0, 0, 0, 0
+    else
+        w1 = _p(ker, t + T(3))
+        w2 = _p(ker, t + T(2))
+        w3 = _p(ker, t + T(1))
+        w4 = _p(ker, t)
+        w5 = _p(ker, T(1) - t)
+        w6 = _p(ker, T(2) - t)
+        w7 = _p(ker, T(3) - t)
+        w8 = _p(ker, T(4) - t)
+    end
+    return w1, w2, w3, w4, w5, w6, w7, w8
 end
 
 #------------------------------------------------------------------------------
@@ -586,17 +690,23 @@ for K in subtypes(Kernel)
     # the floting-point type of the kernel convert the argument.
     # Unfortunately, defining:
     #
-    #     (ker::$K(x::Real) where {T,B}){T<:AbstractFloat,B<:Boundaries} = ker(T(x))
+    #     (ker::$K{T,B})(x::Real) where {T<:AbstractFloat,B<:Boundaries} =
+    #         ker(T(x))
     #
     # leads to ambiguities, the following is ugly but works...
     for T in subtypes(AbstractFloat), R in (subtypes(AbstractFloat)..., Integer)
         if R != T
-            @eval @inline (ker::$K{$T,B})(x::$R) where {B<:Boundaries} =
-                ker($T(x))
+            if K <: LanczosKernel
+                @eval @inline (ker::$K{$T,S,B})(x::$R) where {S,B<:Boundaries} =
+                    ker($T(x))
+            else
+                @eval @inline (ker::$K{$T,B})(x::$R) where {B<:Boundaries} =
+                    ker($T(x))
+            end
         end
     end
 
-    # Calling the kernel on an array.
+    # Calling the kernel on an array.  FIXME: should be deprecated!
     if K <: LanczosKernel
         @eval function (ker::$K{T,S,B})(A::AbstractArray
                                         ) where {T<:AbstractFloat,S,
@@ -612,24 +722,26 @@ for K in subtypes(Kernel)
 
     # Calling the kernel as a function to convert to another floating-point
     # type and/or other boundary conditions.
-    @eval begin
-        (ker::$K{oldT,oldB})(::Type{newT}, ::Type{newB}) where {
-            oldT<:AbstractFloat, oldB<:Boundaries,
-            newT<:AbstractFloat, newB<:Boundaries
-        } = convert($K{newT,newB}, ker)
+    if K <: LanczosKernel
+        @eval begin
+            (ker::$K{T,S,B})(::Type{newT}, ::Type{newB}=B) where {
+                T, S, B, newT<:AbstractFloat, newB<:Boundaries
+            } = convert($K{newT,S,newB}, ker)
 
-        (ker::$K{oldT,oldB})(::Type{newB}, ::Type{newT}) where {
-            oldT<:AbstractFloat, oldB<:Boundaries,
-            newT<:AbstractFloat, newB<:Boundaries
-        } = convert($K{newT,newB}, ker)
+            (ker::$K{T,S,B})(::Type{newB}, ::Type{newT}=T) where {
+                T, S, B, newT<:AbstractFloat, newB<:Boundaries
+            } = convert($K{newT,S,newB}, ker)
+        end
+    else
+        @eval begin
+            (ker::$K{T,B})(::Type{newT}, ::Type{newB}=B) where {
+                T, B, newT<:AbstractFloat, newB<:Boundaries
+            } = convert($K{newT,newB}, ker)
 
-        (ker::$K{oldT,oldB})(::Type{newT}) where {
-            oldT<:AbstractFloat, oldB<:Boundaries,
-            newT<:AbstractFloat} = convert($K{newT,oldB}, ker)
-
-        (ker::$K{oldT,oldB})(::Type{newB}) where {
-            oldT<:AbstractFloat, oldB<:Boundaries,
-            newB<:Boundaries} = convert($K{oldT,newB}, ker)
+            (ker::$K{T,B})(::Type{newB}, ::Type{newT}=T) where {
+                T, B, newT<:AbstractFloat, newB<:Boundaries
+            } = convert($K{newT,newB}, ker)
+        end
     end
 
     # Conversion to the same type.
