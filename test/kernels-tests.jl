@@ -8,6 +8,40 @@ if PLOTTING
 end
 include("../src/kernels.jl")
 
+relabsdif(a::Ta,b::Tb) where {Ta<:Real,Tb<:Real} =
+    relabsdif(float(promote_type(Ta,Tb)), a, b)
+
+relabsdif(::Type{T}, a::Real, b::Real) where {T<:AbstractFloat} =
+    relabsdif(T, T(a), T(b))
+
+relabsdif(::Type{T}, a::T, b::T) where {T<:AbstractFloat} =
+    (a == b ? zero(T) : abs(a - b)/max(abs(a),abs(b)))
+
+maxrelerr(A, B) = maxrelerr(0.0, A, B)
+
+function maxrelerr(err::T, A, B) where {T<:AbstractFloat}
+    @assert length(A) == length(B)
+    for (a,b) in zip(A,B)
+        err = max(err, relabsdif(T, a, b))
+    end
+    return err
+end
+
+maxabserr(A, B) = maxabserr(0.0, A, B)
+
+function maxabserr(err::T, A, B) where {T<:AbstractFloat}
+    @assert length(A) == length(B)
+    for (a,b) in zip(A,B)
+        err = max(err, abs(T(a) - T(b)))
+    end
+    return err
+end
+
+function print_maxabserror(ker, err; tol::Real=1e-15, pfx::String=" - ")
+    print(pfx, summary(ker), ": max. abs. error = ")
+    print_with_color((err < tol ? :green : :red), @sprintf("%.3e\n", err))
+end
+
 function runtests()
     for (name, ker) in (("RectangularSpline", Kernels.RectangularSpline()),
                         ("RectangularSpline (type given)",
@@ -23,6 +57,9 @@ function runtests()
         ker16 = ker(Float16)
         ker32 = ker(Float32)
         ker64 = ker(Float64)
+        ker16a = Float16(ker)
+        ker32a = Float32(ker)
+        ker64a = Float64(ker)
         println(name," kernel:")
         println(" - support: ", length(ker))
         println(" - normalized: ", Kernels.isnormalized(ker))
@@ -61,30 +98,40 @@ function runtests()
              linewidth=2.0, linestyle="-");
     plt.title("Some kernel functions");
 
+    println("\nChecking weights:")
+    tol = 1e-16
     for ker in (lanczos2,)
-        for t in (0.0, 0.1, 0.2, 0.2, 0.4)
-            println(typeof(ker), ": ",
-                    ker.(t .+ (0,-1)) .≈ Kernels.getweights(ker, t))
+        err = 0.0
+        for t in (0.0, 0.1, 0.2, 0.3, 0.4)
+            err = maxabserr(err, ker.(t .+ (0,-1)),
+                            Kernels.getweights(ker, t))
         end
+        print_maxabserror(ker, err)
     end
     for ker in (quadratic,)
-        for t in (0.0, 0.1, 0.2, 0.2, 0.4)
-            println(typeof(ker), ": ",
-                    ker.(t .+ (1,0,-1)) .≈ Kernels.getweights(ker, t))
+        err = 0.0
+        for t in (0.0, 0.1, 0.2, 0.3, 0.4)
+            err = maxabserr(err, ker.(t .+ (1,0,-1)),
+                            Kernels.getweights(ker, t))
         end
+        print_maxabserror(ker, err)
     end
 
     for ker in (cubic, catmull_rom, mitchell_netravili, keys, lanczos4)
-        for t in (1e-6, 0.1, 0.2, 0.2, 0.4)
-            println(typeof(ker), ": ",
-                    ker.(t .+ (1,0,-1,-2)) .≈ Kernels.getweights(ker, t))
+        err = 0.0
+        for t in (1e-4, 0.1, 0.2, 0.3, 0.4)
+            err = maxabserr(err, ker.(t .+ (1,0,-1,-2)),
+                            Kernels.getweights(ker, t))
         end
+        print_maxabserror(ker, err)
     end
     for ker in (lanczos6,)
-        for t in (1e-6, 0.1, 0.2, 0.2, 0.4)
-            println(typeof(ker), ": ",
-                    ker.(t .+ (2,1,0,-1,-2,-3)) .≈ Kernels.getweights(ker, t))
+        err = 0.0
+        for t in (1e-6, 0.1, 0.2, 0.3, 0.4)
+            err = maxabserr(err, ker.(t .+ (2,1,0,-1,-2,-3)),
+                            Kernels.getweights(ker, t))
         end
+        print_maxabserror(ker, err)
     end
 end
 
