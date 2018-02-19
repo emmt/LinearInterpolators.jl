@@ -64,16 +64,32 @@ A kernel may be used as a function wit a real argument:
     ker(x::Real)
 
 yields kernel value at offset `x`.  All kernel supports are symmetric; that is
-`ker(x)` is zero if `abs(x) > S/2`.  The argument can also be a floating-point
-type and/or a boundary conditions type:
+`ker(x)` is zero if `abs(x) > S/2`.
+
+
+## Kernel conversion
+
+The argument of a kernel be a floating-point type and/or a boundary conditions
+type:
 
     ker(::Type{T}, ::Type{B}) where {T<:AbstractFloat, B<:Boundaries}
 
 to convert the kernel to operate with given floating-point type `T` and use
 boundary conditions `B` (any of which can be omitted and their order is
 irrelevant). Beware that changing the floating-point type may lead to a loss of
-precision if the new floating-point type has more digits).  The following
-methods are available for any interpolation kernel `ker`:
+precision if the new floating-point type has more digits).
+
+It is possible to change the floating-point type of a kernel or its boundary
+conditions by something like:
+
+```julia
+Float32(ker)    # change floating-point type of kernel `ker`
+SafeFlat(ker)   # change boundary conditions of kernel `ker`
+```
+
+## Available methods
+
+The following methods are available for any interpolation kernel `ker`:
 
     eltype(ker) -> T
 
@@ -706,6 +722,28 @@ for K in subtypes(Kernel)
         end
     end
 
+    # Change type.
+    for R in (:Float16, :Float32, :Float64)
+        if K <: LanczosKernel
+            @eval Base.$R(ker::$K{T,S,B}) where {T,S,B} =
+                convert($K{$R,S,B}, ker)
+        else
+            @eval Base.$R(ker::$K{T,B}) where {T,B} =
+                convert($K{$R,B}, ker)
+        end
+    end
+
+    # Change boundary conditions.
+    for C in (:Flat, :SafeFlat)
+        if K <: LanczosKernel
+            @eval $C(ker::$K{T,S,B}) where {T,S,B} =
+                convert($K{T,S,$C}, ker)
+        else
+            @eval $C(ker::$K{T,B}) where {T,B} =
+                convert($K{T,$C}, ker)
+        end
+    end
+
     # Calling the kernel on an array.  FIXME: should be deprecated!
     if K <: LanczosKernel
         @eval function (ker::$K{T,S,B})(A::AbstractArray
@@ -731,6 +769,8 @@ for K in subtypes(Kernel)
             (ker::$K{T,S,B})(::Type{newB}, ::Type{newT}=T) where {
                 T, S, B, newT<:AbstractFloat, newB<:Boundaries
             } = convert($K{newT,S,newB}, ker)
+
+            Base.convert(::Type{$K{T,S,B}}, ker::$K{T,S,B}) where {T,S,B} = ker
         end
     else
         @eval begin
@@ -741,12 +781,11 @@ for K in subtypes(Kernel)
             (ker::$K{T,B})(::Type{newB}, ::Type{newT}=T) where {
                 T, B, newT<:AbstractFloat, newB<:Boundaries
             } = convert($K{newT,newB}, ker)
+
+            Base.convert(::Type{$K{T,B}}, ker::$K{T,B}) where {T,B} = ker
         end
     end
 
-    # Conversion to the same type.
-    @eval convert(::Type{$K{T,B}}, ker::$K{T,B}) where {
-        T<:AbstractFloat,B<:Boundaries} = ker
 end
 
 end # module
