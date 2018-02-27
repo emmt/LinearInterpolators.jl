@@ -52,9 +52,9 @@ function runtests()
                         #("Catmull-Rom",  Kernels.catmull_rom),
                         #("Mitchell-Netravali",  Kernels.mitchell_netravili),
                         ("cardinal Mitchell-Netravali",
-                         Kernels.MitchellNetraviliSpline(Float32, 0, 1)),
+                         Kernels.MitchellNetravaliSpline(Float32, 0, 1)),
                         ("Duff's tensioned B-spline",
-                         Kernels.MitchellNetraviliSpline(Float32, 0.5, 0)),
+                         Kernels.MitchellNetravaliSpline(Float32, 0.5, 0)),
                         ("Lanczos 4 interpolation function",
                          Kernels.LanczosKernel(4)))
         ker16 = ker(Float16)
@@ -78,7 +78,7 @@ function runtests()
     quadratic = Kernels.QuadraticSpline()
     cubic = Kernels.CubicSpline()
     catmull_rom = Kernels.CatmullRomSpline()
-    mitchell_netravili = Kernels.MitchellNetraviliSpline()
+    mitchell_netravili = Kernels.MitchellNetravaliSpline()
     keys = Kernels.KeysSpline(0.5)
     lanczos2 = Kernels.LanczosKernel(2)
     lanczos4 = Kernels.LanczosKernel(4)
