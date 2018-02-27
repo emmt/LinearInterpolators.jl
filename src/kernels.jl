@@ -390,7 +390,7 @@ end
 # Mitchell & Netravali Kernels
 
 ```julia
-MitchellNetraviliSpline([T=Float64,] [b=1/3, c=1/3,] B=Flat) -> ker
+MitchellNetravaliSpline([T=Float64,] [b=1/3, c=1/3,] B=Flat) -> ker
 ```
 
 yields an interpolation kernel of the Mitchell & Netravali family of kernels
@@ -417,12 +417,12 @@ Some specific values of `(b,c)` yield other well known kernels:
 
 Reference:
 
-* Mitchell & Netravali ("Reconstruction Filters in Computer Graphics",
-  Computer Graphics, Vol. 22, Number. 4, August 1988).
+* Mitchell & Netravali, "*Reconstruction Filters in Computer Graphics*",
+  in Computer Graphics, Vol. 22, Num. 4 (1988).
   http://www.cs.utexas.edu/users/fussell/courses/cs384g/lectures/mitchell/Mitchell.pdf.
 
 """
-struct MitchellNetraviliSpline{T,B} <: Kernel{T,4,B}
+struct MitchellNetravaliSpline{T,B} <: Kernel{T,4,B}
     b ::T
     c ::T
     p0::T
@@ -432,7 +432,7 @@ struct MitchellNetraviliSpline{T,B} <: Kernel{T,4,B}
     q1::T
     q2::T
     q3::T
-    function (::Type{MitchellNetraviliSpline{T,B}})(b::Real,
+    function (::Type{MitchellNetravaliSpline{T,B}})(b::Real,
                                                     c::Real) where {T,B}
         new{T,B}(
             b, c,
@@ -446,52 +446,52 @@ struct MitchellNetraviliSpline{T,B} <: Kernel{T,4,B}
     end
 end
 
-function MitchellNetraviliSpline(::Type{T}, b::Real, c::Real,
+function MitchellNetravaliSpline(::Type{T}, b::Real, c::Real,
                                  ::Type{B} = Flat) where {T<:AbstractFloat,
                                                           B<:Boundaries}
-    MitchellNetraviliSpline{T,B}(b, c)
+    MitchellNetravaliSpline{T,B}(b, c)
 end
 
-function MitchellNetraviliSpline(b::Real, c::Real,
+function MitchellNetravaliSpline(b::Real, c::Real,
                                  ::Type{B} = Flat) where {B<:Boundaries}
-    MitchellNetraviliSpline(Float64, b, c, B)
+    MitchellNetravaliSpline(Float64, b, c, B)
 end
 
 # Create Mitchell-Netravali kernel with default "good" parameters.
-function MitchellNetraviliSpline(::Type{T} = Float64,
+function MitchellNetravaliSpline(::Type{T} = Float64,
                                  ::Type{B} = Flat) where {T<:AbstractFloat,
                                                           B<:Boundaries}
-    MitchellNetraviliSpline{T,B}(T(1/3), T(1/3))
+    MitchellNetravaliSpline{T,B}(T(1/3), T(1/3))
 end
 
-Base.length(::Union{K,Type{K}}) where {K<:MitchellNetraviliSpline} = 4
+Base.length(::Union{K,Type{K}}) where {K<:MitchellNetravaliSpline} = 4
 
-iscardinal(ker::MitchellNetraviliSpline{T,B}) where {T<:AbstractFloat,B} =
+iscardinal(ker::MitchellNetravaliSpline{T,B}) where {T<:AbstractFloat,B} =
     (ker.b == T(0))
 
-isnormalized(::Union{K,Type{K}}) where {K<:MitchellNetraviliSpline} = true
+isnormalized(::Union{K,Type{K}}) where {K<:MitchellNetravaliSpline} = true
 
-Base.summary(ker::MitchellNetraviliSpline{T,B}) where {T,B} =
-    @sprintf("MitchellNetraviliSpline(%.1f,%.1f)", ker.b, ker.c)
+Base.summary(ker::MitchellNetravaliSpline{T,B}) where {T,B} =
+    @sprintf("MitchellNetravaliSpline(%.1f,%.1f)", ker.b, ker.c)
 
-function convert(::Type{MitchellNetraviliSpline{T,B}},
-                 ker::MitchellNetraviliSpline) where {T<:AbstractFloat,
+function convert(::Type{MitchellNetravaliSpline{T,B}},
+                 ker::MitchellNetravaliSpline) where {T<:AbstractFloat,
                                                       B<:Boundaries}
-    MitchellNetraviliSpline(T, ker.b, ker.c, B)
+    MitchellNetravaliSpline(T, ker.b, ker.c, B)
 end
 
-@inline _p(ker::MitchellNetraviliSpline{T,B}, x::T) where {T,B} =
+@inline _p(ker::MitchellNetravaliSpline{T,B}, x::T) where {T,B} =
     (ker.p3*x + ker.p2)*x*x + ker.p0
 
-@inline _q(ker::MitchellNetraviliSpline{T,B}, x::T) where {T,B} =
+@inline _q(ker::MitchellNetravaliSpline{T,B}, x::T) where {T,B} =
     ((ker.q3*x + ker.q2)*x + ker.q1)*x + ker.q0
 
-function (ker::MitchellNetraviliSpline{T,B})(x::T) where {T<:AbstractFloat,B}
+function (ker::MitchellNetravaliSpline{T,B})(x::T) where {T<:AbstractFloat,B}
     a = abs(x)
     return (a ≥ T(2) ? T(0) : a ≤ T(1) ? _p(ker, a) : _q(ker, a))
 end
 
-@inline function getweights(ker::MitchellNetraviliSpline{T,B},
+@inline function getweights(ker::MitchellNetravaliSpline{T,B},
                             t::T) where {T<:AbstractFloat,B}
     return (_q(ker, t + T(1)),
             _p(ker, t),
