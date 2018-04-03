@@ -11,16 +11,16 @@
 
 import Base: sparse, eltype
 
-immutable SparseInterpolator{T<:AbstractFloat, S, N} <: LinearOperator{AbstractArray{T,N}, AbstractVector{T}}
+struct SparseInterpolator{T<:AbstractFloat,S,N} <: LinearMapping
     C::Vector{T}
     J::Vector{Int}
     nrows::Int
     ncols::Int
     dims::NTuple{N,Int} # dimensions of result
-    function (::Type{SparseInterpolator{T,S,N}}){T,S,N}(C::Vector{T},
-                                                        J::Vector{Int},
-                                                        dims::NTuple{N,Int},
-                                                        ncols::Int)
+    function (::Type{SparseInterpolator{T,S,N}})(C::Vector{T},
+                                                 J::Vector{Int},
+                                                 dims::NTuple{N,Int},
+                                                 ncols::Int) where {T,S,N}
         @assert S ≥ 1
         @assert minimum(dims) ≥ 1
         nrows = prod(dims)
@@ -31,16 +31,16 @@ immutable SparseInterpolator{T<:AbstractFloat, S, N} <: LinearOperator{AbstractA
     end
 end
 
-(A::SparseInterpolator{T,S,N}){T,S,N}(x::AbstractVector{T}) =
+(A::SparseInterpolator{T,S,N})(x::AbstractVector{T}) where {T,S,N} =
     apply_direct(A, x)
 
-eltype{T,S,N}(::SparseInterpolator{T,S,N}) = T
+eltype(::SparseInterpolator{T,S,N}) where {T,S,N} = T
 output_size(A::SparseInterpolator) = A.dims
 input_size(A::SparseInterpolator) = (A.ncols,)
-width{T,S,N}(A::SparseInterpolator{T,S,N}) = S
+width(A::SparseInterpolator{T,S,N}) where {T,S,N} = S
 coefficients(A::SparseInterpolator) = A.C
 columns(A::SparseInterpolator) = A.J
-function rows{T,S,N}(A::SparseInterpolator{T,S,N})
+function rows(A::SparseInterpolator{T,S,N}) where {T,S,N}
     nrows = A.nrows
     nvals = S*nrows       # number of non-zero coefficients
     @assert length(A.C) == nvals
@@ -82,8 +82,8 @@ with `step(grd)` the (constant) step size between the nodes of the grid `grd`
 and `grd[j]` the `j`-th position of the grid.
 
 """
-function SparseInterpolator{T<:AbstractFloat,S,B}(
-    ker::Kernels.Kernel{T,S,B}, pos::AbstractArray, grd::Range)
+function SparseInterpolator(ker::Kernels.Kernel{T,S,B}, pos::AbstractArray,
+                            grd::Range) where {T<:AbstractFloat,S,B}
 
     # Parameters to convert the interpolated position into a frational grid
     # index.
@@ -94,21 +94,21 @@ function SparseInterpolator{T<:AbstractFloat,S,B}(
                        CartesianRange(indices(pos)), length(grd))
 end
 
-function SparseInterpolator{T<:AbstractFloat,S,B}(
-    ker::Kernel{T,S,B}, pos::AbstractArray, len::Integer)
+function SparseInterpolator(ker::Kernel{T,S,B}, pos::AbstractArray,
+                            len::Integer) where {T<:AbstractFloat,S,B}
     SparseInterpolator(ker, (i) -> T(pos[i]), CartesianRange(indices(pos)),
                        Int(len))
 end
 
-function SparseInterpolator{T<:AbstractFloat,S,B,N}(
-    ker::Kernels.Kernel{T,S,B}, pos::Function,
-    R::CartesianRange{CartesianIndex{N}}, ncols::Int)
+function SparseInterpolator(ker::Kernels.Kernel{T,S,B}, pos::Function,
+                            R::CartesianRange{CartesianIndex{N}}, ncols::Int
+                            ) where {T<:AbstractFloat,S,B,N}
     C, J = computecoefs(R, ncols, ker, pos)
     return SparseInterpolator{T,S,N}(C, J, size(R), ncols)
 end
 
-function computecoefs{T,B,N}(R::CartesianRange{CartesianIndex{N}}, ncols::Int,
-                             ker::Kernel{T,1,B}, pos::Function)
+function computecoefs(R::CartesianRange{CartesianIndex{N}}, ncols::Int,
+                      ker::Kernel{T,1,B}, pos::Function) where {T,B,N}
     lim = limits(ker, ncols)
     nvals = length(R)
     C = Array{T}(nvals)
@@ -124,8 +124,8 @@ function computecoefs{T,B,N}(R::CartesianRange{CartesianIndex{N}}, ncols::Int,
     return C, J
 end
 
-function computecoefs{T,B,N}(R::CartesianRange{CartesianIndex{N}}, ncols::Int,
-                             ker::Kernel{T,2,B}, pos::Function)
+function computecoefs(R::CartesianRange{CartesianIndex{N}}, ncols::Int,
+                      ker::Kernel{T,2,B}, pos::Function) where {T,B,N}
     lim = limits(ker, ncols)
     nvals = 2*length(R)
     C = Array{T}(nvals)
@@ -143,8 +143,8 @@ function computecoefs{T,B,N}(R::CartesianRange{CartesianIndex{N}}, ncols::Int,
     return C, J
 end
 
-function computecoefs{T,B,N}(R::CartesianRange{CartesianIndex{N}}, ncols::Int,
-                           ker::Kernel{T,3,B}, pos::Function)
+function computecoefs(R::CartesianRange{CartesianIndex{N}}, ncols::Int,
+                      ker::Kernel{T,3,B}, pos::Function) where {T,B,N}
     lim = limits(ker, ncols)
     nvals = 3*length(R)
     C = Array{T}(nvals)
@@ -164,8 +164,8 @@ function computecoefs{T,B,N}(R::CartesianRange{CartesianIndex{N}}, ncols::Int,
     return C, J
 end
 
-function computecoefs{T,B,N}(R::CartesianRange{CartesianIndex{N}}, ncols::Int,
-                           ker::Kernel{T,4,B}, pos::Function)
+function computecoefs(R::CartesianRange{CartesianIndex{N}}, ncols::Int,
+                      ker::Kernel{T,4,B}, pos::Function) where {T,B,N}
     lim = limits(ker, ncols)
     nvals = 4*length(R)
     C = Array{T}(nvals)
@@ -187,89 +187,117 @@ function computecoefs{T,B,N}(R::CartesianRange{CartesianIndex{N}}, ncols::Int,
     return C, J
 end
 
-
-
-function checksize{T,S,N}(A::SparseInterpolator{T,S,N},
-                          out::AbstractArray{T,N},
-                          inp::AbstractVector{T})
+function _check(A::SparseInterpolator{T,S,N},
+                out::AbstractArray{T,N},
+                inp::AbstractVector{T}) where {T,S,N}
     nvals = S*A.nrows # number of non-zero coefficients
-    length(A.C) == nvals || error("bad number of sparse interpolator coefficients")
-    length(A.J) == nvals || error("bad number of sparse interpolator indices")
-    @assert length(inp) == A.ncols
-    @assert size(out) == A.dims
-    length(out) == A.nrows || error("bad number of \"rows\"")
-end
-
-function apply_direct{T,S,N}(A::SparseInterpolator{T,S,N},
-                             src::AbstractVector{T})
-    dst = Array{T}(output_size(A))
-    apply_direct!(dst, A, src)
-end
-
-function apply_direct!{T,S,N}(dst::AbstractArray{T,N},
-                              A::SparseInterpolator{T,S,N},
-                              src::AbstractVector{T})
-    checksize(A, dst, src)
-    nrows, ncols = A.nrows, A.ncols
-    C, J, K = A.C, A.J, 1:S
-    @inbounds for i in 1:nrows
-        sum = zero(T)
-        for k in K
-            j = J[k]
-            1 ≤ j ≤ ncols || error("corrupted interpolator table")
-            sum += C[k]*src[j]
-        end
-        dst[i] = sum
-        K += S
+    J, ncols = A.J, A.ncols
+    if length(A.C) != nvals
+        error("corrupted sparse interpolator (bad number of coefficients)")
     end
-    return dst
-end
-
-function apply_adjoint{T,S,N}(A::SparseInterpolator{T,S,N},
-                              src::AbstractArray{T,N})
-    dst = Array{T}(input_size(A))
-    apply_adjoint!(dst, A, src)
-end
-
-function apply_adjoint!{T,S,N}(dst::AbstractVector{T},
-                               A::SparseInterpolator{T,S,N},
-                               src::AbstractArray{T,N})
-    checksize(A, src, dst)
-    is(dst, src) && error("operation cannot be done in-place")
-    fill!(dst, zero(T))
-    nrows, ncols = A.nrows, A.ncols
-    C, J, K = A.C, A.J, 1:S
-    @inbounds for i in 1:nrows
-        c = src[i]
-        for k in K
-            j = J[k]
-            1 ≤ j ≤ ncols || error("corrupted interpolator table")
-            dst[j] += C[k]*c
-        end
-        K += S
+    if length(J) != nvals
+        error("corrupted sparse interpolator (bad number of indices)")
     end
-    return dst
+    if length(inp) != ncols
+        error("bad vector length (expecting $(A.ncol), got $(length(inp)))")
+    end
+    if size(out) != A.dims
+        error("bad array size (expecting $(A.dims), got $(size(out)))")
+    end
+    if length(out) == A.nrows
+        error("corrupted sparse interpolator (bad number of \"rows\")")
+    end
+    @inbounds for k in 1:nvals
+        if !(1 ≤ J[k] ≤ ncols)
+            error("corrupted sparse interpolator (out of bound indices)")
+        end
+    end
+end
+
+function vcreate(::Type{Direct}, A::SparseInterpolator{T,S,N},
+                 x::AbstractVector{T}) where {T,S,N}
+    return Array{T}(output_size(A))
+end
+
+function vcreate(::Type{Adjoint}, A::SparseInterpolator{T,S,N},
+                 x::AbstractArray{T,N}) where {T,S,N}
+    return Array{T}(input_size(A))
+end
+
+function apply!(α::Scalar, ::Type{Direct}, A::SparseInterpolator{T,S,N},
+                x::AbstractVector{T},
+                β::Scalar, y::AbstractArray{T,N}) where {T,S,N}
+    _check(A, y, x)
+    if α == zero(α)
+        vscale!(y, β)
+    else
+        const alpha = convert(T, α)
+        const beta = convert(T, β)
+        nrows, ncols = A.nrows, A.ncols
+        C, J, K = A.C, A.J, 1:S
+        @inbounds for i in 1:nrows
+            sum = zero(T)
+            @simd for k in K
+                j = J[k]
+                sum += C[k]*x[j]
+            end
+            if beta == zero(beta)
+                y[i] = alpha*sum
+            else
+                y[i] = alpha*sum + beta*y[i]
+            end
+            K += S
+        end
+    end
+    return y
+end
+
+function apply!(α::Scalar, ::Type{Adjoint}, A::SparseInterpolator{T,S,N},
+                x::AbstractArray{T,N},
+                β::Scalar, y::AbstractVector{T}) where {T,S,N}
+    _check(A, x, y)
+    vscale!(y, β)
+    if α != zero(α)
+        alpha = convert(T, α)
+        nrows, ncols = A.nrows, A.ncols
+        C, J, K = A.C, A.J, 1:S
+        @inbounds for i in 1:nrows
+            c = alpha*x[i]
+            for k in K
+                j = J[k]
+                y[j] += C[k]*c
+            end
+            K += S
+        end
+    end
+    return y
 end
 
 """
-`AtWA(A,w)` yields the matrix `A'*W*A` from a sparse linear operator `A` and weights
-`W = diag(w)`.
+
+`AtWA(A,w)` yields the matrix `A'*W*A` from a sparse linear operator `A` and
+weights `W = diag(w)`.
+
 """
-function AtWA{T,S,N}(A::SparseInterpolator{T,S,N}, w::AbstractArray{T,N})
+function AtWA(A::SparseInterpolator{T,S,N},
+              w::AbstractArray{T,N}) where {T,S,N}
     ncols = A.ncols
     AtWA!(Array{T}(ncols, ncols), A, w)
 end
 
 """
+
 `AtA(A)` yields the matrix `A'*A` from a sparse linear operator `A`.
+
 """
-function AtA{T,S,N}(A::SparseInterpolator{T,S,N})
+function AtA(A::SparseInterpolator{T,S,N}) where {T,S,N}
     ncols = A.ncols
     AtA!(Array{T}(ncols, ncols), A)
 end
 
 # Build the `A'*A` matrix from a sparse linear operator `A`.
-function AtA!{T,S,N}(dst::AbstractArray{T,2}, A::SparseInterpolator{T,S,N})
+function AtA!(dst::AbstractArray{T,2},
+              A::SparseInterpolator{T,S,N}) where {T,S,N}
     nrows, ncols = A.nrows, A.ncols
     @assert size(dst) == (ncols, ncols)
     fill!(dst, zero(T))
@@ -292,8 +320,8 @@ function AtA!{T,S,N}(dst::AbstractArray{T,2}, A::SparseInterpolator{T,S,N})
 end
 
 # Build the `A'*W*A` matrix from a sparse linear operator `A` and weights `W`.
-function AtWA!{T,S,N}(dst::AbstractArray{T,2}, A::SparseInterpolator{T,S,N},
-                      wgt::AbstractArray{T,N})
+function AtWA!(dst::AbstractArray{T,2}, A::SparseInterpolator{T,S,N},
+               wgt::AbstractArray{T,N}) where {T,S,N}
     nrows, ncols = A.nrows, A.ncols
     @assert size(dst) == (ncols, ncols)
     @assert size(wgt) == output_size(A)
@@ -322,9 +350,10 @@ end
 const RGL_EPS = 1e-9
 const RGL_MU = 0.0
 
-doc"""
-
-    fit(A, y[, w][; epsilon=1e-9, mu=0.0]) -> x
+"""
+```julia
+fit(A, y[, w][; epsilon=1e-9, mu=0.0]) -> x
+```
 
 performs a linear fit of `y` by the model `A*x` with `A` a linear interpolator.
 The returned value `x` minimizes:
@@ -344,9 +373,11 @@ where `D` is a finite difference operator, `rho` is the maximum diagonal
 element of `A'*diag(w)*A` and `norm` is the Euclidean norm.
 
 """
-function fit{T,S,N}(A::SparseInterpolator{T,S,N}, y::AbstractArray{T,N},
-                    w::AbstractArray{T,N};
-                    epsilon::Real = RGL_EPS, mu::Real = RGL_MU)
+function fit(A::SparseInterpolator{T,S,N},
+             y::AbstractArray{T,N},
+             w::AbstractArray{T,N};
+             epsilon::Real = RGL_EPS,
+             mu::Real = RGL_MU) where {T,S,N}
     @assert size(y) == output_size(A)
     @assert size(w) == size(y)
 
@@ -363,8 +394,10 @@ function fit{T,S,N}(A::SparseInterpolator{T,S,N}, y::AbstractArray{T,N},
     cholfact!(lhs,:U,Val{true})\rhs
 end
 
-function fit{T,S,N}(A::SparseInterpolator{T,S,N}, y::AbstractArray{T,N};
-                    epsilon::Real = RGL_EPS, mu::Real = RGL_MU)
+function fit(A::SparseInterpolator{T,S,N},
+             y::AbstractArray{T,N};
+             epsilon::Real = RGL_EPS,
+             mu::Real = RGL_MU) where {T,S,N}
     @assert size(y) == output_size(A)
     @assert size(w) == size(y)
 
@@ -381,7 +414,7 @@ function fit{T,S,N}(A::SparseInterpolator{T,S,N}, y::AbstractArray{T,N};
     cholfact!(lhs,:U,Val{true})\rhs
 end
 
-doc"""
+"""
     regularize(A, ϵ, μ) -> R
 
 regularizes the symmetric matrix `A` to produce the matrix:
@@ -396,18 +429,17 @@ maximum diagonal element of `A`.  The in-place version:
 stores the regularized matrix in `A` (and returns it).
 
 """
-function regularize end
-
-regularize{T<:AbstractFloat}(A::AbstractArray{T,2}, args...) =
+regularize(A::AbstractArray{T,2}, args...) where {T<:AbstractFloat} =
     regularize!(copy!(Array{T}(size(A)), A), args...)
 
-function regularize!{T<:AbstractFloat}(A::AbstractArray{T,2},
-                                       eps::Real = RGL_EPS,
-                                       mu::Real = RGL_MU)
+function regularize!(A::AbstractArray{T,2},
+                     eps::Real = RGL_EPS,
+                     mu::Real = RGL_MU) where {T<:AbstractFloat}
     regularize!(A, T(eps), T(mu))
 end
 
-function regularize!{T<:AbstractFloat}(A::AbstractArray{T,2}, eps::T, mu::T)
+function regularize!(A::AbstractArray{T,2},
+                     eps::T, mu::T) where {T<:AbstractFloat}
     local rho::T
     @assert eps ≥ zero(T)
     @assert mu ≥ zero(T)

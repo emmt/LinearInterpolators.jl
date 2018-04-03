@@ -7,32 +7,32 @@
 #
 #------------------------------------------------------------------------------
 #
-# Copyright (C) 2017, Éric Thiébaut.
+# Copyright (C) 2017-2018, Éric Thiébaut.
 # This file is part of TiPi.  All rights reserved.
 #
 
-immutable SafeFlatLimits{T<:AbstractFloat} <: Limits{T}
+struct SafeFlatLimits{T<:AbstractFloat} <: Limits{T}
     inf::T   # bound for all neighbors before range
     sup::T   # bound for all neighbors after range
     len::Int # length of dimension in interpolated array
-    function (::Type{SafeFlatLimits{T}}){T}(inf, sup, len::Integer)
+    function (::Type{SafeFlatLimits{T}})(inf, sup, len::Integer) where {T}
         @assert inf < sup
         @assert len ≥ 1
         new{T}(inf, sup, len)
     end
 end
 
-limits{T,S}(::Kernel{T,S,SafeFlat}, len::Integer) =
+limits(::Kernel{T,S,SafeFlat}, len::Integer) where {T,S} =
     SafeFlatLimits{T}(prevfloat(T(2       - S/2)),
                      nextfloat(T(len - 1 + S/2)), len)
 
 boundaries(::SafeFlatLimits) = SafeFlat
 
-inferior{T}(B::SafeFlatLimits{T}) = B.inf
-superior{T}(B::SafeFlatLimits{T}) = B.sup
+inferior(B::SafeFlatLimits{T}) where {T} = B.inf
+superior(B::SafeFlatLimits{T}) where {T} = B.sup
 
-@inline function getcoefs{T}(ker::Kernel{T,1,SafeFlat},
-                             lim::SafeFlatLimits{T}, x::T)
+@inline function getcoefs(ker::Kernel{T,1,SafeFlat},
+                          lim::SafeFlatLimits{T}, x::T) where {T}
     if x ≤ inferior(lim)
         j1 = first(lim)
         w1 = one(T)
@@ -47,8 +47,8 @@ superior{T}(B::SafeFlatLimits{T}) = B.sup
     return j1, w1
 end
 
-@inline function getcoefs{T}(ker::Kernel{T,2,SafeFlat},
-                             lim::SafeFlatLimits{T}, x::T)
+@inline function getcoefs(ker::Kernel{T,2,SafeFlat},
+                          lim::SafeFlatLimits{T}, x::T) where {T}
     if x ≤ inferior(lim)
         j1 = j2 = first(lim)
         w1 = zero(T)
@@ -70,8 +70,8 @@ end
     return j1, j2, w1, w2
 end
 
-@inline function getcoefs{T}(ker::Kernel{T,3,SafeFlat},
-                             lim::SafeFlatLimits{T}, x::T)
+@inline function getcoefs(ker::Kernel{T,3,SafeFlat},
+                          lim::SafeFlatLimits{T}, x::T) where {T}
     if x ≤ inferior(lim)
         j1 = j2 = j3 = first(lim)
         w1 = w2 = zero(T)
@@ -94,8 +94,8 @@ end
     return j1, j2, j3, w1, w2, w3
 end
 
-@inline function getcoefs{T}(ker::Kernel{T,4,SafeFlat},
-                             lim::SafeFlatLimits{T}, x::T)
+@inline function getcoefs(ker::Kernel{T,4,SafeFlat},
+                          lim::SafeFlatLimits{T}, x::T) where {T}
     if x ≤ inferior(lim)
         j1 = j2 = j3 = j4 = first(lim)
         w1 = w2 = w3 = zero(T)

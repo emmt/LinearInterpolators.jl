@@ -5,27 +5,27 @@
 #
 #------------------------------------------------------------------------------
 #
-# Copyright (C) 2017, Éric Thiébaut.
+# Copyright (C) 2017-2018, Éric Thiébaut.
 # This file is part of TiPi.  All rights reserved.
 #
 
 #------------------------------------------------------------------------------
 # Direct operations.
 
-function apply_direct!{T,S,B}(dst::Array{T,2},
-                              ker::Kernel{T,S,B},
-                              x1::AbstractVector{T},
-                              x2::AbstractVector{T},
-                              src::AbstractArray{T,2})
+function apply_direct!(dst::Array{T,2},
+                       ker::Kernel{T,S,B},
+                       x1::AbstractVector{T},
+                       x2::AbstractVector{T},
+                       src::AbstractArray{T,2}) where {T,S,B}
     apply_direct!(dst, ker, x1, ker, x2, src)
 end
 
-function apply_direct!{T,B1,B2}(dst::Array{T,2},
-                                ker1::Kernel{T,4,B1},
-                                x1::AbstractVector{T},
-                                ker2::Kernel{T,4,B2},
-                                x2::AbstractVector{T},
-                                src::AbstractArray{T,2})
+function apply_direct!(dst::Array{T,2},
+                       ker1::Kernel{T,4,B1},
+                       x1::AbstractVector{T},
+                       ker2::Kernel{T,4,B2},
+                       x2::AbstractVector{T},
+                       src::AbstractArray{T,2}) where {T,B1,B2}
     # Get dimensions and limits.
     @assert size(dst) == (length(x1), length(x2))
     m1, m2 = size(dst)
@@ -63,22 +63,22 @@ end
 #------------------------------------------------------------------------------
 # In-place adjoint operation.
 
-function apply_adjoint!{T,S,B}(dst::Array{T,2},
-                               ker::Kernel{T,S,B},
-                               x1::AbstractVector{T},
-                               x2::AbstractVector{T},
-                               src::AbstractArray{T,2};
-                               kwds...)
+function apply_adjoint!(dst::Array{T,2},
+                        ker::Kernel{T,S,B},
+                        x1::AbstractVector{T},
+                        x2::AbstractVector{T},
+                        src::AbstractArray{T,2};
+                        kwds...) where {T,S,B}
     apply_adjoint!(dst, ker, x1, ker, x2, src; kwds...)
 end
 
-function apply_adjoint!{T,B1,B2}(dst::Array{T,2},
-                                 ker1::Kernel{T,4,B1},
-                                 x1::AbstractVector{T},
-                                 ker2::Kernel{T,4,B2},
-                                 x2::AbstractVector{T},
-                                 src::AbstractArray{T,2};
-                                 clr=true)
+function apply_adjoint!(dst::Array{T,2},
+                        ker1::Kernel{T,4,B1},
+                        x1::AbstractVector{T},
+                        ker2::Kernel{T,4,B2},
+                        x2::AbstractVector{T},
+                        src::AbstractArray{T,2};
+                        clr=true) where {T,B1,B2}
     # Get dimensions and limits.
     @assert size(src) == (length(x1), length(x2))
     m1, m2 = size(src)

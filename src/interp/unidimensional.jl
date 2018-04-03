@@ -5,28 +5,30 @@
 #
 #------------------------------------------------------------------------------
 #
-# Copyright (C) 2017, Éric Thiébaut.
+# Copyright (C) 2017-2018, Éric Thiébaut.
 # This file is part of TiPi.  All rights reserved.
 #
 
 #------------------------------------------------------------------------------
 # Out-of place versions.
 
-function apply_direct{T,S,B,N}(ker::Kernel{T,S,B}, x::AbstractArray{T,N},
-                               src::AbstractVector{T})
+function apply_direct(ker::Kernel{T,S,B}, x::AbstractArray{T,N},
+                      src::AbstractVector{T}) where {T,S,B,N}
     return apply_direct!(Array{T}(size(x)), ker, x, src)
 end
 
-function apply_adjoint{T,S,B,N}(ker::Kernel{T,S,B}, x::AbstractArray{T,N},
-                                src::AbstractArray{T,N}, len::Integer)
+function apply_adjoint(ker::Kernel{T,S,B}, x::AbstractArray{T,N},
+                       src::AbstractArray{T,N}, len::Integer) where {T,S,B,N}
     return apply_adjoint!(Array{T}(len), ker, x, src; clr = true)
 end
 
 #------------------------------------------------------------------------------
 # In-place direct operation.
 
-function apply_direct!{T,B,N}(dst::AbstractArray{T,N}, ker::Kernel{T,1,B},
-                              x::AbstractArray{T,N}, src::AbstractVector{T})
+function apply_direct!(dst::AbstractArray{T,N},
+                       ker::Kernel{T,1,B},
+                       x::AbstractArray{T,N},
+                       src::AbstractVector{T}) where {T,B,N}
     @assert size(dst) == size(x)
     lim = limits(ker, length(src))
     @inbounds for i in eachindex(dst, x)
@@ -36,8 +38,10 @@ function apply_direct!{T,B,N}(dst::AbstractArray{T,N}, ker::Kernel{T,1,B},
     return dst
 end
 
-function apply_direct!{T,B,N}(dst::AbstractArray{T,N}, ker::Kernel{T,2,B},
-                              x::AbstractArray{T,N}, src::AbstractVector{T})
+function apply_direct!(dst::AbstractArray{T,N},
+                       ker::Kernel{T,2,B},
+                       x::AbstractArray{T,N},
+                       src::AbstractVector{T}) where {T,B,N}
     @assert size(dst) == size(x)
     lim = limits(ker, length(src))
     @inbounds for i in eachindex(dst, x)
@@ -47,8 +51,10 @@ function apply_direct!{T,B,N}(dst::AbstractArray{T,N}, ker::Kernel{T,2,B},
     return dst
 end
 
-function apply_direct!{T,B,N}(dst::AbstractArray{T,N}, ker::Kernel{T,3,B},
-                              x::AbstractArray{T,N}, src::AbstractVector{T})
+function apply_direct!(dst::AbstractArray{T,N},
+                       ker::Kernel{T,3,B},
+                       x::AbstractArray{T,N},
+                       src::AbstractVector{T}) where {T,B,N}
     @assert size(dst) == size(x)
     lim = limits(ker, length(src))
     @inbounds for i in eachindex(dst, x)
@@ -58,8 +64,10 @@ function apply_direct!{T,B,N}(dst::AbstractArray{T,N}, ker::Kernel{T,3,B},
     return dst
 end
 
-function apply_direct!{T,B,N}(dst::AbstractArray{T,N}, ker::Kernel{T,4,B},
-                              x::AbstractArray{T,N}, src::AbstractVector{T})
+function apply_direct!(dst::AbstractArray{T,N},
+                       ker::Kernel{T,4,B},
+                       x::AbstractArray{T,N},
+                       src::AbstractVector{T}) where {T,B,N}
     @assert size(dst) == size(x)
     # FIXME: return apply_direct!(dst, ker, (i) -> x[i], src)
     lim = limits(ker, length(src))
@@ -73,9 +81,11 @@ end
 #------------------------------------------------------------------------------
 # In-place adjoint operation.
 
-function apply_adjoint!{T,B,N}(dst::AbstractVector{T}, ker::Kernel{T,1,B},
-                               x::AbstractArray{T,N}, src::AbstractArray{T,N};
-                               clr::Bool = true)
+function apply_adjoint!(dst::AbstractVector{T},
+                        ker::Kernel{T,1,B},
+                        x::AbstractArray{T,N},
+                        src::AbstractArray{T,N};
+                        clr::Bool = true) where {T,B,N}
     @assert size(src) == size(x)
     if clr
         fill!(dst, zero(T))
@@ -88,9 +98,11 @@ function apply_adjoint!{T,B,N}(dst::AbstractVector{T}, ker::Kernel{T,1,B},
     return dst
 end
 
-function apply_adjoint!{T,B,N}(dst::AbstractVector{T}, ker::Kernel{T,2,B},
-                               x::AbstractArray{T,N}, src::AbstractArray{T,N};
-                               clr::Bool = true)
+function apply_adjoint!(dst::AbstractVector{T},
+                        ker::Kernel{T,2,B},
+                        x::AbstractArray{T,N},
+                        src::AbstractArray{T,N};
+                        clr::Bool = true) where {T,B,N}
     @assert size(src) == size(x)
     if clr
         fill!(dst, zero(T))
@@ -105,9 +117,11 @@ function apply_adjoint!{T,B,N}(dst::AbstractVector{T}, ker::Kernel{T,2,B},
     return dst
 end
 
-function apply_adjoint!{T,B,N}(dst::AbstractVector{T}, ker::Kernel{T,3,B},
-                               x::AbstractArray{T,N}, src::AbstractArray{T,N};
-                               clr::Bool = true)
+function apply_adjoint!(dst::AbstractVector{T},
+                        ker::Kernel{T,3,B},
+                        x::AbstractArray{T,N},
+                        src::AbstractArray{T,N};
+                        clr::Bool = true) where {T,B,N}
     @assert size(src) == size(x)
     if clr
         fill!(dst, zero(T))
@@ -123,9 +137,11 @@ function apply_adjoint!{T,B,N}(dst::AbstractVector{T}, ker::Kernel{T,3,B},
     return dst
 end
 
-function apply_adjoint!{T,B,N}(dst::AbstractVector{T}, ker::Kernel{T,4,B},
-                               x::AbstractArray{T,N}, src::AbstractArray{T,N};
-                               clr::Bool = true)
+function apply_adjoint!(dst::AbstractVector{T},
+                        ker::Kernel{T,4,B},
+                        x::AbstractArray{T,N},
+                        src::AbstractArray{T,N};
+                        clr::Bool = true) where {T,B,N}
     @assert size(src) == size(x)
     # FIXME: return apply_adjoint!(dst, ker, (i) -> x[i], src; clr = clr)
     if clr
@@ -146,8 +162,10 @@ end
 #------------------------------------------------------------------------------
 # In-place direct operation at positions given by a function.
 
-function apply_direct!{T,B,N}(dst::AbstractArray{T,N}, ker::Kernel{T,1,B},
-                              f::Function, src::AbstractVector{T})
+function apply_direct!(dst::AbstractArray{T,N},
+                       ker::Kernel{T,1,B},
+                       f::Function,
+                       src::AbstractVector{T}) where {T,B,N}
     lim = limits(ker, length(src))
     @inbounds for i in eachindex(dst)
         x = f(i) :: T
@@ -157,8 +175,10 @@ function apply_direct!{T,B,N}(dst::AbstractArray{T,N}, ker::Kernel{T,1,B},
     return dst
 end
 
-function apply_direct!{T,B,N}(dst::AbstractArray{T,N}, ker::Kernel{T,2,B},
-                              f::Function, src::AbstractVector{T})
+function apply_direct!(dst::AbstractArray{T,N},
+                       ker::Kernel{T,2,B},
+                       f::Function,
+                       src::AbstractVector{T}) where {T,B,N}
     lim = limits(ker, length(src))
     @inbounds for i in eachindex(dst)
         x = f(i) :: T
@@ -168,8 +188,10 @@ function apply_direct!{T,B,N}(dst::AbstractArray{T,N}, ker::Kernel{T,2,B},
     return dst
 end
 
-function apply_direct!{T,B,N}(dst::AbstractArray{T,N}, ker::Kernel{T,3,B},
-                              f::Function, src::AbstractVector{T})
+function apply_direct!(dst::AbstractArray{T,N},
+                       ker::Kernel{T,3,B},
+                       f::Function,
+                       src::AbstractVector{T}) where {T,B,N}
     lim = limits(ker, length(src))
     @inbounds for i in eachindex(dst)
         x = f(i) :: T
@@ -179,8 +201,10 @@ function apply_direct!{T,B,N}(dst::AbstractArray{T,N}, ker::Kernel{T,3,B},
     return dst
 end
 
-function apply_direct!{T,B,N}(dst::AbstractArray{T,N}, ker::Kernel{T,4,B},
-                              f::Function, src::AbstractVector{T})
+function apply_direct!(dst::AbstractArray{T,N},
+                   ker::Kernel{T,4,B},
+                              f::Function,
+                   src::AbstractVector{T}) where {T,B,N}
     lim = limits(ker, length(src))
     @inbounds for i in eachindex(dst)
         x = f(i) :: T
@@ -193,9 +217,11 @@ end
 #------------------------------------------------------------------------------
 # In-place adjoint operation at positions given by a function.
 
-function apply_adjoint!{T,B,N}(dst::AbstractVector{T}, ker::Kernel{T,1,B},
-                               f::Function, src::AbstractArray{T,N};
-                               clr::Bool = true)
+function apply_adjoint!(dst::AbstractVector{T},
+                        ker::Kernel{T,1,B},
+                        f::Function,
+                        src::AbstractArray{T,N};
+                        clr::Bool = true) where {T,B,N}
     if clr
         fill!(dst, zero(T))
     end
@@ -208,9 +234,11 @@ function apply_adjoint!{T,B,N}(dst::AbstractVector{T}, ker::Kernel{T,1,B},
     return dst
 end
 
-function apply_adjoint!{T,B,N}(dst::AbstractVector{T}, ker::Kernel{T,2,B},
-                               f::Function, src::AbstractArray{T,N};
-                               clr::Bool = true)
+function apply_adjoint!(dst::AbstractVector{T},
+                        ker::Kernel{T,2,B},
+                        f::Function,
+                        src::AbstractArray{T,N};
+                        clr::Bool = true) where {T,B,N}
     if clr
         fill!(dst, zero(T))
     end
@@ -225,9 +253,11 @@ function apply_adjoint!{T,B,N}(dst::AbstractVector{T}, ker::Kernel{T,2,B},
     return dst
 end
 
-function apply_adjoint!{T,B,N}(dst::AbstractVector{T}, ker::Kernel{T,3,B},
-                               f::Function, src::AbstractArray{T,N};
-                               clr::Bool = true)
+function apply_adjoint!(dst::AbstractVector{T},
+                        ker::Kernel{T,3,B},
+                        f::Function,
+                        src::AbstractArray{T,N};
+                        clr::Bool = true) where {T,B,N}
     if clr
         fill!(dst, zero(T))
     end
@@ -243,9 +273,11 @@ function apply_adjoint!{T,B,N}(dst::AbstractVector{T}, ker::Kernel{T,3,B},
     return dst
 end
 
-function apply_adjoint!{T,B,N}(dst::AbstractVector{T}, ker::Kernel{T,4,B},
-                               f::Function, src::AbstractArray{T,N};
-                               clr::Bool = true)
+function apply_adjoint!(dst::AbstractVector{T},
+                        ker::Kernel{T,4,B},
+                        f::Function,
+                        src::AbstractArray{T,N};
+                        clr::Bool = true) where {T,B,N}
     if clr
         fill!(dst, zero(T))
     end

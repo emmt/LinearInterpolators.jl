@@ -5,26 +5,29 @@
 #
 #------------------------------------------------------------------------------
 #
-# Copyright (C) 2017, Éric Thiébaut.
+# Copyright (C) 2017-2018, Éric Thiébaut.
 # This file is part of TiPi.  All rights reserved.
 #
 
-# FIXME: if axis are aligned, use separable interpolation.
+# FIXME: if axes are aligned, use separable interpolation.
 
 #------------------------------------------------------------------------------
 # Direct operations.
 
-function apply_direct!{T,S,B}(dst::Array{T,2},
-                              ker::Kernel{T,S,B},
-                              R::AffineTransform2D{T},
-                              src::Array{T,2})
+function apply_direct!(dst::Array{T,2},
+                       ker::Kernel{T,S,B},
+                       R::AffineTransform2D{T},
+                       src::Array{T,2}) where {T,S,B}
     apply_direct!(dst, ker, ker, R, src)
 end
 
-function apply_direct!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
-    dst::Array{T,2}, ker1::Kernel{T,1,B1}, ker2::Kernel{T,1,B2},
-    R::AffineTransform2D{T}, src::Array{T,2})
-
+function apply_direct!(dst::Array{T,2},
+                       ker1::Kernel{T,1,B1},
+                       ker2::Kernel{T,1,B2},
+                       R::AffineTransform2D{T},
+                       src::Array{T,2}) where {T<:AbstractFloat,
+                                               B1<:Boundaries,
+                                               B2<:Boundaries}
     # Get dimensions and limits.
     m1, m2 = size(dst)
     n1, n2 = size(src)
@@ -46,10 +49,13 @@ function apply_direct!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
     return dst
 end
 
-function apply_direct!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
-    dst::Array{T,2}, ker1::Kernel{T,2,B1}, ker2::Kernel{T,2,B2},
-    R::AffineTransform2D{T}, src::Array{T,2})
-
+function apply_direct!(dst::Array{T,2},
+                       ker1::Kernel{T,2,B1},
+                       ker2::Kernel{T,2,B2},
+                       R::AffineTransform2D{T},
+                       src::Array{T,2}) where {T<:AbstractFloat,
+                                               B1<:Boundaries,
+                                               B2<:Boundaries}
     # Get dimensions and limits.
     m1, m2 = size(dst)
     n1, n2 = size(src)
@@ -76,10 +82,13 @@ function apply_direct!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
     return dst
 end
 
-function apply_direct!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
-    dst::Array{T,2}, ker1::Kernel{T,3,B1}, ker2::Kernel{T,3,B2},
-    R::AffineTransform2D{T}, src::Array{T,2})
-
+function apply_direct!(dst::Array{T,2},
+                       ker1::Kernel{T,3,B1},
+                       ker2::Kernel{T,3,B2},
+                       R::AffineTransform2D{T},
+                       src::Array{T,2}) where {T<:AbstractFloat,
+                                               B1<:Boundaries,
+                                               B2<:Boundaries}
     # Get dimensions and limits.
     m1, m2 = size(dst)
     n1, n2 = size(src)
@@ -111,10 +120,13 @@ function apply_direct!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
     return dst
 end
 
-function apply_direct!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
-    dst::Array{T,2}, ker1::Kernel{T,4,B1}, ker2::Kernel{T,4,B2},
-    R::AffineTransform2D{T}, src::Array{T,2})
-
+function apply_direct!(dst::Array{T,2},
+                       ker1::Kernel{T,4,B1},
+                       ker2::Kernel{T,4,B2},
+                       R::AffineTransform2D{T},
+                       src::Array{T,2}) where {T<:AbstractFloat,
+                                               B1<:Boundaries,
+                                               B2<:Boundaries}
     # Get dimensions and limits.
     m1, m2 = size(dst)
     n1, n2 = size(src)
@@ -157,18 +169,22 @@ end
 #------------------------------------------------------------------------------
 # Adjoint operations.
 
-function apply_adjoint!{T,S,B}(dst::Array{T,2},
-                               ker::Kernel{T,S,B},
-                               R::AffineTransform2D{T},
-                               src::Array{T,2};
-                               kwds...)
+function apply_adjoint!(dst::Array{T,2},
+                        ker::Kernel{T,S,B},
+                        R::AffineTransform2D{T},
+                        src::Array{T,2};
+                        kwds...) where {T,S,B}
     apply_adjoint!(dst, ker, ker, R, src; kwds...)
 end
 
-function apply_adjoint!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
-    dst::Array{T,2}, ker1::Kernel{T,1,B1}, ker2::Kernel{T,1,B2},
-    R::AffineTransform2D{T}, src::Array{T,2}; clr::Bool = true)
-
+function apply_adjoint!(dst::Array{T,2},
+                        ker1::Kernel{T,1,B1},
+                        ker2::Kernel{T,1,B2},
+                        R::AffineTransform2D{T},
+                        src::Array{T,2};
+                        clr::Bool = true) where{T<:AbstractFloat,
+                                                B1<:Boundaries,
+                                                B2<:Boundaries}
     # Get dimensions and limits.
     m1, m2 = size(src)
     n1, n2 = size(dst)
@@ -193,10 +209,14 @@ function apply_adjoint!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
     return dst
 end
 
-function apply_adjoint!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
-    dst::Array{T,2}, ker1::Kernel{T,2,B1}, ker2::Kernel{T,2,B2},
-    R::AffineTransform2D{T}, src::Array{T,2}; clr::Bool = true)
-
+function apply_adjoint!(dst::Array{T,2},
+                        ker1::Kernel{T,2,B1},
+                        ker2::Kernel{T,2,B2},
+                        R::AffineTransform2D{T},
+                        src::Array{T,2};
+                        clr::Bool = true) where {T<:AbstractFloat,
+                                                 B1<:Boundaries,
+                                                 B2<:Boundaries}
     # Get dimensions and limits.
     m1, m2 = size(src)
     n1, n2 = size(dst)
@@ -227,10 +247,14 @@ function apply_adjoint!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
     return dst
 end
 
-function apply_adjoint!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
-    dst::Array{T,2}, ker1::Kernel{T,3,B1}, ker2::Kernel{T,3,B2},
-    R::AffineTransform2D{T}, src::Array{T,2}; clr::Bool = true)
-
+function apply_adjoint!(dst::Array{T,2},
+                        ker1::Kernel{T,3,B1},
+                        ker2::Kernel{T,3,B2},
+                        R::AffineTransform2D{T},
+                        src::Array{T,2};
+                        clr::Bool = true) where {T<:AbstractFloat,
+                                                 B1<:Boundaries,
+                                                 B2<:Boundaries}
     # Get dimensions and limits.
     m1, m2 = size(src)
     n1, n2 = size(dst)
@@ -269,10 +293,14 @@ function apply_adjoint!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
     return dst
 end
 
-function apply_adjoint!{T<:AbstractFloat,B1<:Boundaries,B2<:Boundaries}(
-    dst::Array{T,2}, ker1::Kernel{T,4,B1}, ker2::Kernel{T,4,B2},
-    R::AffineTransform2D{T}, src::Array{T,2}; clr::Bool = true)
-
+function apply_adjoint!(dst::Array{T,2},
+                        ker1::Kernel{T,4,B1},
+                        ker2::Kernel{T,4,B2},
+                        R::AffineTransform2D{T},
+                        src::Array{T,2};
+                        clr::Bool = true) where {T<:AbstractFloat,
+                                                 B1<:Boundaries,
+                                                 B2<:Boundaries}
     # Get dimensions and limits.
     m1, m2 = size(src)
     n1, n2 = size(dst)
