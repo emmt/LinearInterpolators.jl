@@ -5,11 +5,10 @@
 #
 #------------------------------------------------------------------------------
 #
-# Copyright (C) 2015-2017, Éric Thiébaut, Jonathan Léger & Matthew Ozon.
+# Copyright (C) 2015-2016, Éric Thiébaut, Jonathan Léger & Matthew Ozon.
+# Copyright (C) 2017-2018, Éric Thiébaut.
 # This file is part of TiPi.  All rights reserved.
 #
-
-import Base: sparse, eltype
 
 struct SparseInterpolator{T<:AbstractFloat,S,N} <: LinearMapping
     C::Vector{T}
@@ -32,9 +31,9 @@ struct SparseInterpolator{T<:AbstractFloat,S,N} <: LinearMapping
 end
 
 (A::SparseInterpolator{T,S,N})(x::AbstractVector{T}) where {T,S,N} =
-    apply_direct(A, x)
+    apply(A, x)
 
-eltype(::SparseInterpolator{T,S,N}) where {T,S,N} = T
+Base.eltype(::SparseInterpolator{T,S,N}) where {T,S,N} = T
 output_size(A::SparseInterpolator) = A.dims
 input_size(A::SparseInterpolator) = (A.ncols,)
 width(A::SparseInterpolator{T,S,N}) where {T,S,N} = S
@@ -57,7 +56,7 @@ function rows(A::SparseInterpolator{T,S,N}) where {T,S,N}
 end
 
 # Convert to a sparse matrix.
-sparse(A::SparseInterpolator) =
+Base.sparse(A::SparseInterpolator) =
     sparse(rows(A), columns(A), coefficients(A), A.nrows, A.ncols)
 
 
@@ -263,7 +262,7 @@ function apply!(α::Scalar, ::Type{Adjoint}, A::SparseInterpolator{T,S,N},
         C, J, K = A.C, A.J, 1:S
         @inbounds for i in 1:nrows
             c = alpha*x[i]
-            for k in K
+            @simd for k in K
                 j = J[k]
                 y[j] += C[k]*c
             end
@@ -309,7 +308,7 @@ function AtA!(dst::AbstractArray{T,2},
         end
         for k1 in K
             j1, c1 = J[k1], C[k1]
-            for k2 in K
+            @simd for k2 in K
                 j2, c2 = J[k2], C[k2]
                 dst[j1,j2] += c1*c2
             end
@@ -336,7 +335,7 @@ function AtWA!(dst::AbstractArray{T,2}, A::SparseInterpolator{T,S,N},
         for k1 in K
             j1 = J[k1],
             wc1 = w*C[k1]
-            for k2 in K
+            @simd for k2 in K
                 j2 = J[k2]
                 dst[j1,j2] += C[k2]*wc1
             end
