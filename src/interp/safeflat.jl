@@ -24,12 +24,12 @@ end
 
 limits(::Kernel{T,S,SafeFlat}, len::Integer) where {T,S} =
     SafeFlatLimits{T}(prevfloat(T(2       - S/2)),
-                     nextfloat(T(len - 1 + S/2)), len)
+                      nextfloat(T(len - 1 + S/2)), len)
 
 boundaries(::SafeFlatLimits) = SafeFlat
 
-inferior(B::SafeFlatLimits{T}) where {T} = B.inf
-superior(B::SafeFlatLimits{T}) where {T} = B.sup
+inferior(B::SafeFlatLimits) = B.inf
+superior(B::SafeFlatLimits) = B.sup
 
 @inline function getcoefs(ker::Kernel{T,1,SafeFlat},
                           lim::SafeFlatLimits{T}, x::T) where {T}
