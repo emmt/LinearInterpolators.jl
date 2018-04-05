@@ -46,76 +46,16 @@ function apply!(dst::AbstractArray{T,2},
                   zero(Scalar), dst)
 end
 
-function apply!(alpha::Real,
-                ker::Kernel{T,S,B},
-                R::AffineTransform2D{T},
-                src::AbstractArray{T,2},
-                beta::Real,
-                dst::AbstractArray{T,2}) where {T,S,B}
-    return apply!(convert(Scalar, alpha), Direct, ker, ker, R, src,
-                  convert(Scalar, beta), dst)
-end
-
-function apply!(alpha::Real,
-                ::Type{P},
-                ker::Kernel{T,S,B},
-                R::AffineTransform2D{T},
-                src::AbstractArray{T,2},
-                beta::Real,
-                dst::AbstractArray{T,2}) where {P<:Union{Direct,Adjoint},
-                                                T,S,B}
-    return apply!(convert(Scalar, alpha), P, ker, ker, R, src,
-                  convert(Scalar, beta), dst)
-end
-
-function apply!(alpha::Real,
-                ker1::Kernel{T,S1,B1},
-                ker2::Kernel{T,S2,B2},
-                R::AffineTransform2D{T},
-                src::AbstractArray{T,2},
-                beta::Real,
-                dst::AbstractArray{T,2}) where {P<:Union{Direct,Adjoint},
-                                                T,S1,B1,S2,B2}
-    return apply!(convert(Scalar, alpha), Direct, ker1, ker2, R, src,
-                  convert(Scalar, beta), dst)
-end
-
-function apply!(alpha::Real,
-                ::Type{P},
-                ker1::Kernel{T,S1,B1},
-                ker2::Kernel{T,S2,B2},
-                R::AffineTransform2D{T},
-                src::AbstractArray{T,2},
-                beta::Real,
-                dst::AbstractArray{T,2}) where {P<:Union{Direct,Adjoint},
-                                                T,S1,B1,S2,B2}
-    return apply!(convert(Scalar, alpha), P, ker1, ker2, R, src,
-                  convert(Scalar, beta), dst)
-end
-
-# Fallback method to avoid infinite loop.
-function apply!(alpha::Scalar,
-                ::Type{P},
-                ker1::Kernel{T,S1,B1},
-                ker2::Kernel{T,S2,B2},
-                R::AffineTransform2D{T},
-                src::AbstractArray{T,2},
-                beta::Scalar,
-                dst::AbstractArray{T,2}) where {P<:Union{Direct,Adjoint},
-                                                T,S1,B1,S2,B2}
-    erro("unimplemented operation")
-end
-
 #------------------------------------------------------------------------------
 # Direct operations.
 
-function apply!(α::Scalar,
+function apply!(α::Real,
                 ::Type{Direct},
                 ker1::Kernel{T,1,B1},
                 ker2::Kernel{T,1,B2},
                 R::AffineTransform2D{T},
                 src::AbstractArray{T,2},
-                β::Scalar,
+                β::Real,
                 dst::AbstractArray{T,2}) where {T<:AbstractFloat,
                                                 B1<:Boundaries,
                                                 B2<:Boundaries}
@@ -158,13 +98,13 @@ function apply!(α::Scalar,
     return dst
 end
 
-function apply!(α::Scalar,
+function apply!(α::Real,
                 ::Type{Direct},
                 ker1::Kernel{T,2,B1},
                 ker2::Kernel{T,2,B2},
                 R::AffineTransform2D{T},
                 src::AbstractArray{T,2},
-                β::Scalar,
+                β::Real,
                 dst::AbstractArray{T,2}) where {T<:AbstractFloat,
                                                 B1<:Boundaries,
                                                 B2<:Boundaries}
@@ -217,13 +157,13 @@ function apply!(α::Scalar,
     return dst
 end
 
-function apply!(α::Scalar,
+function apply!(α::Real,
                 ::Type{Direct},
                 ker1::Kernel{T,3,B1},
                 ker2::Kernel{T,3,B2},
                 R::AffineTransform2D{T},
                 src::AbstractArray{T,2},
-                β::Scalar,
+                β::Real,
                 dst::AbstractArray{T,2}) where {T<:AbstractFloat,
                                                 B1<:Boundaries,
                                                 B2<:Boundaries}
@@ -286,13 +226,13 @@ function apply!(α::Scalar,
     return dst
 end
 
-function apply!(α::Scalar,
+function apply!(α::Real,
                 ::Type{Direct},
                 ker1::Kernel{T,4,B1},
                 ker2::Kernel{T,4,B2},
                 R::AffineTransform2D{T},
                 src::AbstractArray{T,2},
-                β::Scalar,
+                β::Real,
                 dst::AbstractArray{T,2}) where {T<:AbstractFloat,
                                                 B1<:Boundaries,
                                                 B2<:Boundaries}
@@ -373,13 +313,13 @@ end
 #------------------------------------------------------------------------------
 # Adjoint operations.
 
-function apply!(α::Scalar,
+function apply!(α::Real,
                 ::Type{Adjoint},
                 ker1::Kernel{T,1,B1},
                 ker2::Kernel{T,1,B2},
                 R::AffineTransform2D{T},
                 src::AbstractArray{T,2},
-                β::Scalar,
+                β::Real,
                 dst::AbstractArray{T,2}) where{T<:AbstractFloat,
                                                B1<:Boundaries,
                                                B2<:Boundaries}
@@ -420,13 +360,13 @@ function apply!(α::Scalar,
     return dst
 end
 
-function apply!(α::Scalar,
+function apply!(α::Real,
                 ::Type{Adjoint},
                 ker1::Kernel{T,2,B1},
                 ker2::Kernel{T,2,B2},
                 R::AffineTransform2D{T},
                 src::AbstractArray{T,2},
-                β::Scalar,
+                β::Real,
                 dst::AbstractArray{T,2}) where{T<:AbstractFloat,
                                                B1<:Boundaries,
                                                B2<:Boundaries}
@@ -461,13 +401,13 @@ function apply!(α::Scalar,
     return dst
 end
 
-function apply!(α::Scalar,
+function apply!(α::Real,
                 ::Type{Adjoint},
                 ker1::Kernel{T,3,B1},
                 ker2::Kernel{T,3,B2},
                 R::AffineTransform2D{T},
                 src::AbstractArray{T,2},
-                β::Scalar,
+                β::Real,
                 dst::AbstractArray{T,2}) where{T<:AbstractFloat,
                                                B1<:Boundaries,
                                                B2<:Boundaries}
@@ -510,13 +450,13 @@ function apply!(α::Scalar,
     return dst
 end
 
-function apply!(α::Scalar,
+function apply!(α::Real,
                 ::Type{Adjoint},
                 ker1::Kernel{T,4,B1},
                 ker2::Kernel{T,4,B2},
                 R::AffineTransform2D{T},
                 src::AbstractArray{T,2},
-                β::Scalar,
+                β::Real,
                 dst::AbstractArray{T,2}) where{T<:AbstractFloat,
                                                B1<:Boundaries,
                                                B2<:Boundaries}

@@ -50,80 +50,15 @@ function apply!(dst::AbstractArray{T,2},
                   zero(Scalar), dst)
 end
 
-function apply!(alpha::Real,
-                ker::Kernel{T,S,B},
-                x1::AbstractVector{T},
-                x2::AbstractVector{T},
-                src::AbstractArray{T,2},
-                beta::Real,
-                dst::AbstractArray{T,2}) where {T,S,B}
-    return apply!(convert(Scalar, alpha), Direct, ker, x1, ker, x2, src,
-                  convert(Scalar, beta), dst)
-end
-
-function apply!(alpha::Real,
-                ::Type{P},
-                ker::Kernel{T,S,B},
-                x1::AbstractVector{T},
-                x2::AbstractVector{T},
-                src::AbstractArray{T,2},
-                beta::Real,
-                dst::AbstractArray{T,2}) where {P<:Union{Direct,Adjoint},
-                                                T,S,B}
-    return apply!(convert(Scalar, alpha), P, ker, x1, ker, x2, src,
-                  convert(Scalar, beta), dst)
-end
-
-function apply!(alpha::Real,
-                ker1::Kernel{T,S1,B1},
-                x1::AbstractVector{T},
-                ker2::Kernel{T,S2,B2},
-                x2::AbstractVector{T},
-                src::AbstractArray{T,2},
-                beta::Real,
-                dst::AbstractArray{T,2}) where {P<:Union{Direct,Adjoint},
-                                                T,S1,B1,S2,B2}
-    return apply!(convert(Scalar, alpha), Direct, ker1, x1, ker2, x2, src,
-                  convert(Scalar, beta), dst)
-end
-
-function apply!(alpha::Real,
-                ::Type{P},
-                ker1::Kernel{T,S1,B1},
-                x1::AbstractVector{T},
-                ker2::Kernel{T,S2,B2},
-                x2::AbstractVector{T},
-                src::AbstractArray{T,2},
-                beta::Real,
-                dst::AbstractArray{T,2}) where {P<:Union{Direct,Adjoint},
-                                                T,S1,B1,S2,B2}
-    return apply!(convert(Scalar, alpha), P, ker1, x1, ker2, x2, src,
-                  convert(Scalar, beta), dst)
-end
-
-# Fallback method to avoid infinite loop.
-function apply!(alpha::Scalar,
-                ::Type{P},
-                ker1::Kernel{T,S1,B1},
-                x1::AbstractVector{T},
-                ker2::Kernel{T,S2,B2},
-                x2::AbstractVector{T},
-                src::AbstractArray{T,2},
-                beta::Scalar,
-                dst::AbstractArray{T,2}) where {P<:Union{Direct,Adjoint},
-                                                T,S1,B1,S2,B2}
-    error("unimplemented operation")
-end
-
 #------------------------------------------------------------------------------
 # Direct operations.
 
-function apply!(α::Scalar,
+function apply!(α::Real,
                 ::Type{Direct},
                 ker1::Kernel{T,4,B1}, x1::AbstractVector{T},
                 ker2::Kernel{T,4,B2}, x2::AbstractVector{T},
                 src::AbstractArray{T,2},
-                β::Scalar,
+                β::Real,
                 dst::AbstractArray{T,2}) where {T,B1,B2}
     # Get dimensions and limits.
     @assert size(dst) == (length(x1), length(x2))
@@ -205,14 +140,14 @@ end
 #------------------------------------------------------------------------------
 # In-place adjoint operation.
 
-function apply!(α::Scalar,
+function apply!(α::Real,
                 ::Type{Adjoint},
                 ker1::Kernel{T,4,B1},
                 x1::AbstractVector{T},
                 ker2::Kernel{T,4,B2},
                 x2::AbstractVector{T},
                 src::AbstractArray{T,2},
-                β::Scalar,
+                β::Real,
                 dst::AbstractArray{T,2}) where {T<:AbstractFloat,B1,B2}
     # Get dimensions and limits.
     @assert size(src) == (length(x1), length(x2))
