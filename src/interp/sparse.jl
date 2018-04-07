@@ -81,109 +81,56 @@ with `step(grd)` the (constant) step size between the nodes of the grid `grd`
 and `grd[j]` the `j`-th position of the grid.
 
 """
-function SparseInterpolator(ker::Kernels.Kernel{T,S,B}, pos::AbstractArray,
-                            grd::Range) where {T<:AbstractFloat,S,B}
+function SparseInterpolator(ker::Kernel{T,S,<:Boundaries},
+                            pos::AbstractArray,
+                            grd::Range) where {T<:AbstractFloat,S}
 
     # Parameters to convert the interpolated position into a frational grid
     # index.
     delta = T(step(grd))
     alpha = one(T)/delta
     beta = T(first(grd)) - delta
-    SparseInterpolator(ker, (i) -> (T(pos[i]) - beta)*alpha,
+    SparseInterpolator(ker, i -> (T(pos[i]) - beta)*alpha,
                        CartesianRange(indices(pos)), length(grd))
 end
 
-function SparseInterpolator(ker::Kernel{T,S,B}, pos::AbstractArray,
-                            len::Integer) where {T<:AbstractFloat,S,B}
-    SparseInterpolator(ker, (i) -> T(pos[i]), CartesianRange(indices(pos)),
-                       Int(len))
+function SparseInterpolator(ker::Kernel{T,S,<:Boundaries},
+                            pos::AbstractArray,
+                            len::Integer) where {T<:AbstractFloat,S}
+    SparseInterpolator(ker, i -> T(pos[i]), CartesianRange(indices(pos)), len)
 end
 
-function SparseInterpolator(ker::Kernels.Kernel{T,S,B}, pos::Function,
-                            R::CartesianRange{CartesianIndex{N}}, ncols::Int
-                            ) where {T<:AbstractFloat,S,B,N}
-    C, J = computecoefs(R, ncols, ker, pos)
+function SparseInterpolator(ker::Kernel{T,S,<:Boundaries},
+                            pos::Function,
+                            R::CartesianRange{CartesianIndex{N}},
+                            ncols::Integer) where {T<:AbstractFloat,S,N}
+    C, J = _sparsecoefs(R, Int(ncols), ker, pos)
     return SparseInterpolator{T,S,N}(C, J, size(R), ncols)
 end
 
-function computecoefs(R::CartesianRange{CartesianIndex{N}}, ncols::Int,
-                      ker::Kernel{T,1,B}, pos::Function) where {T,B,N}
-    lim = limits(ker, ncols)
-    nvals = length(R)
-    C = Array{T}(nvals)
-    J = Array{Int}(nvals)
-    k = 0
-    @inbounds for i in R
-        x = pos(i) :: T
-        j1, w1 = getcoefs(ker, lim, x)
-        k += 1
-        J[k] = j1
-        C[k] = w1
-    end
-    return C, J
-end
+@generated function _sparsecoefs(R::CartesianRange{CartesianIndex{N}},
+                                 ncols::Int,
+                                 ker::Kernel{T,S,<:Boundaries},
+                                 pos::Function) where {T,S,N}
 
-function computecoefs(R::CartesianRange{CartesianIndex{N}}, ncols::Int,
-                      ker::Kernel{T,2,B}, pos::Function) where {T,B,N}
-    lim = limits(ker, ncols)
-    nvals = 2*length(R)
-    C = Array{T}(nvals)
-    J = Array{Int}(nvals)
-    k = 0
-    @inbounds for i in R
-        x = pos(i) :: T
-        j1, j2, w1, w2 = getcoefs(ker, lim, x)
-        J[k+1] = j1
-        J[k+2] = j2
-        C[k+1] = w1
-        C[k+2] = w2
-        k += 2
-    end
-    return C, J
-end
+    J, W = make_varlist(:_j, S), make_varlist(:_w, S)
+    code = (generate_getcoefs(J, W, :ker, :lim, :x),
+            [:( J[k+$i] = $(J[$i]) ) for i in 1:S]...,
+            [:( C[k+$i] = $(W[$i]) ) for i in 1:S]...)
 
-function computecoefs(R::CartesianRange{CartesianIndex{N}}, ncols::Int,
-                      ker::Kernel{T,3,B}, pos::Function) where {T,B,N}
-    lim = limits(ker, ncols)
-    nvals = 3*length(R)
-    C = Array{T}(nvals)
-    J = Array{Int}(nvals)
-    k = 0
-    @inbounds for i in R
-        x = pos(i) :: T
-        j1, j2, j3, w1, w2, w3 = getcoefs(ker, lim, x)
-        J[k+1] = j1
-        J[k+2] = j2
-        J[k+3] = j3
-        C[k+1] = w1
-        C[k+2] = w2
-        C[k+3] = w3
-        k += 3
+    quote
+        lim = limits(ker, ncols)
+        nvals = S*length(R)
+        C = Array{T}(nvals)
+        J = Array{Int}(nvals)
+        k = 0
+        @inbounds for i in R
+            x = pos(i) :: T
+            $(code...)
+            k += S
+        end
+        return C, J
     end
-    return C, J
-end
-
-function computecoefs(R::CartesianRange{CartesianIndex{N}}, ncols::Int,
-                      ker::Kernel{T,4,B}, pos::Function) where {T,B,N}
-    lim = limits(ker, ncols)
-    nvals = 4*length(R)
-    C = Array{T}(nvals)
-    J = Array{Int}(nvals)
-    k = 0
-    @inbounds for i in R
-        x = pos(i) :: T
-        j1, j2, j3, j4, w1, w2, w3, w4 = getcoefs(ker, lim, x)
-        J[k+1] = j1
-        J[k+2] = j2
-        J[k+3] = j3
-        J[k+4] = j4
-        C[k+1] = w1
-        C[k+2] = w2
-        C[k+3] = w3
-        C[k+4] = w4
-        k += 4
-    end
-    return C, J
 end
 
 function _check(A::SparseInterpolator{T,S,N},
@@ -213,19 +160,24 @@ function _check(A::SparseInterpolator{T,S,N},
     end
 end
 
-function vcreate(::Type{Direct}, A::SparseInterpolator{T,S,N},
+function vcreate(::Type{Direct},
+                 A::SparseInterpolator{T,S,N},
                  x::AbstractVector{T}) where {T,S,N}
     return Array{T}(output_size(A))
 end
 
-function vcreate(::Type{Adjoint}, A::SparseInterpolator{T,S,N},
+function vcreate(::Type{Adjoint},
+                 A::SparseInterpolator{T,S,N},
                  x::AbstractArray{T,N}) where {T,S,N}
     return Array{T}(input_size(A))
 end
 
-function apply!(α::Scalar, ::Type{Direct}, A::SparseInterpolator{T,S,N},
+function apply!(α::Real,
+                ::Type{Direct},
+                A::SparseInterpolator{T,S,N},
                 x::AbstractVector{T},
-                β::Scalar, y::AbstractArray{T,N}) where {T,S,N}
+                β::Real,
+                y::AbstractArray{T,N}) where {T,S,N}
     _check(A, y, x)
     if α == zero(α)
         vscale!(y, β)
@@ -251,9 +203,12 @@ function apply!(α::Scalar, ::Type{Direct}, A::SparseInterpolator{T,S,N},
     return y
 end
 
-function apply!(α::Scalar, ::Type{Adjoint}, A::SparseInterpolator{T,S,N},
+function apply!(α::Real,
+                ::Type{Adjoint},
+                A::SparseInterpolator{T,S,N},
                 x::AbstractArray{T,N},
-                β::Scalar, y::AbstractVector{T}) where {T,S,N}
+                β::Real,
+                y::AbstractVector{T}) where {T,S,N}
     _check(A, x, y)
     vscale!(y, β)
     if α != zero(α)
@@ -262,9 +217,11 @@ function apply!(α::Scalar, ::Type{Adjoint}, A::SparseInterpolator{T,S,N},
         C, J, K = A.C, A.J, 1:S
         @inbounds for i in 1:nrows
             c = alpha*x[i]
-            @simd for k in K
-                j = J[k]
-                y[j] += C[k]*c
+            if c != zero(c)
+                @simd for k in K
+                    j = J[k]
+                    y[j] += C[k]*c
+                end
             end
             K += S
         end

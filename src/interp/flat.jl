@@ -1,5 +1,5 @@
 #
-# interp/flat.jl -
+# interp/flat.jl --
 #
 # Implement "Flat" boundary conditions.  These conditions implies that
 # extrapolated positions yield the same value of the interpolated array at
@@ -24,6 +24,7 @@ limits(::Kernel{T,S,Flat}, len::Integer) where {T,S} =
 
 boundaries(::FlatLimits) = Flat
 
+# Specialized code for S = 1 (i.e., take nearest neighbor).
 @inline function getcoefs(ker::Kernel{T,1,Flat},
                           lim::FlatLimits{T}, x::T) where {T}
     r = round(x)
@@ -32,44 +33,24 @@ boundaries(::FlatLimits) = Flat
     return j1, w1
 end
 
-@inline function getcoefs(ker::Kernel{T,2,Flat},
-                          lim::FlatLimits{T}, x::T) where {T}
-    f = floor(x)
-    j1 = trunc(Int, f)
-    j2 = j1 + 1
-    if j1 < first(lim) || j2 > last(lim)
-        j1 = clamp(j1, lim)
-        j2 = clamp(j2, lim)
-    end
-    w1, w2 = getweights(ker, x - f)
-    return j1, j2, w1, w2
-end
+# For S > 1, code is automatically generated.
+@generated function getcoefs(ker::Kernel{T,S,Flat},
+                             lim::FlatLimits{T}, x::T) where {T,S}
 
-@inline function getcoefs(ker::Kernel{T,3,Flat},
-                          lim::FlatLimits{T}, x::T) where {T}
-    r = round(x)
-    j2 = trunc(Int, r)
-    j1, j3 = j2 - 1, j2 + 1
-    if j1 < first(lim) || j3 > last(lim)
-        j1 = clamp(j1, lim)
-        j2 = clamp(j2, lim)
-        j3 = clamp(j3, lim)
-    end
-    w1, w2, w3 = getweights(ker, x - r)
-    return j1, j2, j3, w1, w2, w3
-end
+    m = S >> 1
+    J = make_varlist(:j, S)
+    setindices = ([:(  $(J[i]) = $(J[m]) - $(m - i)  ) for i in 1:m-1]...,
+                  [:(  $(J[i]) = $(J[m]) + $(i - m)  ) for i in m+1:S]...)
+    clampindices = [:( $(J[i]) = clamp($(J[i]), lim) ) for i in 1:S]
 
-@inline function getcoefs(ker::Kernel{T,4,Flat},
-                          lim::FlatLimits{T}, x::T) where {T}
-    f = floor(x)
-    j2 = trunc(Int, f)
-    j1, j3, j4 = j2 - 1, j2 + 1, j2 + 2
-    if j1 < first(lim) || j4 > last(lim)
-        j1 = clamp(j1, lim)
-        j2 = clamp(j2, lim)
-        j3 = clamp(j3, lim)
-        j4 = clamp(j4, lim)
+    quote
+        $(Expr(:meta, :inline))
+        f = floor(x)
+        $(J[m]) = trunc(Int, f)
+        $(setindices...)
+        if $(J[1]) < first(lim) || $(J[S]) > last(lim)
+            $(clampindices...)
+        end
+        return ($(J...), getweights(ker, x - f)...)
     end
-    w1, w2, w3, w4 = getweights(ker, x - f)
-    return j1, j2, j3, j4, w1, w2, w3, w4
 end

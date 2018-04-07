@@ -16,20 +16,20 @@ using Compat
 
 import Base: eltype, length, size, first, last, clamp, convert
 
-importall TiPi.Kernels
-import TiPi.AffineTransforms: AffineTransform2D
+import ...TiPi
+using TiPi.Kernels
+using TiPi.AffineTransforms
 
 using LazyAlgebra
 import LazyAlgebra: apply, apply!, vcreate, output_size, input_size
 
-export
-    SparseInterpolator,
-    limits,
-    boundaries,
-    inferior,
-    superior,
-    limits,
-    computecoefs
+export SparseInterpolator
+#    SparseInterpolator,
+#    limits,
+#    boundaries,
+#    inferior,
+#    superior,
+#    getcoefs
 
 """
 
@@ -176,6 +176,7 @@ where `R` is an `AffineTransform2D`.
 
 """ apply
 
+include("interp/meta.jl")
 include("interp/flat.jl")
 include("interp/safeflat.jl")
 include("interp/sparse.jl")
