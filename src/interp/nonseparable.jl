@@ -11,37 +11,49 @@
 
 # FIXME: if axes are aligned, use separable interpolation.
 
+# Provide default Direct operation.
 function apply!(dst::AbstractArray{T,2},
                 ker::Kernel{T,S,<:Boundaries},
                 R::AffineTransform2D{T},
                 src::AbstractArray{T,2}) where {T,S}
-    apply!(1, Direct, ker, ker, R, src, 0, dst)
+    apply!(dst, Direct, ker, R, src)
 end
-
-function apply!(dst::AbstractArray{T,2},
-                ::Type{P},
-                ker::Kernel{T,S,<:Boundaries},
-                R::AffineTransform2D{T},
-                src::AbstractArray{T,2}) where {P<:Union{Direct,Adjoint},T,S}
-    apply!(1, P, ker, ker, R, src, 0, dst)
-end
-
 function apply!(dst::AbstractArray{T,2},
                 ker1::Kernel{T,S1,<:Boundaries},
                 ker2::Kernel{T,S2,<:Boundaries},
                 R::AffineTransform2D{T},
                 src::AbstractArray{T,2}) where {T,S1,S2}
-    return apply!(1, Direct, ker1, ker2, R, src, 0, dst)
+    return apply!(dst, Direct, ker1, ker2, R, src)
 end
 
+
+# Provide default α=1 and β=0 factors.
+function apply!(dst::AbstractArray{T,2},
+                ::Type{P},
+                ker::Kernel{T,S,<:Boundaries},
+                R::AffineTransform2D{T},
+                src::AbstractArray{T,2}) where {P<:Operations,T,S}
+    return apply!(1, P, ker, R, src, 0, dst)
+end
 function apply!(dst::AbstractArray{T,2},
                 ::Type{P},
                 ker1::Kernel{T,S1,<:Boundaries},
                 ker2::Kernel{T,S2,<:Boundaries},
                 R::AffineTransform2D{T},
-                src::AbstractArray{T,2}) where {P<:Union{Direct,Adjoint},
-                                                T,S1,S2}
+                src::AbstractArray{T,2}) where {P<:Operations,T,S1,S2}
     return apply!(1, P, ker1, ker2, R, src, 0, dst)
+end
+
+# Provide default pair of kernels (ker1,ker2) = ker.
+function apply!(α::Real,
+                ::Type{P},
+                ker::Kernel{T,S,<:Boundaries},
+                R::AffineTransform2D{T},
+                src::AbstractArray{T,2},
+                β::Real,
+                dst::AbstractArray{T,2}) where {P<:Operations,
+                                                T<:AbstractFloat,S}
+    return apply!(α, P, ker, ker, R, src, β, dst)
 end
 
 @generated function apply!(α::Real,
