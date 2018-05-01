@@ -42,7 +42,7 @@ on the input.
 .  To install `LazyAlgebra`, simply do:
 
 ```julia
-Pkg.clone("git@github.com:emmt/LazyAlgebra.jl.git")
+Pkg.clone("https://github.com/emmt/LazyAlgebra.jl.git")
 ```
 
 LazyInterpolators is not yet an
@@ -50,5 +50,5 @@ LazyInterpolators is not yet an
 repository:
 
 ```julia
-Pkg.clone("git@github.com:emmt/LazyInterpolators.jl.git")
+Pkg.clone("https://github.com/emmt/LazyInterpolators.jl.git")
 ```
