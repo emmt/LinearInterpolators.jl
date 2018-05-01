@@ -17,19 +17,23 @@ module Kernels
 import Base: convert
 
 export
+    Boundaries,
+    CardinalCubicSpline,
+    CatmullRomSpline,
+    CubicSpline,
+    Flat,
+    Kernel,
+    KeysSpline,
+    LanczosKernel,
+    LinearSpline,
+    MitchellNetravaliSpline,
+    QuadraticSpline,
+    RectangularSpline,
+    SafeFlat,
     boundaries,
     getweights,
-    isnormalized,
     iscardinal,
-    Boundaries,
-    Flat,
-    SafeFlat,
-    Kernel,
-    RectangularSpline,
-    LinearSpline,
-    QuadraticSpline,
-    CardinalCubicSpline,
-    CatmullRomSpline
+    isnormalized,
 
 #------------------------------------------------------------------------------
 # EXTRAPOLATION METHODS
