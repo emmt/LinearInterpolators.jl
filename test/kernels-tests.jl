@@ -2,118 +2,53 @@ isdefined(:LazyInterpolators) || include("../src/LazyInterpolators.jl")
 
 module LazyInterpolatorsKernelsTests
 
+using LazyInterpolators.Kernels
 
-relabsdif(a::Ta,b::Tb) where {Ta<:Real,Tb<:Real} =
-    relabsdif(float(promote_type(Ta,Tb)), a, b)
-
-relabsdif(::Type{T}, a::Real, b::Real) where {T<:AbstractFloat} =
-    relabsdif(T, T(a), T(b))
-
-relabsdif(::Type{T}, a::T, b::T) where {T<:AbstractFloat} =
-    (a == b ? zero(T) : abs(a - b)/max(abs(a),abs(b)))
-
-maxrelerr(A, B) = maxrelerr(0.0, A, B)
-
-function maxrelerr(err::T, A, B) where {T<:AbstractFloat}
-    @assert length(A) == length(B)
-    for (a,b) in zip(A,B)
-        err = max(err, relabsdif(T, a, b))
-    end
-    return err
+@static if VERSION < v"0.7.0-DEV.2005"
+    using Base.Test
+else
+    using Test
 end
 
-maxabserr(A, B) = maxabserr(0.0, A, B)
-
-function maxabserr(err::T, A, B) where {T<:AbstractFloat}
-    @assert length(A) == length(B)
-    for (a,b) in zip(A,B)
-        err = max(err, abs(T(a) - T(b)))
-    end
-    return err
-end
-
-print_result(success::Bool, value=success) =
-    print_with_color((success ? :green : :red), value)
-
-function print_maxabserror(ker, err; tol::Real=1e-15, pfx::String=" - ")
-    print(pfx, summary(ker), ": max. abs. error = ")
-    print_result(err < tol, @sprintf("%.3e\n", err))
-end
-
-function runtests()
-    for (name, ker) in (("RectangularSpline", Kernels.RectangularSpline()),
-                        ("RectangularSpline (type given)",
-                         Kernels.RectangularSpline(Float32)),
-                        #("Catmull-Rom",  Kernels.catmull_rom),
-                        #("Mitchell-Netravali",  Kernels.mitchell_netravili),
-                        ("cardinal Mitchell-Netravali",
-                         Kernels.MitchellNetravaliSpline(Float32, 0, 1)),
-                        ("Duff's tensioned B-spline",
-                         Kernels.MitchellNetravaliSpline(Float32, 0.5, 0)),
-                        ("Lanczos 4 interpolation function",
-                         Kernels.LanczosKernel(4)))
-        ker16 = ker(Float16)
-        ker32 = ker(Float32)
-        ker64 = ker(Float64)
-        ker16a = Float16(ker)
-        ker32a = Float32(ker)
-        ker64a = Float64(ker)
-        println(name," kernel:")
-        println(" - support: ", length(ker))
-        println(" - normalized: ", Kernels.isnormalized(ker))
-        println(" - cardinal: ", Kernels.iscardinal(ker))
-        println(" - ker(0): ", ker(0)) # test conversion
-        print(" - ker32(0.1) ≈ ker64(0.1): ")
-        print_result(ker32(0.1) ≈ ker64(0.1))
-        println()
-    end
-
-
-    println("\nChecking weights:")
+@testset "Kernels" begin
     offsets = (0.0, 0.1, 0.2, 0.3, 0.4)
-    for ker in (lanczos2,)
-        err = 0.0
-        for t in offsets
-            err = maxabserr(err, ker.(t .+ (0,-1)),
-                            Kernels.getweights(ker, t))
+    tol = 1e-14
+    for (nam, ker, sup, nrml, card) in (
+        ("Box",                         RectangularSpline(),              1, true,  true),
+        ("Triangle",                    LinearSpline(),                   2, true,  true),
+        ("Quadratic B-spline",          QuadraticSpline(),                3, true,  false),
+        ("Cubic B-spline",              CubicSpline(),                    4, true,  false),
+        ("Catmull-Rom spline",          CatmullRomSpline(),               4, true,  true),
+        ("Cardinal cubic spline",       CardinalCubicSpline(-1),          4, true,  true),
+        ("Mitchell & Netravali spline", MitchellNetravaliSpline(),        4, true,  false),
+        ("Duff's tensioned B-spline",   MitchellNetravaliSpline(0.5, 0),  4, true,  false),
+        ("Keys's (emulated)",           MitchellNetravaliSpline(0, -0.7), 4, true,  true),
+        ("Keys's cardinal cubics",      KeysSpline(-0.7),                 4, true,  true),
+        ("Lanczos 4 kernel",            LanczosKernel(4),                 4, false, true),
+        ("Lanczos 6 kernel",            LanczosKernel(6),                 6, false, true))
+        @testset "$nam" begin
+            @test isnormalized(ker) == nrml
+            @test iscardinal(ker) == card
+            @test length(ker) == sup
+            @test eltype(ker) == Float64
+            @test eltype(Float32(ker)) == Float32
+            @test boundaries(ker) == Flat
+            if iscardinal(ker)
+                @test ker(0) == 1
+                @test maximum(abs.(ker([-3,-2,-1,1,2,3]))) ≤ tol
+            end
+
+            # S is the tuple of shifts applied in getweights.
+            s = ntuple(i -> ((sup + 1) >> 1) - i, sup)
+            err = 0.0
+            for t in offsets
+                dif = ker.(t .+ s) .- Kernels.getweights(ker, t)
+                err = max(err, maximum(abs.(dif)))
+            end
+            @test err ≤ tol
         end
-        print_maxabserror(ker, err)
-    end
-    for ker in (quadratic,)
-        err = 0.0
-        for t in offsets
-            err = maxabserr(err, ker.(t .+ (1,0,-1)),
-                            Kernels.getweights(ker, t))
-        end
-        print_maxabserror(ker, err)
     end
 
-    for ker in (cubic, catmull_rom, mitchell_netravili, keys, lanczos4)
-        err = 0.0
-        for t in offsets
-            err = maxabserr(err, ker.(t .+ (1,0,-1,-2)),
-                            Kernels.getweights(ker, t))
-        end
-        print_maxabserror(ker, err)
-    end
-    for ker in (lanczos6,)
-        err = 0.0
-        for t in offsets
-            err = maxabserr(err, ker.(t .+ (2,1,0,-1,-2,-3)),
-                            Kernels.getweights(ker, t))
-        end
-        print_maxabserror(ker, err)
-    end
-    for ker in (lanczos8,)
-        err = 0.0
-        for t in offsets
-            err = maxabserr(err, ker.(t .+ (3,2,1,0,-1,-2,-3,-4)),
-                            Kernels.getweights(ker, t))
-        end
-        print_maxabserror(ker, err)
-    end
 end
-
-runtests()
 
 end # module
