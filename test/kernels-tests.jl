@@ -1,12 +1,7 @@
-module TiPiTests
+isdefined(:LazyInterpolators) || include("../src/LazyInterpolators.jl")
 
-const PLOTTING = true
-if PLOTTING
-    using PyCall; pygui(:gtk); # can be: :wx, :gtk, :qt
-    using LaTeXStrings
-    import PyPlot; const plt = PyPlot
-end
-include("../src/kernels.jl")
+module LazyInterpolatorsKernelsTests
+
 
 relabsdif(a::Ta,b::Tb) where {Ta<:Real,Tb<:Real} =
     relabsdif(float(promote_type(Ta,Tb)), a, b)
@@ -73,36 +68,6 @@ function runtests()
         println()
     end
 
-    box = Kernels.RectangularSpline()
-    triangle = Kernels.LinearSpline()
-    quadratic = Kernels.QuadraticSpline()
-    cubic = Kernels.CubicSpline()
-    catmull_rom = Kernels.CatmullRomSpline()
-    mitchell_netravili = Kernels.MitchellNetravaliSpline()
-    keys = Kernels.KeysSpline(0.5)
-    lanczos2 = Kernels.LanczosKernel(2)
-    lanczos4 = Kernels.LanczosKernel(4)
-    lanczos6 = Kernels.LanczosKernel(6)
-    lanczos8 = Kernels.LanczosKernel(8)
-
-    plt.figure(1)
-    plt.clf()
-    x = linspace(-5,5,1000);
-    plt.plot(x, box(x), color="darkgreen",
-             linewidth=2.0, linestyle="-");
-    plt.plot(x, triangle(x), color="darkblue",
-             linewidth=2.0, linestyle="-");
-    plt.plot(x, quadratic(x), color="darkcyan",
-             linewidth=2.0, linestyle="-");
-    plt.plot(x, cubic(x), color="firebrick",
-             linewidth=2.0, linestyle="-");
-    plt.plot(x, catmull_rom(x), color="orange",
-             linewidth=2.0, linestyle="-");
-    plt.plot(x, mitchell_netravili(x), color="violet",
-             linewidth=2.0, linestyle="-");
-    plt.plot(x, lanczos8(x), color="black",
-             linewidth=2.0, linestyle="-");
-    plt.title("Some kernel functions");
 
     println("\nChecking weights:")
     offsets = (0.0, 0.1, 0.2, 0.3, 0.4)
