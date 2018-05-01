@@ -14,8 +14,6 @@
 
 module Interpolations
 
-using Compat
-
 import Base: eltype, length, size, first, last, clamp, convert
 
 using ..Kernels
