@@ -5,9 +5,11 @@
 #
 #------------------------------------------------------------------------------
 #
+# This file is part of the LazyInterpolators package licensed under the MIT
+# "Expat" License.
+#
 # Copyright (C) 2015-2016, Éric Thiébaut, Jonathan Léger & Matthew Ozon.
-# Copyright (C) 2017-2018, Éric Thiébaut.
-# This file is part of TiPi.  All rights reserved.
+# Copyright (C) 2016-2018, Éric Thiébaut.
 #
 
 struct SparseInterpolator{T<:AbstractFloat,S,N} <: LinearMapping

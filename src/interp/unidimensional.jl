@@ -5,8 +5,10 @@
 #
 #------------------------------------------------------------------------------
 #
-# Copyright (C) 2017-2018, Éric Thiébaut.
-# This file is part of TiPi.  All rights reserved.
+# This file is part of the LazyInterpolators package licensed under the MIT
+# "Expat" License.
+#
+# Copyright (C) 2016-2018, Éric Thiébaut.
 #
 
 #------------------------------------------------------------------------------
