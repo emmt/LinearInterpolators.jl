@@ -1,0 +1,7 @@
+# LazyInterpolators
+
+[![Build Status](https://travis-ci.org/emmt/LazyInterpolators.jl.svg?branch=master)](https://travis-ci.org/emmt/LazyInterpolators.jl)
+
+[![Coverage Status](https://coveralls.io/repos/emmt/LazyInterpolators.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/emmt/LazyInterpolators.jl?branch=master)
+
+[![codecov.io](http://codecov.io/github/emmt/LazyInterpolators.jl/coverage.svg?branch=master)](http://codecov.io/github/emmt/LazyInterpolators.jl?branch=master)
