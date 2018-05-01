@@ -33,7 +33,7 @@ export
     boundaries,
     getweights,
     iscardinal,
-    isnormalized,
+    isnormalized
 
 #------------------------------------------------------------------------------
 # EXTRAPOLATION METHODS
@@ -117,7 +117,7 @@ yields the `S` interpolation weights for offset `t ∈ [0,1]` if `S` is even or
 or for `t ∈ [-1/2,+1/2]` if `S` is odd.
 
 """
-abstract type Kernel{T<:AbstractFloat,S,B<:Boundaries} end
+abstract type Kernel{T<:AbstractFloat,S,B<:Boundaries} <: Function end
 
 Base.eltype(::Kernel{T,S,B})       where {T,S,B} = T
 Base.eltype(::Type{Kernel{T,S,B}}) where {T,S,B} = T
