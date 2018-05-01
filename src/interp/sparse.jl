@@ -113,19 +113,19 @@ end
                                  ker::Kernel{T,S,<:Boundaries},
                                  pos::Function) where {T,S,N}
 
-    J, W = make_varlist(:_j, S), make_varlist(:_w, S)
+    _J, _W = make_varlist(:_j, S), make_varlist(:_w, S)
     code = (generate_getcoefs(J, W, :ker, :lim, :x),
-            [:( J[k+$i] = $(J[$i]) ) for i in 1:S]...,
-            [:( C[k+$i] = $(W[$i]) ) for i in 1:S]...)
+            [:( J[k+$s] = $(_J[s]) ) for s in 1:S]...,
+            [:( C[k+$s] = $(_W[s]) ) for s in 1:S]...)
 
     quote
         lim = limits(ker, ncols)
         nvals = S*length(R)
-        C = Array{T}(nvals)
         J = Array{Int}(nvals)
+        C = Array{T}(nvals)
         k = 0
         @inbounds for i in R
-            x = pos(i) :: T
+            x = convert(T, pos(i))
             $(code...)
             k += S
         end
