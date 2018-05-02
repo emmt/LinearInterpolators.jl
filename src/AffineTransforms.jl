@@ -107,7 +107,7 @@ B = convert(AffineTransform2D{T}, A)  # idem
 ```
 
 """
-struct AffineTransform2D{T<:AbstractFloat}
+struct AffineTransform2D{T<:AbstractFloat} <: Function
     xx::T
     xy::T
     x ::T
@@ -483,8 +483,9 @@ for op in (:(∘), :(*), :(⋅))
     end
 end
 
-# TODO: deprecate this
-Base.:*(A::AffineTransform2D, v::Tuple{Real,Real}) = A(v)
+# This import is needed for deprecation.
+import Base: *
+@deprecate(*(A::AffineTransform2D, v::Tuple{Real,Real}), A(v))
 
 Base.:*(ρ::Real, A::AffineTransform2D) = scale(ρ, A)
 
