@@ -23,15 +23,17 @@ distance(A::AffineTransform2D, B::AffineTransform2D) =
     tol = 1e-14
     I = AffineTransform2D()
     A = AffineTransform2D(1, 0, -3, 0.1, 1, +2)
-    B = AffineTransform2D(-0.4, 0.1, -0.3, 0.7, 1.1, -0.9)
+    B = AffineTransform2D(-0.4,  0.1, -4.2, -0.3,  0.7,  1.1)
+    C = AffineTransform2D( 2.3, -0.9, -6.1,  0.7, -3.1, -5.2)
     vectors = ((0.2,1.3), (-1,π), (-sqrt(2),3//4))
-    scales = (-1.7, 0.1, φ)
+    scales = (2, 0.1, φ)
     angles = (-2π/11, π/7, 0.1)
+    types = (BigFloat, Float64, Float32, Float16)
 
     @testset "conversion" begin
         for G in (I, A, B)
             @test eltype(G) == Float64
-            for T in (BigFloat, Float64, Float32, Float16)
+            for T in types
                 @test typeof(convert(AffineTransform2D{T}, G)) == AffineTransform2D{T}
                 @test typeof(T(G)) == AffineTransform2D{T}
                 @test eltype(convert(AffineTransform2D{T}, G)) == T
@@ -65,6 +67,13 @@ distance(A::AffineTransform2D, B::AffineTransform2D) =
                 @test distance((G*H)(v), G(H(v))) ≤ tol
             end
         end
+        for T1 in types, T2 in types
+            T = promote_type(T1, T2)
+            @test eltype(T1(A)*T2(B)) == T
+        end
+        for v in vectors
+            @test distance((A*B*C)(v), A(B(C(v)))) ≤ tol
+        end
     end
 
     @testset "jacobian" begin
@@ -93,11 +102,20 @@ distance(A::AffineTransform2D, B::AffineTransform2D) =
     end
 
     @testset "scale" begin
-        for M in (B, A),
+        for M in (A, B, C),
             α in scales,
             v in vectors
             @test distance((α*M)(v), α.*M(v)) ≤ tol
             @test distance((M*α)(v), M(α.*v)) ≤ tol
+        end
+        for G in (A, B, C),
+            α in scales,
+            T in types
+            @test eltype(T(α)*G) == eltype(G)
+            @test eltype(G*T(α)) == eltype(G)
+            H = T(G)
+            @test eltype(α*H) == eltype(H)
+            @test eltype(H*α) == eltype(H)
         end
     end
 
@@ -121,6 +139,15 @@ distance(A::AffineTransform2D, B::AffineTransform2D) =
             @test distance(Q*R, I) ≤ tol
             @test distance(rotate(θ, B)(v), (R*B)(v)) ≤ tol
             @test distance(rotate(B, θ)(v), (B*R)(v)) ≤ tol
+        end
+        for G in (A, B, C),
+            θ in angles,
+            T in types
+            @test eltype(rotate(T(θ), G)) == eltype(G)
+            @test eltype(rotate(G, T(θ))) == eltype(G)
+            H = T(G)
+            @test eltype(rotate(T(θ), H)) == eltype(H)
+            @test eltype(rotate(H, T(θ))) == eltype(H)
         end
     end
 
