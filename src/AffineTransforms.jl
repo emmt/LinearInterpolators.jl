@@ -181,6 +181,7 @@ yield an affine transform which translate the input of affine transform `A` by
 offsets `x` and `y`.
 
 The same results can be obtained with the `+` operator:
+
 ```julia
 B = (x,y) + A    # same as: B = translate((x,y), A)
 B = A + (x,y)    # same as: B = translate(A, (x,y))
@@ -218,29 +219,44 @@ translate(A::AffineTransform2D, v::Tuple{Real,Real}) =
 
 There are two ways to combine a scaling by a factor `ρ` with an affine
 transform `A`.  Left-scaling as in:
+
+```julia
+B = scale(ρ, A)
 ```
-    B = scale(ρ, A)
-```
+
 results in scaling the output of the transform; while right-scaling as in:
+
+```julia
+C = scale(A, ρ)
 ```
-    C = scale(A, ρ)
-```
+
 results in scaling the input of the transform.  The above examples yield
 transforms which behave as:
+
+```julia
+B(v) = ρ.*A(v)
+C(v) = A(ρ.*v)
 ```
-    B*t = ρ*(A*t) = ρ*A(t)
-    C*t = A*(ρ*t) = A(ρ*t)
+
+where `v` is any 2-element tuple.
+
+The same results can be obtained with the `*` operator:
+
+```julia
+B = ρ*A    # same as: B = scale(ρ, A)
+C = A*ρ    # same as: B = scale(A, ρ)
 ```
-where `t` is any 2-element tuple.
+
+See also: [`AffineTransform2D`](@ref), [`rotate`](@ref), [`translate`](@ref).
+
 """
-function scale(ρ::T, A::AffineTransform2D{T}) where {T<:AbstractFloat}
-    return AffineTransform2D{T}(ρ*A.xx, ρ*A.xy, ρ*A.x,
-                                ρ*A.yx, ρ*A.yy, ρ*A.y)
-end
-function scale(A::AffineTransform2D{T}, ρ::T) where {T<:AbstractFloat}
-    return AffineTransform2D{T}(ρ*A.xx, ρ*A.xy, A.x,
-                                ρ*A.yx, ρ*A.yy, A.y)
-end
+scale(ρ::T, A::AffineTransform2D{T}) where {T<:AbstractFloat} =
+    AffineTransform2D{T}(ρ*A.xx, ρ*A.xy, ρ*A.x,
+                         ρ*A.yx, ρ*A.yy, ρ*A.y)
+
+scale(A::AffineTransform2D{T}, ρ::T) where {T<:AbstractFloat} =
+    AffineTransform2D{T}(ρ*A.xx, ρ*A.xy, A.x,
+                         ρ*A.yx, ρ*A.yy, A.y)
 
 #------------------------------------------------------------------------------
 """
@@ -248,20 +264,30 @@ end
 
 There are two ways to combine a rotation by angle `θ` (in radians
 counterclockwise) with an affine transform `A`.  Left-rotating as in:
+
+```julia
+B = rotate(θ, A)
 ```
-    B = rotate(θ, A)
-```
+
 results in rotating the output of the transform; while right-rotating as in:
+
+```julia
+C = rotate(A, θ)
 ```
-    C = rotate(A, θ)
-```
+
 results in rotating the input of the transform.  The above examples are
 similar to:
+
+```julia
+B = R∘A
+C = A∘R
 ```
-    B = R*A
-    C = A*R
-```
+
 where `R` implements rotation by angle `θ` around `(0,0)`.
+
+
+See also: [`AffineTransform2D`](@ref), [`scale`](@ref), [`translate`](@ref).
+
 """
 function rotate(θ::T, A::AffineTransform2D{T}) where {T<:AbstractFloat}
     cs = cos(θ)
@@ -285,16 +311,13 @@ function rotate(A::AffineTransform2D{T}, θ::T) where {T<:AbstractFloat}
                                 A.y)
 end
 
+# Make sure the floating-point type of an affine transform is preserved.
 for func in (:scale, :rotate)
     @eval begin
-        function $func(q::S,
-                       A::AffineTransform2D{T}) where {S<:Real,T<:AbstractFloat}
-            return $func(convert(T, q), A)
-        end
-        function $func(A::AffineTransform2D{T},
-                       q::S) where {S<:Real,T<:AbstractFloat}
-            return $func(A, convert(T, q))
-        end
+        $func(α::Real, A::AffineTransform2D{T}) where {T<:AbstractFloat} =
+            $func(convert(T, α), A)
+        $func(A::AffineTransform2D{T}, α::Real) where {T<:AbstractFloat} =
+            $func(A, convert(T, α))
     end
 end
 
@@ -422,9 +445,9 @@ function intercept(A::AffineTransform2D{T}) where {T<:AbstractFloat}
 end
 
 
-Base.:+(t::Tuple{Real,Real}, A::AffineTransform2D) = translate(t, A)
+Base.:+(v::Tuple{Real,Real}, A::AffineTransform2D) = translate(v, A)
 
-Base.:+(A::AffineTransform2D, t::Tuple{Real,Real}) = translate(A, t)
+Base.:+(A::AffineTransform2D, v::Tuple{Real,Real}) = translate(A, v)
 
 for op in (:(∘), :(*), :(⋅))
     @eval begin
@@ -432,7 +455,8 @@ for op in (:(∘), :(*), :(⋅))
     end
 end
 
-Base.:*(A::AffineTransform2D, t::NTuple{2}) = A(t)
+# TODO: deprecate this
+Base.:*(A::AffineTransform2D, v::Tuple{Real,Real}) = A(v)
 
 Base.:*(ρ::Real, A::AffineTransform2D) = scale(ρ, A)
 
