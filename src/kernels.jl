@@ -625,60 +625,19 @@ end
 (ker::LanczosKernel{T,S,B})(x::T) where {T,S,B} =
     (abs(x) ≥ ker.a ? T(0) : x == T(0) ? T(1) : _p(ker, x))
 
-@inline function getweights(ker::LanczosKernel{T,2,B}, t::T) where {T,B}
-    local w1::T, w2::T
-    if t == T(0)
-        w1, w2 = 1, 0
-    else
-        w1 = _p(ker, t)
-        w2 = _p(ker, T(1) - t)
-    end
-    return w1, w2
-end
-
-@inline function getweights(ker::LanczosKernel{T,4,B}, t::T) where {T,B}
-    local w1::T, w2::T, w3::T, w4::T
-    if t == T(0)
-        w1, w2, w3, w4 = 0, 1, 0, 0
-    else
-        w1 = _p(ker, t + T(1))
-        w2 = _p(ker, t)
-        w3 = _p(ker, T(1) - t)
-        w4 = _p(ker, T(2) - t)
-    end
-    return w1, w2, w3, w4
-end
-
-@inline function getweights(ker::LanczosKernel{T,6,B}, t::T) where {T,B}
-    local w1::T, w2::T, w3::T, w4::T, w5::T, w6::T
-    if t == T(0)
-        w1, w2, w3, w4, w5, w6 = 0, 0, 1, 0, 0, 0
-    else
-        w1 = _p(ker, t + T(2))
-        w2 = _p(ker, t + T(1))
-        w3 = _p(ker, t)
-        w4 = _p(ker, T(1) - t)
-        w5 = _p(ker, T(2) - t)
-        w6 = _p(ker, T(3) - t)
-    end
-    return w1, w2, w3, w4, w5, w6
-end
-
-@inline function getweights(ker::LanczosKernel{T,8,B}, t::T) where {T,B}
-    local w1::T, w2::T, w3::T, w4::T, w5::T, w6::T, w7::T, w8::T
-    if t == T(0)
-        w1, w2, w3, w4, w5, w6, w7, w8 = 0, 0, 0, 1, 0, 0, 0, 0
-    else
-        w1 = _p(ker, t + T(3))
-        w2 = _p(ker, t + T(2))
-        w3 = _p(ker, t + T(1))
-        w4 = _p(ker, t)
-        w5 = _p(ker, T(1) - t)
-        w6 = _p(ker, T(2) - t)
-        w7 = _p(ker, T(3) - t)
-        w8 = _p(ker, T(4) - t)
-    end
-    return w1, w2, w3, w4, w5, w6, w7, w8
+@generated function getweights(ker::LanczosKernel{T,S,B}, t::T) where {T,S,B}
+    c = (S >> 1) # central index
+    W = [Symbol("w",i) for i in 1:S] # all weights
+    Expr(:block,
+         Expr(:meta, :inline),
+         Expr(:local, [:($w::T) for w in W]...),
+         Expr(:if, :(t == zero(T)),
+              Expr(:block, [:($(W[i]) = $(i == c ? 1 : 0)) for i in 1:S]...),
+              Expr(:block,
+                   [:($(W[i]) = _p(ker, t + T($(c - i)))) for i in 1:c-1]...,
+                   :($(W[c]) = _p(ker, t)),
+                   [:($(W[i]) = _p(ker, t - T($(i - c)))) for i in c+1:S]...)),
+         Expr(:return, Expr(:tuple, W...)))
 end
 
 #------------------------------------------------------------------------------

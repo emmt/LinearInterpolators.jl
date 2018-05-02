@@ -124,7 +124,7 @@ apply!(dst, P, ker, x, src) -> dst
 where `P` is either `Adjoint` or `Direct`.  If `P` is omitted, `Direct` is
 assumed.
 
-To lienarly combine the result and the contents of the destination array, the
+To linearly combine the result and the contents of the destination array, the
 following syntax is also implemented:
 
 ```julia

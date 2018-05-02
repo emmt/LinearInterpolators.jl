@@ -22,18 +22,18 @@ on the input.
 
 * Many interpolation kernels are provided (B-splines of degree 0 to 3, cardinal
   cubic splines, Catmull-Rom spline, Mitchell & Netravali spline, Lanczos
-  interpolationkernels, *etc.*).  These interpolation kernels may be used as
-  regular functions or to define *interpolators*.
+  resampling kernels of arbitrary size, *etc.*).  These interpolation
+  kernels may be used as regular functions or to define *interpolators*.
 
-* Interpolators are linear maps such as the ones defined by the
+* **Interpolators** are linear maps such as the ones defined by the
   [LazyAlgebra](https://github.com/emmt/LazyAlgebra.jl) framework.
 
-* Applying the adjoint of interpolators is fully supported.  This can be
-  exploited for iterative fitting of data given an interpolated model.
+  - Applying the adjoint of interpolators is fully supported.  This can be
+    exploited for iterative fitting of data given an interpolated model.
 
-* Interpolators may have coefficients computed *on the fly* or tabulated (that is
-  computed once).  The former requires almost no memory but can be slower than
-  the latter if the same interpolation is applied more than once.
+  - Interpolators may have coefficients computed *on the fly* or tabulated
+    (that is computed once).  The former requires almost no memory but can be
+    slower than the latter if the same interpolation is applied more than once.
 
 
 ## Installation

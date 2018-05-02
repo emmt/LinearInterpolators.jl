@@ -21,10 +21,11 @@ lanczos2 = Kernels.LanczosKernel(2)
 lanczos4 = Kernels.LanczosKernel(4)
 lanczos6 = Kernels.LanczosKernel(6)
 lanczos8 = Kernels.LanczosKernel(8)
+lanczos10 = Kernels.LanczosKernel(10)
 
 plt.figure(1)
 plt.clf()
-x = linspace(-5,7,1000)
+x = linspace(-6,7,1000)
 plt.plot(x, box(x), color="darkgreen",
          linewidth=2.0, linestyle="-", label="box")
 plt.plot(x, triangle(x), color="darkblue",
@@ -39,6 +40,8 @@ plt.plot(x, mitchell_netravali(x), color="violet",
          linewidth=2.0, linestyle="-", label="Mitchell & Netravali spline")
 plt.plot(x, lanczos8(x), color="black",
          linewidth=2.0, linestyle="-", label="Lanczos 8")
+plt.plot(x, lanczos10(x), color="gray",
+         linewidth=2.0, linestyle="-", label="Lanczos 10")
 plt.title("Some kernel functions")
 plt.legend()
 
