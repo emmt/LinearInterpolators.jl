@@ -495,11 +495,12 @@ Base.:\(A::AffineTransform2D, B::AffineTransform2D) = leftdivide(A, B)
 
 Base.:/(A::AffineTransform2D, B::AffineTransform2D) = rightdivide(A, B)
 
-function Base.show(io::IO, A::AffineTransform2D)
-    println(io, typeof(A), ":")
-    println(io, "  ", A.xx, "  ", A.xy, " | ", A.x)
-    println(io, "  ", A.yx, "  ", A.yy, " | ", A.y)
-end
+Base.show(io::IO, ::MIME"text/plain", A::AffineTransform2D) =
+    print(io, typeof(A),
+          "(",   A.xx, ",", A.xy, ",", A.x,
+          ",  ", A.yx, ",", A.yy, ",", A.y, ")")
+
+Base.show(io::IO, A::AffineTransform2D) = show(io, MIME"text/plain"(), A)
 
 function runtests()
     B = AffineTransform2D(1, 0, -3, 0.1, 1, +2)
