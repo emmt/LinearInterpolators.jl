@@ -153,10 +153,53 @@ end
 #------------------------------------------------------------------------------
 # Combine a translation with an affine transform.
 
+"""
+### Translating an affine transform
+
+Affine transforms can be letf- or right-translated.
+
+```julia
+translate(x, y, A)
+```
+or
+```julia
+translate((x,y), A)
+```
+
+yield an affine transform which translate the output of affine transform `A` by
+offsets `x` and `y`.
+
+```julia
+translate(A, x, y)
+```
+or
+```julia
+translate(A, (x,y))
+```
+
+yield an affine transform which translate the input of affine transform `A` by
+offsets `x` and `y`.
+
+The same results can be obtained with the `+` operator:
+```julia
+B = (x,y) + A    # same as: B = translate((x,y), A)
+B = A + (x,y)    # same as: B = translate(A, (x,y))
+```
+
+See also: [`AffineTransform2D`](@ref), [`rotate`](@ref), [`scale`](@ref).
+
+""" translate
+
 # Left-translating results in translating the output of the transform.
 translate(x::T, y::T, A::AffineTransform2D{T}) where {T<:AbstractFloat} =
     AffineTransform2D{T}(A.xx, A.xy, A.x + x,
                          A.yx, A.yy, A.y + y)
+
+translate(x::Real, y::Real, A::AffineTransform2D{T}) where {T<:AbstractFloat} =
+    translate(convert(T, x), convert(T, y), A)
+
+translate(v::Tuple{Real,Real}, A::AffineTransform2D) =
+    translate(v[1], v[2], A)
 
 # Right-translating results in translating the input of the transform.
 translate(A::AffineTransform2D{T}, x::T, y::T) where {T<:AbstractFloat} =
@@ -166,28 +209,8 @@ translate(A::AffineTransform2D{T}, x::T, y::T) where {T<:AbstractFloat} =
 translate(A::AffineTransform2D{T}, x::Real, y::Real) where {T<:AbstractFloat} =
     translate(A, convert(T, x), convert(T, y))
 
-translate(A::AffineTransform2D{T},t::NTuple{2,T}) where {T<:AbstractFloat} =
-    translate(A, t[1], t[2])
-
-function translate(A::AffineTransform2D{T},
-                   t::Tuple{T1,T2}) where {T<:AbstractFloat,T1<:Real,T2<:Real}
-    return translate(A, convert(T, t[1]), convert(T, t[2]))
-end
-
-function translate(x::T1, y::T2,
-                   A::AffineTransform2D{T}) where {T<:AbstractFloat,
-                                                   T1<:Real,T2<:Real}
-    return translate(convert(T, x), convert(T, y), A)
-end
-
-translate(t::NTuple{2,T}, A::AffineTransform2D{T}) where {T<:AbstractFloat} =
-    translate(t[1], t[2], A)
-
-function translate(t::Tuple{T1,T2},
-                   A::AffineTransform2D{T}) where {T<:AbstractFloat,
-                                                   T1<:Real,T2<:Real}
-    return translate(convert(T, t[1]), convert(T, t[2]), A)
-end
+translate(A::AffineTransform2D, v::Tuple{Real,Real}) =
+    translate(A, v[1], v[2])
 
 #------------------------------------------------------------------------------
 """
@@ -399,9 +422,9 @@ function intercept(A::AffineTransform2D{T}) where {T<:AbstractFloat}
 end
 
 
-Base.:+(t::NTuple{2}, A::AffineTransform2D) = translate(t, A)
+Base.:+(t::Tuple{Real,Real}, A::AffineTransform2D) = translate(t, A)
 
-Base.:+(A::AffineTransform2D, t::NTuple{2}) = translate(A, t)
+Base.:+(A::AffineTransform2D, t::Tuple{Real,Real}) = translate(A, t)
 
 for op in (:(∘), :(*), :(⋅))
     @eval begin
