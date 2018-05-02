@@ -10,6 +10,8 @@ else
     using Test
 end
 
+distance(a::Real, b::Real) = abs(a - b)
+
 distance(a::NTuple{2,Real}, b::NTuple{2,Real}) =
     hypot(a[1] - b[1], a[2] - b[2])
 
@@ -22,47 +24,111 @@ distance(A::AffineTransform2D, B::AffineTransform2D) =
     I = AffineTransform2D()
     A = AffineTransform2D(1, 0, -3, 0.1, 1, +2)
     B = AffineTransform2D(-0.4, 0.1, -0.3, 0.7, 1.1, -0.9)
-    C = inv(B)*B
-    @test C.xx ≈ 1
-    @test C.xy ≈ 0 atol=tol
-    @test C.yx ≈ 0 atol=tol
-    @test C.yy ≈ 1
-    @test C.x  ≈ 0 atol=tol
-    @test C.y  ≈ 0 atol=tol
-    @test distance(C, I) ≤ tol
-    @test det(I) == 1
-    @test jacobian(A) == abs(det(A))
-    @test distance(C, I) ≤ tol
+    vectors = ((0.2,1.3), (-1,π), (-sqrt(2),3//4))
+    scales = (-1.7, 0.1, φ)
+    angles = (-2π/11, π/7, 0.1)
 
-    x0, y0 = 0.2, 1.3
-    x1, y1 = B(x0, y0)
-    x2, y2 = inv(B)(x1, y1)
-    @test hypot(x2 - x0, y2 - y0) ≤ tol
-    tx, ty = -2.3, 7.1
-    K1 = B + (tx, ty); @test distance(K1(x0, y0), B(x0 + tx, y0 + ty)) ≤ tol
-    K2 = (tx, ty) + B; @test distance(K2(x0, y0), B(x0, y0) .+ (tx, ty)) ≤ tol
+    @testset "conversion" begin
+        for G in (I, A, B)
+            @test eltype(G) == Float64
+            for T in (BigFloat, Float64, Float32, Float16)
+                @test typeof(convert(AffineTransform2D{T}, G)) == AffineTransform2D{T}
+                @test typeof(T(G)) == AffineTransform2D{T}
+                @test eltype(convert(AffineTransform2D{T}, G)) == T
+                @test eltype(T(G)) == T
+            end
+        end
+    end
 
-    @testset "scaling" begin
-        for α in (-1.7, 2.4, 0.1)
-            @test distance((α*B)(x1, y1), α.*B(x1, y1)) ≤ tol
-            @test distance((B*α)(x1, y1), B(α*x1, α*y1)) ≤ tol
+    @testset "identity" begin
+        @test det(I) == 1
+        @test distance(inv(I), I) ≤ 0
+        for v in vectors
+            @test distance(I(v), eltype(I).(v)) ≤ 0
+        end
+    end
+
+    @testset "apply" begin
+        for G in (I, A, B),
+            v in vectors
+            @test distance(G(v...), G(v)) ≤ 0
+        end
+    end
+
+    @testset "composition" begin
+        for G in (I, B, A),
+            H in (A, B)
+            @test distance(G*H, compose(G,H)) ≤ 0
+            @test distance(G⋅H, compose(G,H)) ≤ 0
+            @test distance(G∘H, compose(G,H)) ≤ 0
+            for v in vectors
+                @test distance((G*H)(v), G(H(v))) ≤ tol
+            end
+        end
+    end
+
+    @testset "jacobian" begin
+        for M in (I, B, A)
+            @test jacobian(M) == abs(det(M))
+        end
+    end
+
+    @testset "inverse" begin
+        for M in (B, A)
+            if det(M) == 0
+                continue
+            end
+            @test distance(det(inv(M)), 1/det(M)) ≤ tol
+            @test distance(M/M, M*inv(M)) ≤ tol
+            @test distance(M\M, inv(M)*M) ≤ tol
+            @test distance(M\M, I) ≤ tol
+            @test distance(M/M, I) ≤ tol
+            for v in vectors
+                @test distance(M(inv(M)(v)), v) ≤ tol
+                @test distance(inv(M)(M(v)), v) ≤ tol
+                @test distance((M\M)(v), v) ≤ tol
+                @test distance((M/M)(v), v) ≤ tol
+            end
+        end
+    end
+
+    @testset "scale" begin
+        for M in (B, A),
+            α in scales,
+            v in vectors
+            @test distance((α*M)(v), α.*M(v)) ≤ tol
+            @test distance((M*α)(v), M(α.*v)) ≤ tol
+        end
+    end
+
+    @testset "translation" begin
+        for M in (B, A),
+            t in vectors,
+            v in vectors
+            @test distance(translate(t, M)(v), t .+ M(v)) ≤ tol
+            @test distance(translate(t, M)(v), (t + M)(v)) ≤ tol
+            @test distance(translate(M, t)(v), M(v .+ t)) ≤ tol
+            @test distance(translate(M, t)(v), (M + t)(v)) ≤ tol
         end
     end
 
     @testset "rotation" begin
-        for θ in (-1.7, π/7, 0.1)
+        for θ in angles,
+            v in vectors
             R = rotate(+θ, I)
             Q = rotate(-θ, I)
             @test distance(R*Q, I) ≤ tol
             @test distance(Q*R, I) ≤ tol
-            @test distance(rotate(θ, B)(x1, y1), R(B(x1, y1))) ≤ tol
-            @test distance(rotate(B, θ)(x1, y1), B(R(x1, y1))) ≤ tol
+            @test distance(rotate(θ, B)(v), (R*B)(v)) ≤ tol
+            @test distance(rotate(B, θ)(v), (B*R)(v)) ≤ tol
         end
     end
 
     @testset "intercept" begin
-        x, y = intercept(B)
-        @test distance(B(x, y), (0,0)) ≤ tol
+        for M in (I, A, B)
+            x, y = intercept(M)
+            @test distance(M(x, y), (0,0)) ≤ tol
+        end
     end
 end
 

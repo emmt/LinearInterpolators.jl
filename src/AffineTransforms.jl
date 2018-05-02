@@ -506,40 +506,6 @@ Base.show(io::IO, ::MIME"text/plain", A::AffineTransform2D) =
 
 Base.show(io::IO, A::AffineTransform2D) = show(io, MIME"text/plain"(), A)
 
-function runtests()
-    B = AffineTransform2D(1, 0, -3, 0.1, 1, +2)
-    show(B)
-    println()
-    A = inv(B)
-    show(A)
-    println()
-    C = compose(A, B)
-    show(C)
-    println()
-    U = convert(AffineTransform2D{Float16},C)
-    show(U)
-    println()
-    V = convert(AffineTransform2D{Float64},C)
-    show(V)
-    println()
-    show(B(1, 4))
-    println()
-    show(B(1f0, 4))
-    println()
-    show(B(1.0, 4.0))
-    println()
-    show(B(1.0, 4))
-    println()
-    show(B((1f0, 4f0)))
-    println()
-    show(B((1.0, 4f0)))
-    println()
-    xy = intercept(B)
-    xpyp = B*xy
-    println("$xy --> $xpyp")
-    nothing
-end
-
 @deprecate combine compose
 @deprecate multiply compose
 
