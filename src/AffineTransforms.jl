@@ -62,6 +62,8 @@ Many operations are available to manage or apply affine transforms:
 B = T(A)  # convert coefficients of transform A to be of type T
 B = convert(AffineTransform2D{T}, A)  # idem
 
+eltype(A)               # yields floating-point type of A
+
 C = compose(A, B, ...)  # compose 2 (or more) transforms, C = apply B then A
 C = A∘B                 # idem
 C = A*B                 # idem
@@ -119,6 +121,8 @@ struct AffineTransform2D{T<:AbstractFloat} <: Function
                                       a21::Real, a22::Real, a23::Real) =
                                           new{T}(a11,a12,a13, a21,a22,a23)
 end
+
+Base.eltype(::AffineTransform2D{T}) where {T} = T
 
 # Use Float64 type by default.
 AffineTransform2D() = AffineTransform2D{Float64}()
