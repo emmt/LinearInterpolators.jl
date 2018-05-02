@@ -26,7 +26,7 @@ __shortname(str::AbstractString) =
         ("Box",                         RectangularSpline(),              1, true,  true),
         ("Triangle",                    LinearSpline(),                   2, true,  true),
         ("Quadratic B-spline",          QuadraticSpline(),                3, true,  false),
-        ("Cubic B-spline",              CubicSpline(),                    4, true,  false),
+        ("Cubic B-spline",              CubicSpline(SafeFlat),            4, true,  false),
         ("Catmull-Rom spline",          CatmullRomSpline(),               4, true,  true),
         ("Cardinal cubic spline",       CardinalCubicSpline(-1),          4, true,  true),
         ("Mitchell & Netravali spline", MitchellNetravaliSpline(),        4, true,  false),
@@ -34,7 +34,7 @@ __shortname(str::AbstractString) =
         ("Keys's (emulated)",           MitchellNetravaliSpline(0, -0.7), 4, true,  true),
         ("Keys's cardinal cubics",      KeysSpline(-0.7),                 4, true,  true),
         ("Lanczos 2 kernel",            LanczosKernel(2),                 2, false, true),
-        ("Lanczos 4 kernel",            LanczosKernel(4),                 4, false, true),
+        ("Lanczos 4 kernel",            LanczosKernel(Float64,4,SafeFlat),4, false, true),
         ("Lanczos 6 kernel",            LanczosKernel(6),                 6, false, true),
         ("Lanczos 8 kernel",            LanczosKernel(8),                 8, false, true))
         @testset "$nam" begin
@@ -42,6 +42,8 @@ __shortname(str::AbstractString) =
             @test iscardinal(ker) == card
             @test length(ker) == sup
             @test length(typeof(ker)) == sup
+            @test size(ker) == sup
+            @test size(typeof(ker)) == sup
             for T in types
                 @test eltype(T(ker)) == T
                 @test eltype(typeof(T(ker))) == T
