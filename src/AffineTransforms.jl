@@ -53,7 +53,8 @@ Many operations are available to manage or apply affine transforms:
 (xp, yp) = A(xy)           # idem
 (xp, yp) = A*xy            # idem
 
-B = convert(T, A)       # convert coefficients of transform A to be of type T
+B = T(A)  # convert coefficients of transform A to be of type T
+B = convert(AffineTransform2D{T}, A)  # idem
 
 C = compose(A, B, ...)  # compose 2 (or more) transforms, C = apply B then A
 C = A∘B                 # idem
@@ -136,6 +137,11 @@ end
 function Base.convert(::Type{AffineTransform2D{T}},
                       A::AffineTransform2D) where {T<:AbstractFloat}
     return AffineTransform2D{T}(A.xx, A.xy, A.x, A.yx, A.yy, A.y)
+end
+
+for T in (BigFloat, Float64, Float32, Float16)
+    @eval (::Type{$T})(A::AffineTransform2D) =
+        convert(AffineTransform2D{$T}, A)
 end
 
 #------------------------------------------------------------------------------
