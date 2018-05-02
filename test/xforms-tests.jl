@@ -31,6 +31,7 @@ distance(A::AffineTransform2D, B::AffineTransform2D) =
     types = (BigFloat, Float64, Float32, Float16)
 
     @testset "conversion" begin
+        @test_throws ErrorException compose()
         for G in (I, A, B)
             @test eltype(G) == Float64
             for T in types
@@ -58,13 +59,15 @@ distance(A::AffineTransform2D, B::AffineTransform2D) =
     end
 
     @testset "composition" begin
-        for G in (I, B, A),
-            H in (A, B)
-            @test distance(G*H, compose(G,H)) ≤ 0
-            @test distance(G⋅H, compose(G,H)) ≤ 0
-            @test distance(G∘H, compose(G,H)) ≤ 0
-            for v in vectors
-                @test distance((G*H)(v), G(H(v))) ≤ tol
+        for G in (I, B, A)
+            @test distance(G, compose(G)) ≤ 0
+            for H in (A, B)
+                @test distance(G*H, compose(G,H)) ≤ 0
+                @test distance(G⋅H, compose(G,H)) ≤ 0
+                @test distance(G∘H, compose(G,H)) ≤ 0
+                for v in vectors
+                    @test distance((G*H)(v), G(H(v))) ≤ tol
+                end
             end
         end
         for T1 in types, T2 in types
@@ -99,6 +102,11 @@ distance(A::AffineTransform2D, B::AffineTransform2D) =
                 @test distance((M/M)(v), v) ≤ tol
             end
         end
+        for T1 in types, T2 in types
+            T = promote_type(T1, T2)
+            @test eltype(T1(A)/T2(B)) == T
+            @test eltype(T1(A)\T2(B)) == T
+        end
     end
 
     @testset "scale" begin
@@ -128,6 +136,15 @@ distance(A::AffineTransform2D, B::AffineTransform2D) =
             @test distance(translate(M, t)(v), M(v .+ t)) ≤ tol
             @test distance(translate(M, t)(v), (M + t)(v)) ≤ tol
         end
+        for G in (A, B, C),
+            v in vectors,
+            T in types
+            @test eltype(T.(v) + G) == eltype(G)
+            @test eltype(G + T.(v)) == eltype(G)
+            H = T(G)
+            @test eltype(v + H) == eltype(H)
+            @test eltype(H + v) == eltype(H)
+        end
     end
 
     @testset "rotation" begin
@@ -155,6 +172,12 @@ distance(A::AffineTransform2D, B::AffineTransform2D) =
         for M in (I, A, B)
             x, y = intercept(M)
             @test distance(M(x, y), (0,0)) ≤ tol
+        end
+    end
+
+    @testset "show" begin
+        for M in (I, A, B, C)
+            @test ismatch(r"AffineTransform2D{Float64}", string(M))
         end
     end
 end
