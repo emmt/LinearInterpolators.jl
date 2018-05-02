@@ -10,9 +10,17 @@ else
     using Test
 end
 
+__shortname(::Void) = ""
+__shortname(m::RegexMatch) = m.captures[1]
+__shortname(::Type{T}) where {T} = __shortname(string(T))
+__shortname(str::AbstractString) =
+    __shortname(match(r"([_A-Za-z][_A-Za-z0-9]*)([({]|$)", str))
+
 @testset "Kernels" begin
     offsets = (0.0, 0.1, 0.2, 0.3, 0.4)
     tol = 1e-14
+    conditions = (Flat, SafeFlat)
+
     for (nam, ker, sup, nrml, card) in (
         ("Box",                         RectangularSpline(),              1, true,  true),
         ("Triangle",                    LinearSpline(),                   2, true,  true),
@@ -24,8 +32,10 @@ end
         ("Duff's tensioned B-spline",   MitchellNetravaliSpline(0.5, 0),  4, true,  false),
         ("Keys's (emulated)",           MitchellNetravaliSpline(0, -0.7), 4, true,  true),
         ("Keys's cardinal cubics",      KeysSpline(-0.7),                 4, true,  true),
+        ("Lanczos 2 kernel",            LanczosKernel(2),                 2, false, true),
         ("Lanczos 4 kernel",            LanczosKernel(4),                 4, false, true),
-        ("Lanczos 6 kernel",            LanczosKernel(6),                 6, false, true))
+        ("Lanczos 6 kernel",            LanczosKernel(6),                 6, false, true),
+        ("Lanczos 8 kernel",            LanczosKernel(8),                 8, false, true))
         @testset "$nam" begin
             @test isnormalized(ker) == nrml
             @test iscardinal(ker) == card
@@ -33,6 +43,7 @@ end
             @test eltype(ker) == Float64
             @test eltype(Float32(ker)) == Float32
             @test boundaries(ker) == Flat
+            @test __shortname(summary(ker)) == __shortname(typeof(ker))
             if iscardinal(ker)
                 @test ker(0) == 1
                 @test maximum(abs.(ker([-3,-2,-1,1,2,3]))) ≤ tol
