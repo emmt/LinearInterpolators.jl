@@ -20,6 +20,7 @@ __shortname(str::AbstractString) =
     offsets = (0.0, 0.1, 0.2, 0.3, 0.4)
     tol = 1e-14
     conditions = (Flat, SafeFlat)
+    types = (Float16, Float32, Float64)
 
     for (nam, ker, sup, nrml, card) in (
         ("Box",                         RectangularSpline(),              1, true,  true),
@@ -40,9 +41,15 @@ __shortname(str::AbstractString) =
             @test isnormalized(ker) == nrml
             @test iscardinal(ker) == card
             @test length(ker) == sup
-            @test eltype(ker) == Float64
-            @test eltype(Float32(ker)) == Float32
-            @test boundaries(ker) == Flat
+            @test length(typeof(ker)) == sup
+            for T in types
+                @test eltype(T(ker)) == T
+                @test eltype(typeof(T(ker))) == T
+            end
+            for C in conditions
+                @test boundaries(C(ker)) == C
+                @test boundaries(typeof(C(ker))) == C
+            end
             @test __shortname(summary(ker)) == __shortname(typeof(ker))
             if iscardinal(ker)
                 @test ker(0) == 1
