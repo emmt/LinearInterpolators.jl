@@ -52,8 +52,6 @@ struct SafeFlat <: Boundaries; end
 #------------------------------------------------------------------------------
 # INTERPOLATION KERNELS
 
-@inline two(::Type{T}) where {T<:Number} = convert(T,2)
-@inline three(::Type{T}) where {T<:Number} = convert(T,3)
 @inline square(x) = x*x
 @inline cube(x) = x*x*x
 
@@ -119,17 +117,19 @@ or for `t ∈ [-1/2,+1/2]` if `S` is odd.
 """
 abstract type Kernel{T<:AbstractFloat,S,B<:Boundaries} <: Function end
 
-Base.eltype(::Kernel{T,S,B})       where {T,S,B} = T
-Base.eltype(::Type{Kernel{T,S,B}}) where {T,S,B} = T
-Base.length(::Kernel{T,S,B})       where {T,S,B} = S
-Base.length(::Type{Kernel{T,S,B}}) where {T,S,B} = S
-Base.size(::Kernel{T,S,B})         where {T,S,B} = S
+Base.eltype(::Kernel{T,S,B})         where {T,S,B} = T
+Base.eltype(::Type{<:Kernel{T,S,B}}) where {T,S,B} = T
+Base.length(::Kernel{T,S,B})         where {T,S,B} = S
+Base.length(::Type{<:Kernel{T,S,B}}) where {T,S,B} = S
+Base.size(::Kernel{T,S,B})           where {T,S,B} = S
+Base.size(::Type{<:Kernel{T,S,B}})   where {T,S,B} = S
 
 """
 `boundaries(ker)` yields the type of the boundary conditions applied for
 extrapolation with kernel `ker`.
 """
-boundaries(::Kernel{T,S,B}) where {T,S,B} = B
+boundaries(::Kernel{T,S,B})         where {T,S,B} = B
+boundaries(::Type{<:Kernel{T,S,B}}) where {T,S,B} = B
 
 """
 `isnormalized(ker)` returns a boolean indicating whether the kernel `ker` has
@@ -167,7 +167,6 @@ and `0` elsewhere.
 """
 struct RectangularSpline{T,B} <: Kernel{T,1,B}; end
 
-Base.length(::Union{K,Type{K}}) where {K<:RectangularSpline} = 1
 iscardinal(::Union{K,Type{K}}) where {K<:RectangularSpline} = true
 isnormalized(::Union{K,Type{K}}) where {K<:RectangularSpline} = true
 Base.summary(::RectangularSpline) = "RectangularSpline()"
@@ -188,7 +187,6 @@ window) is the 2nd order (linear) B-spline.
 """
 struct LinearSpline{T,B} <: Kernel{T,2,B}; end
 
-Base.length(::Union{K,Type{K}}) where {K<:LinearSpline} = 2
 iscardinal(::Union{K,Type{K}}) where {K<:LinearSpline} = true
 isnormalized(::Union{K,Type{K}}) where {K<:LinearSpline} = true
 Base.summary(::LinearSpline) = "LinearSpline()"
@@ -207,7 +205,6 @@ The quadratic spline is the 3rd order (quadratic) B-spline.
 """
 struct QuadraticSpline{T,B} <: Kernel{T,3,B}; end
 
-Base.length(::Union{K,Type{K}}) where {K<:QuadraticSpline} = 3
 iscardinal(::Union{K,Type{K}}) where {K<:QuadraticSpline} = false
 isnormalized(::Union{K,Type{K}}) where {K<:QuadraticSpline} = true
 Base.summary(::QuadraticSpline) = "QuadraticSpline()"
@@ -248,7 +245,6 @@ Vallée Poussin window.
 """
 struct CubicSpline{T,B} <: Kernel{T,4,B}; end
 
-Base.length(::Union{K,Type{K}}) where {K<:CubicSpline} = 4
 iscardinal(::Union{K,Type{K}}) where {K<:CubicSpline} = false
 isnormalized(::Union{K,Type{K}}) where {K<:CubicSpline} = true
 Base.summary(::CubicSpline) = "CubicSpline()"
@@ -295,7 +291,6 @@ end
 
 struct CatmullRomSpline{T,B} <: Kernel{T,4,B}; end
 
-Base.length(::Union{K,Type{K}}) where {K<:CatmullRomSpline} = 4
 iscardinal(::Union{K,Type{K}}) where {K<:CatmullRomSpline} = true
 isnormalized(::Union{K,Type{K}}) where {K<:CatmullRomSpline} = true
 Base.summary(::CatmullRomSpline) = "CatmullRomSpline()"
@@ -353,7 +348,6 @@ end
 CardinalCubicSpline(c::Real, ::Type{B} = Flat) where {B<:Boundaries} =
     CardinalCubicSpline(Float64, c, B)
 
-Base.length(::Union{K,Type{K}}) where {K<:CardinalCubicSpline} = 4
 iscardinal(::Union{K,Type{K}}) where {K<:CardinalCubicSpline} = true
 isnormalized(::Union{K,Type{K}}) where {K<:CardinalCubicSpline} = true
 Base.summary(ker::CardinalCubicSpline) =
@@ -470,8 +464,6 @@ function MitchellNetravaliSpline(::Type{T} = Float64,
     MitchellNetravaliSpline{T,B}(T(1/3), T(1/3))
 end
 
-Base.length(::Union{K,Type{K}}) where {K<:MitchellNetravaliSpline} = 4
-
 iscardinal(ker::MitchellNetravaliSpline{T,B}) where {T<:AbstractFloat,B} =
     (ker.b == T(0))
 
@@ -548,7 +540,6 @@ end
 KeysSpline(a::Real, ::Type{B} = Flat) where {B<:Boundaries} =
     KeysSpline(Float64, a, B)
 
-Base.length(::Union{K,Type{K}}) where {K<:KeysSpline} = 4
 iscardinal(::Union{K,Type{K}}) where {K<:KeysSpline} = true
 isnormalized(::Union{K,Type{K}}) where {K<:KeysSpline} = true
 Base.summary(ker::KeysSpline) = @sprintf("KeysSpline(%.1f)", ker.a)
