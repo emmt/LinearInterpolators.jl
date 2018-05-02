@@ -17,11 +17,11 @@ module AffineTransforms
 export
     AffineTransform2D,
     compose,
+    intercept,
+    jacobian,
     rotate,
     scale,
-    translate,
-    intercept,
-    jacobian
+    translate
 
 @static if isdefined(Base, :scale)
     import Base.scale
@@ -33,25 +33,31 @@ end
 An affine 2D transform `C` is defined by 6 real coefficients, `Cxx`, `Cxy`,
 `Cx`, `Cyx`, `Cyy` and `Cy`.  Such a transform maps `(x,y)` as `(xp,yp)` given
 by:
-```
-  xp = Cxx*x + Cxy*y + Cx
-  yp = Cyx*x + Cyy*y + Cy
+
+```julia
+xp = Cxx*x + Cxy*y + Cx
+yp = Cyx*x + Cyy*y + Cy
 ```
 
 The immutable type `AffineTransform2D` is used to store an affine 2D transform
 `C`, it can be created by:
+
+```julia
+I = AffineTransform2D{T}() # yields the identity with type T
+C = AffineTransform2D{T}(Cxx, Cxy, Cx, Cyx, Cyy, Cy)
 ```
-  C = AffineTransform2D{T}() # yields the identity with type T
-  C = AffineTransform2D{T}(Cxx, Cxy, Cx, Cyx, Cyy, Cy)
-```
+
 The `{T}` above is used to specify the floating-point type for the
-coefficients; if omitted, `T = Cdouble` is assumed.
+coefficients; if omitted, `T = Float64` is assumed.
+
+
+## Operations with affine 2D transforms
 
 Many operations are available to manage or apply affine transforms:
+
 ```julia
-(xp, yp) = A(x, y)         # idem
-(xp, yp) = A(xy)           # idem
-(xp, yp) = A*xy            # idem
+(xp, yp) = A(x,y)       # idem
+(xp, yp) = A(v)         # idem, with v = (x,y)
 
 B = T(A)  # convert coefficients of transform A to be of type T
 B = convert(AffineTransform2D{T}, A)  # idem
@@ -61,13 +67,13 @@ C = A∘B                 # idem
 C = A*B                 # idem
 C = A⋅B                 # idem
 
-B = translate(tx, ty, A)   # B = apply A then translate by (tx,ty)
-B = translate(t, A)        # idem with t = (tx,ty)
-B = t + A                  # idem
+B = translate(x, y, A)  # B = apply A then translate by (x,y)
+B = translate(v, A)     # idem with v = (x,y)
+B = v + A               # idem
 
-B = translate(A, tx, ty)   # B = translate by (tx,ty) then apply A
-B = translate(A, t)        # idem with t = (tx,ty)
-B = A + t                  # idem
+B = translate(A, x, y)  # B = translate by (x,y) then apply A
+B = translate(A, v)     # idem with v = (x,y)
+B = A + v               # idem
 
 B = rotate(θ, A)   # B = apply A then rotate by angle θ
 C = rotate(A, θ)   # C = rotate by angle θ then apply A
@@ -84,6 +90,22 @@ C = A\\B            # left division, same as: C = compose(inv(A), B)
 
 "`∘`" and "`⋅`" can be typed by `\\circ<tab>` and `\\cdot<tab>`.
 
+
+## Type conversion
+
+As a general rule, the floating-point type `T` of an `AffineTransform2D{T}` is
+imposed for all operations and for the result.  The floating-point type of the
+composition of several coordinate transforms is the promoted type of the
+transforms which have been composed.
+
+To change the floating-point type of a 2D affine transform can be changed as
+follows:
+
+```julia
+B = T(A)  # convert coefficients of transform A to be of type T
+B = convert(AffineTransform2D{T}, A)  # idem
+```
+
 """
 struct AffineTransform2D{T<:AbstractFloat}
     xx::T
@@ -98,11 +120,11 @@ struct AffineTransform2D{T<:AbstractFloat}
                                           new{T}(a11,a12,a13, a21,a22,a23)
 end
 
-# Use Cdouble type by default.
-AffineTransform2D() = AffineTransform2D{Cdouble}()
+# Use Float64 type by default.
+AffineTransform2D() = AffineTransform2D{Float64}()
 AffineTransform2D(a11::Real, a12::Real, a13::Real,
                   a21::Real, a22::Real, a23::Real) =
-                      AffineTransform2D{Cdouble}(a11,a12,a13, a21,a22,a23)
+                      AffineTransform2D{Float64}(a11,a12,a13, a21,a22,a23)
 
 @deprecate(
     AffineTransform2D{T<:AbstractFloat}(::Type{T}),
