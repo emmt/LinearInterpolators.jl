@@ -15,24 +15,44 @@ const plt = PyPlot
 
 function rundemos(::Type{T} = Float64) where {T<:AbstractFloat}
 
-    z = T[0.5, 0.3, 0.1, 0.0, -0.2, -0.7, -0.7, 0.0, 1.7]
+    z = T[0.5, 0.3, 0.1, 0.0, -0.2, -0.7, -0.7, 0.0, 1.7, 1.9, 2.1]
 
     # 1-D example
     t = linspace(-3,14,2000);
     I0 = SparseInterpolator(RectangularSpline(T, Flat), t, length(z))
-    println("I0.dims: $(I0.dims), I0.nrows: $(I0.nrows), I0.ncols: $(I0.ncols)")
     I1 = SparseInterpolator(LinearSpline(T, Flat), t, length(z))
     I2 = SparseInterpolator(CatmullRomSpline(T, SafeFlat), t, length(z))
-    plt.figure(2)
+    I3 = SparseInterpolator(LanczosKernel(T, 8), t, length(z))
+    plt.figure(1)
     plt.clf()
     plt.plot(t, I0(z), color="darkgreen",
-             linewidth=1.0, linestyle="-", label="Rectangular spline");
+             linewidth=1.5, linestyle="-", label="Rectangular spline");
     plt.plot(t, I1(z), color="darkred",
-                 linewidth=2.0, linestyle="-", label="Linear spline");
+                 linewidth=1.5, linestyle="-", label="Linear spline");
     plt.plot(t, I2(z), color="orange",
-             linewidth=2.0, linestyle="-", label="Catmull-Rom");
+             linewidth=1.5, linestyle="-", label="Catmull-Rom");
+    plt.plot(t, I3(z), color="violet",
+             linewidth=1.5, linestyle="-", label="Lanczos 8");
     plt.plot(1:length(z), z, "o", color="darkblue", label="Points")
     plt.legend()
+    plt.title("Interpolations with Cardinal Kernels")
+
+    # Interpolation + smoothing
+    t = linspace(-3,14,2000);
+    I5 = SparseInterpolator(QuadraticSpline(T), t, length(z))
+    I6 = SparseInterpolator(CubicSpline(T, Flat), t, length(z))
+    I7 = SparseInterpolator(MitchellNetravaliSpline(T, Flat), t, length(z))
+    plt.figure(2)
+    plt.clf()
+    plt.plot(t, I6(z), color="darkred",
+                 linewidth=1.5, linestyle="-", label="Cubic B-spline");
+    plt.plot(t, I5(z), color="darkgreen",
+             linewidth=1.5, linestyle="-", label="Quadratic B-spline");
+    #plt.plot(t, I7(z), color="orange",
+    #         linewidth=1.5, linestyle="-", label="Mitchell & Netravali");
+    plt.plot(1:length(z), z, "o", color="darkblue", label="Points")
+    plt.legend()
+    plt.title("Interpolations with Smoothing Kernels")
 
     # Test conversion to a sparse matrix.
     S1 = sparse(I1)
