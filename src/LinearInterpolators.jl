@@ -11,6 +11,8 @@
 # Copyright (C) 2016-2018, Éric Thiébaut.
 #
 
+__precompile__(true)
+
 module LinearInterpolators
 
 include("AffineTransforms.jl")
