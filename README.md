@@ -5,9 +5,9 @@
 [![Coverage Status](https://coveralls.io/repos/emmt/LinearInterpolators.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/emmt/LinearInterpolators.jl?branch=master)
 [![codecov.io](http://codecov.io/github/emmt/LinearInterpolators.jl/coverage.svg?branch=master)](http://codecov.io/github/emmt/LinearInterpolators.jl?branch=master)
 
-**LinearInterpolators** provides many linear interpolation methods for Julia.
-These interpolations are *linear* in the sense that the result depends linearly
-on the input.
+The **LinearInterpolators** package provides many linear interpolation methods
+for [`Julia`](http://julialang.org/).  These interpolations are *linear* in the
+sense that the result depends linearly on the input.
 
 
 ## Features
