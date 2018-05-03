@@ -1,54 +1,53 @@
-module InterpTests
+isdefined(:LinearInterpolators) || include("../src/LinearInterpolators.jl")
 
-const PLOTTING = true
-if PLOTTING
-    using PyCall; #pygui(:qt); # can be: :wx, :gtk, :qt
-    using LaTeXStrings
-    import PyPlot; const plt = PyPlot
-end
+module LinearInterpolatorsInterpolationsDemos
 
-using TiPi
+using LazyAlgebra
+using LinearInterpolators.Kernels
+using LinearInterpolators.Interpolations
 
-importall TiPi.Kernels
-importall TiPi.Interpolations
-importall TiPi.Algebra
+using PyCall
+# pygui(:gtk); # can be: :wx, :gtk, :qt
+using LaTeXStrings
+import PyPlot
+const plt = PyPlot
 
-function demos{T<:AbstractFloat}(::Type{T} = Float64)
 
-    z = convert(Array{T}, [0.5, 0.3, 0.1, 0.0, -0.2, -0.7, -0.7, 0.0, 1.7])
+function rundemos(::Type{T} = Float64) where {T<:AbstractFloat}
+
+    z = T[0.5, 0.3, 0.1, 0.0, -0.2, -0.7, -0.7, 0.0, 1.7]
 
     # 1-D example
     t = linspace(-3,14,2000);
     I0 = SparseInterpolator(RectangularSpline(T, Flat), t, length(z))
+    println("I0.dims: $(I0.dims), I0.nrows: $(I0.nrows), I0.ncols: $(I0.ncols)")
     I1 = SparseInterpolator(LinearSpline(T, Flat), t, length(z))
     I2 = SparseInterpolator(CatmullRomSpline(T, SafeFlat), t, length(z))
-    if PLOTTING
-        plt.figure(2)
-        plt.clf()
-        plt.plot(t, I0(z), color="darkgreen",
-                 linewidth=1.0, linestyle="-");
-        plt.plot(t, I1(z), color="darkred",
-                 linewidth=2.0, linestyle="-");
-        plt.plot(t, I2(z), color="orange",
-                 linewidth=2.0, linestyle="-");
-    end
+    plt.figure(2)
+    plt.clf()
+    plt.plot(t, I0(z), color="darkgreen",
+             linewidth=1.0, linestyle="-", label="Rectangular spline");
+    plt.plot(t, I1(z), color="darkred",
+                 linewidth=2.0, linestyle="-", label="Linear spline");
+    plt.plot(t, I2(z), color="orange",
+             linewidth=2.0, linestyle="-", label="Catmull-Rom");
+    plt.plot(1:length(z), z, "o", color="darkblue", label="Points")
+    plt.legend()
 
     # Test conversion to a sparse matrix.
     S1 = sparse(I1)
     S2 = sparse(I2)
-    println("max. error 1: ", maximum(abs(I1(z) - S1*z)))
-    println("max. error 2: ", maximum(abs(I2(z) - S2*z)))
+    println("max. error 1: ", maximum(abs.(I1(z) - S1*z)))
+    println("max. error 2: ", maximum(abs.(I2(z) - S2*z)))
 
-   # 2-D example
-   t = reshape(linspace(-3,14,20*21), (20,21));
-   I = SparseInterpolator(CatmullRomSpline(T, Flat), t, length(z))
-   if PLOTTING
-       plt.figure(3)
-       plt.clf()
-       plt.imshow(I(z));
-   end
+    # 2-D example
+    t = reshape(linspace(-3,14,20*21), (20,21));
+    I = SparseInterpolator(CatmullRomSpline(T, Flat), t, length(z))
+    plt.figure(3)
+    plt.clf()
+    plt.imshow(I(z));
 end
-#demos()
+#rundemos()
 #------------------------------------------------------------------------------
 
 const CPU = 2.94e9
@@ -63,7 +62,7 @@ function testdirect!{T,S,B}(dst::Vector{T}, ker::Kernel{T,S,B},
                             x::AbstractVector{T}, src::Vector{T},
                             cnt::Integer)
     for k in 1:cnt
-        apply_direct!(dst, ker, x, src)
+        apply!(dst, Direct, ker, x, src)
     end
     return dst
 end
@@ -72,7 +71,7 @@ function testadjoint!{T,S,B}(dst::Vector{T}, ker::Kernel{T,S,B},
                              x::AbstractVector{T}, src::Vector{T},
                              cnt::Integer)
     for k in 1:cnt
-        apply_adjoint!(dst, ker, x, src; clr=true)
+        apply!(dst, Adjoint, ker, x, src)
     end
     return dst
 end
@@ -144,6 +143,6 @@ function runtests{T<:AbstractFloat}(::Type{T} = Float64,
     printtest("CatmullRomSpline    SafeFlat direct ", n, @timed(testdirect!(z,  K10, x, y, cnt)))
     printtest("CatmullRomSpline    SafeFlat adjoint", n, @timed(testadjoint!(y, K10, x, z, cnt)))
 
-
 end
+
 end # module

@@ -1,8 +1,8 @@
-isdefined(:LazyInterpolators) || include("../src/LazyInterpolators.jl")
+isdefined(:LinearInterpolators) || include("../src/LinearInterpolators.jl")
 
-module LazyInterpolatorsKernelsTests
+module LinearInterpolatorsKernelsTests
 
-using LazyInterpolators.Kernels
+using LinearInterpolators.Kernels
 
 @static if VERSION < v"0.7.0-DEV.2005"
     using Base.Test

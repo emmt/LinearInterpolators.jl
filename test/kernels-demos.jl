@@ -1,8 +1,8 @@
-isdefined(:LazyInterpolators) || include("../src/LazyInterpolators.jl")
+isdefined(:LinearInterpolators) || include("../src/LinearInterpolators.jl")
 
-module LazyInterpolatorsKernelsDemos
+module LinearInterpolatorsKernelsDemos
 
-import LazyInterpolators.Kernels
+import LinearInterpolators.Kernels
 
 using PyCall
 # pygui(:gtk); # can be: :wx, :gtk, :qt

@@ -5,7 +5,7 @@
 #
 #------------------------------------------------------------------------------
 #
-# This file is part of the LazyInterpolators package licensed under the MIT
+# This file is part of the LinearInterpolators package licensed under the MIT
 # "Expat" License.
 #
 # Copyright (C) 2015-2016, Éric Thiébaut, Jonathan Léger & Matthew Ozon.
@@ -116,7 +116,7 @@ end
                                  pos::Function) where {T,S,N}
 
     _J, _W = make_varlist(:_j, S), make_varlist(:_w, S)
-    code = (generate_getcoefs(J, W, :ker, :lim, :x),
+    code = (generate_getcoefs(_J, _W, :ker, :lim, :x),
             [:( J[k+$s] = $(_J[s]) ) for s in 1:S]...,
             [:( C[k+$s] = $(_W[s]) ) for s in 1:S]...)
 
@@ -150,9 +150,9 @@ function _check(A::SparseInterpolator{T,S,N},
         error("bad vector length (expecting $(A.ncol), got $(length(inp)))")
     end
     if size(out) != A.dims
-        error("bad array size (expecting $(A.dims), got $(size(out)))")
+        error("bad output array size (expecting $(A.dims), got $(size(out)))")
     end
-    if length(out) == A.nrows
+    if length(out) != A.nrows
         error("corrupted sparse interpolator (bad number of \"rows\")")
     end
     @inbounds for k in 1:nvals

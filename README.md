@@ -1,11 +1,11 @@
-# LazyInterpolators
+# LinearInterpolators
 
 [![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md)
-[![Build Status](https://travis-ci.org/emmt/LazyInterpolators.jl.svg?branch=master)](https://travis-ci.org/emmt/LazyInterpolators.jl)
-[![Coverage Status](https://coveralls.io/repos/emmt/LazyInterpolators.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/emmt/LazyInterpolators.jl?branch=master)
-[![codecov.io](http://codecov.io/github/emmt/LazyInterpolators.jl/coverage.svg?branch=master)](http://codecov.io/github/emmt/LazyInterpolators.jl?branch=master)
+[![Build Status](https://travis-ci.org/emmt/LinearInterpolators.jl.svg?branch=master)](https://travis-ci.org/emmt/LinearInterpolators.jl)
+[![Coverage Status](https://coveralls.io/repos/emmt/LinearInterpolators.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/emmt/LinearInterpolators.jl?branch=master)
+[![codecov.io](http://codecov.io/github/emmt/LinearInterpolators.jl/coverage.svg?branch=master)](http://codecov.io/github/emmt/LinearInterpolators.jl?branch=master)
 
-**LazyInterpolators** provides many linear interpolation methods for Julia.
+**LinearInterpolators** provides many linear interpolation methods for Julia.
 These interpolations are *linear* in the sense that the result depends linearly
 on the input.
 
@@ -45,10 +45,10 @@ on the input.
 Pkg.clone("https://github.com/emmt/LazyAlgebra.jl.git")
 ```
 
-LazyInterpolators is not yet an
+LinearInterpolators is not yet an
 [official Julia package](https://pkg.julialang.org/) so you have to clone the
 repository:
 
 ```julia
-Pkg.clone("https://github.com/emmt/LazyInterpolators.jl.git")
+Pkg.clone("https://github.com/emmt/LinearInterpolators.jl.git")
 ```

@@ -7,7 +7,7 @@
 #
 #------------------------------------------------------------------------------
 #
-# This file is part of the LazyInterpolators package licensed under the MIT
+# This file is part of the LinearInterpolators package licensed under the MIT
 # "Expat" License.
 #
 # Copyright (C) 2016-2018, Éric Thiébaut.
@@ -36,7 +36,7 @@ superior(B::SafeFlatLimits) = B.sup
 @generated function getcoefs(ker::Kernel{T,S,SafeFlat},
                              lim::SafeFlatLimits{T}, x::T) where {S,T}
 
-    J = make_varlist(:j, S)
+    J, W = make_varlist(:j, S), make_varlist(:w, S)
     sameindices = [:(  $(J[i]) = j                   ) for i in 1:S]
     beyondfirst = (:(  j = first(lim)                ),
                    sameindices...,
@@ -46,9 +46,9 @@ superior(B::SafeFlatLimits) = B.sup
                   sameindices...,
                   :(   $(W[1]) = one(T)              ),
                   [:(  $(W[i]) = zero(T)             ) for i in 2:S]...)
-    m = S >> 1
-    setindices = ([:(  $(J[i]) = $(J[m]) - $(m - i)  ) for i in 1:m-1]...,
-                  [:(  $(J[i]) = $(J[m]) + $(i - m)  ) for i in m+1:S]...)
+    c = ((S + 1) >> 1)
+    setindices = ([:(  $(J[i]) = $(J[c]) - $(c - i)  ) for i in 1:c-1]...,
+                  [:(  $(J[i]) = $(J[c]) + $(i - c)  ) for i in c+1:S]...)
     clampindices = [:( $(J[i]) = clamp($(J[i]), lim) ) for i in 1:S]
 
     quote
@@ -59,7 +59,7 @@ superior(B::SafeFlatLimits) = B.sup
             $(beyondlast...)
         else
             f = floor(x)
-            $(J[m]) = trunc(Int, f)
+            $(J[c]) = trunc(Int, f)
             $(setindices...)
             if $(J[1]) < first(lim) || $(J[S]) > last(lim)
                 $(clampindices...)

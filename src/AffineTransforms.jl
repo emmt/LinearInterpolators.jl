@@ -6,7 +6,7 @@
 #
 #------------------------------------------------------------------------------
 #
-# This file is part of the LazyInterpolators package licensed under the MIT
+# This file is part of the LinearInterpolators package licensed under the MIT
 # "Expat" License.
 #
 # Copyright (C) 2016-2018, Éric Thiébaut.

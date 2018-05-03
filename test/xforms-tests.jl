@@ -1,8 +1,8 @@
-isdefined(:LazyInterpolators) || include("../src/LazyInterpolators.jl")
+isdefined(:LinearInterpolators) || include("../src/LinearInterpolators.jl")
 
-module LazyInterpolatorsAffineTransformsTests
+module LinearInterpolatorsAffineTransformsTests
 
-using LazyInterpolators.AffineTransforms
+using LinearInterpolators.AffineTransforms
 
 @static if VERSION < v"0.7.0-DEV.2005"
     using Base.Test

@@ -7,7 +7,7 @@
 #
 #------------------------------------------------------------------------------
 #
-# This file is part of the LazyInterpolators package licensed under the MIT
+# This file is part of the LinearInterpolators package licensed under the MIT
 # "Expat" License.
 #
 # Copyright (C) 2016-2018, Éric Thiébaut.
@@ -39,16 +39,16 @@ end
 @generated function getcoefs(ker::Kernel{T,S,Flat},
                              lim::FlatLimits{T}, x::T) where {T,S}
 
-    m = S >> 1
+    c = ((S + 1) >> 1)
     J = make_varlist(:j, S)
-    setindices = ([:(  $(J[i]) = $(J[m]) - $(m - i)  ) for i in 1:m-1]...,
-                  [:(  $(J[i]) = $(J[m]) + $(i - m)  ) for i in m+1:S]...)
+    setindices = ([:(  $(J[i]) = $(J[c]) - $(c - i)  ) for i in 1:c-1]...,
+                  [:(  $(J[i]) = $(J[c]) + $(i - c)  ) for i in c+1:S]...)
     clampindices = [:( $(J[i]) = clamp($(J[i]), lim) ) for i in 1:S]
 
     quote
         $(Expr(:meta, :inline))
         f = floor(x)
-        $(J[m]) = trunc(Int, f)
+        $(J[c]) = trunc(Int, f)
         $(setindices...)
         if $(J[1]) < first(lim) || $(J[S]) > last(lim)
             $(clampindices...)
