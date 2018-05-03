@@ -50,6 +50,11 @@ superior(B::SafeFlatLimits) = B.sup
     setindices = ([:(  $(J[i]) = $(J[c]) - $(c - i)  ) for i in 1:c-1]...,
                   [:(  $(J[i]) = $(J[c]) + $(i - c)  ) for i in c+1:S]...)
     clampindices = [:( $(J[i]) = clamp($(J[i]), lim) ) for i in 1:S]
+    if isodd(S)
+        nearest = :(f = round(x))
+    else
+        nearest = :(f = floor(x))
+    end
 
     quote
         $(Expr(:meta, :inline))
@@ -58,7 +63,7 @@ superior(B::SafeFlatLimits) = B.sup
         elseif x ≥ superior(lim)
             $(beyondlast...)
         else
-            f = floor(x)
+            $(nearest)
             $(J[c]) = trunc(Int, f)
             $(setindices...)
             if $(J[1]) < first(lim) || $(J[S]) > last(lim)
