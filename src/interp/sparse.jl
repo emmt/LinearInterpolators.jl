@@ -161,7 +161,7 @@ function __check(A::SparseInterpolator{T,S,N},
         error("corrupted sparse interpolator (bad number of indices)")
     end
     if length(inp) != ncols
-        error("bad vector length (expecting $(A.ncol), got $(length(inp)))")
+        error("bad vector length (expecting $(A.ncols), got $(length(inp)))")
     end
     if size(out) != A.dims
         error("bad output array size (expecting $(A.dims), got $(size(out)))")
