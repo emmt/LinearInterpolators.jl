@@ -2,6 +2,8 @@ isdefined(:LinearInterpolators) || include("../src/LinearInterpolators.jl")
 
 module LinearInterpolatorsInterpolationsTests
 
+using LazyAlgebra
+
 using LinearInterpolators.AffineTransforms
 using LinearInterpolators.Kernels
 using LinearInterpolators.Interpolations
@@ -55,6 +57,9 @@ t = linspace(1, length(xsub), length(x));
         @test err ≤ tol
         print(shortname(typeof(K)),"/",shortname(C)," max. err = ")
         @printf("%.3g\n", err)
+
+        @test distance(S(ysub), apply(ker,t,ysub)) ≤ 1e-15
+
     end
 end
 
