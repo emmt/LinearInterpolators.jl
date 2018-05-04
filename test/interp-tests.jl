@@ -48,7 +48,7 @@ t = linspace(1, length(xsub), length(x));
 
     for K in kernels,
         C in conditions
-        tol = isa(K, RectangularSpline) ? 0.02 : 0.002
+        tol = isa(K, RectangularSpline) ? 0.02 : 0.006
         ker = C(K)
         S = SparseInterpolator(ker, t, length(xsub))
         err = distance(S(ysub), y)
