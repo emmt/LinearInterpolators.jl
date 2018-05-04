@@ -190,6 +190,8 @@ include("interp/meta.jl")
 import .Meta
 include("interp/flat.jl")
 include("interp/safeflat.jl")
+include("interp/tabulated.jl")
+using .TabulatedInterpolators
 include("interp/sparse.jl")
 using .SparseInterpolators
 include("interp/unidimensional.jl")
