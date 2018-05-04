@@ -4,9 +4,7 @@ module LinearInterpolatorsInterpolationsTests
 
 using LazyAlgebra
 
-using LinearInterpolators.AffineTransforms
-using LinearInterpolators.Kernels
-using LinearInterpolators.Interpolations
+using LinearInterpolators
 
 @static if VERSION < v"0.7.0-DEV.2005"
     using Base.Test

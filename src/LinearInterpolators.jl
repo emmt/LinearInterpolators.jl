@@ -15,8 +15,39 @@ __precompile__(true)
 
 module LinearInterpolators
 
+# Export public types and methods.  Methods like `translate`, `compose`,
+# `scale`, etc. which are accessible via operators like `+` or `*` or `∘` are
+# however not exported.
+export
+    AffineTransform2D,
+    Boundaries,
+    CardinalCubicSpline,
+    CatmullRomSpline,
+    CubicSpline,
+    Flat,
+    Kernel,
+    KeysSpline,
+    LanczosKernel,
+    LinearSpline,
+    MitchellNetravaliSpline,
+    QuadraticSpline,
+    RectangularSpline,
+    SafeFlat,
+    SparseInterpolator,
+    boundaries,
+    intercept,
+    iscardinal,
+    isnormalized,
+    jacobian,
+    rotate
+
 include("AffineTransforms.jl")
+using .AffineTransforms
+
 include("kernels.jl")
+using .Kernels
+
 include("interpolations.jl")
+using .Interpolations
 
 end # module

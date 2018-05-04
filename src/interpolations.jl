@@ -24,6 +24,7 @@ import LazyAlgebra: apply, apply!, vcreate, output_size, input_size
 
 export
     SparseInterpolator,
+    TabulatedInterpolator,
     limits,
     boundaries,
     inferior,
