@@ -10,11 +10,11 @@ else
     using Test
 end
 
-__shortname(::Void) = ""
-__shortname(m::RegexMatch) = m.captures[1]
-__shortname(::Type{T}) where {T} = __shortname(string(T))
-__shortname(str::AbstractString) =
-    __shortname(match(r"([_A-Za-z][_A-Za-z0-9]*)([({]|$)", str))
+shortname(::Void) = ""
+shortname(m::RegexMatch) = m.captures[1]
+shortname(::Type{T}) where {T} = shortname(string(T))
+shortname(str::AbstractString) =
+    shortname(match(r"([_A-Za-z][_A-Za-z0-9]*)([({]|$)", str))
 
 @testset "Kernels" begin
     offsets = (0.0, 0.1, 0.2, 0.3, 0.4)
@@ -52,7 +52,7 @@ __shortname(str::AbstractString) =
                 @test boundaries(C(ker)) == C
                 @test boundaries(typeof(C(ker))) == C
             end
-            @test __shortname(summary(ker)) == __shortname(typeof(ker))
+            @test shortname(summary(ker)) == shortname(typeof(ker))
             if iscardinal(ker)
                 @test ker(0) == 1
                 @test maximum(abs.(ker([-3,-2,-1,1,2,3]))) ≤ tol
