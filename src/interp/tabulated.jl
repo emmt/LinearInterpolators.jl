@@ -22,7 +22,7 @@ using ...Interpolations
 import ...Interpolations.Meta
 
 using LazyAlgebra
-import LazyAlgebra: vcreate, apply!
+import LazyAlgebra: vcreate, apply!, apply
 
 struct TabulatedInterpolator{T<:AbstractFloat,S,D} <: LinearMapping
     nrows::Int     # length of output dimension
@@ -31,6 +31,9 @@ struct TabulatedInterpolator{T<:AbstractFloat,S,D} <: LinearMapping
     W::Matrix{T}   # interpolation weights
     d::D           # dimension to interpolate or nothing
 end
+
+# Interpolator can be used as a function.
+(A::TabulatedInterpolator)(x::AbstractArray) = apply(A, x)
 
 nrows(A::TabulatedInterpolator) = A.nrows
 ncols(A::TabulatedInterpolator) = A.ncols

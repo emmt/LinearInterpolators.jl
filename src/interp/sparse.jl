@@ -46,8 +46,8 @@ struct SparseInterpolator{T<:AbstractFloat,S,N} <: LinearMapping
     end
 end
 
-(A::SparseInterpolator{T,S,N})(x::AbstractVector{T}) where {T,S,N} =
-    apply(A, x)
+# Interpolator can be used as a function.
+(A::SparseInterpolator)(x::AbstractVector) = apply(A, x)
 
 Base.eltype(::SparseInterpolator{T,S,N}) where {T,S,N} = T
 output_size(A::SparseInterpolator) = A.dims

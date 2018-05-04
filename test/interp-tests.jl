@@ -36,12 +36,33 @@ kernels = (RectangularSpline(), LinearSpline(), QuadraticSpline(),
 
 conditions = (Flat, SafeFlat)
 
+const VERBOSE = true
 sub = 3
 x = linspace(-1, 1, 100*sub + 1);
 xsub = x[1:sub:end];
 y = cos.(2.*x.*(x + 2));
 ysub = y[1:sub:end];
 t = linspace(1, length(xsub), length(x));
+
+@testset "TabulatedInterpolators" begin
+    tol = 1e-14
+
+    for K in kernels,
+        C in conditions
+        tol = isa(K, RectangularSpline) ? 0.02 : 0.006
+        ker = C(K)
+        T = TabulatedInterpolator(ker, t, length(xsub))
+        @test distance(T(ysub), T*ysub) ≤ 0
+        err = distance(T*ysub, y)
+        if VERBOSE
+            print(shortname(typeof(K)),"/",shortname(C)," max. err = ")
+            @printf("%.3g\n", err)
+        end
+        @test err ≤ tol
+        @test distance(T*ysub, apply(ker,t,ysub)) ≤ 1e-15
+
+    end
+end
 
 @testset "SparseInterpolators" begin
     tol = 1e-14
@@ -51,11 +72,10 @@ t = linspace(1, length(xsub), length(x));
         tol = isa(K, RectangularSpline) ? 0.02 : 0.006
         ker = C(K)
         S = SparseInterpolator(ker, t, length(xsub))
-        err = distance(S(ysub), y)
-        @test err ≤ tol
-        print(shortname(typeof(K)),"/",shortname(C)," max. err = ")
-        @printf("%.3g\n", err)
-
+        T = TabulatedInterpolator(ker, t, length(xsub))
+        @test distance(S(ysub), S*ysub) ≤ 0
+        @test distance(S(ysub), T(ysub)) ≤ 0
+        @test distance(S(ysub), y) ≤ tol
         @test distance(S(ysub), apply(ker,t,ysub)) ≤ 1e-15
 
     end
