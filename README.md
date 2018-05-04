@@ -13,6 +13,7 @@ sense that the result depends linearly on the input.
 ## Features
 
 * Separable interpolations are supported for arrays of any dimensionality.
+  Interpolation kernel can be different along each interpolated dimension.
 
 * For 2D arrays, interpolations may be separable or not (*e.g.* to apply an
   image rotation).
