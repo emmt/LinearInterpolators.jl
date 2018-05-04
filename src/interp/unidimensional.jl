@@ -11,6 +11,16 @@
 # Copyright (C) 2016-2018, Éric Thiébaut.
 #
 
+# All code is in a module to "hide" private methods.
+module UnidimensionalInterpolators
+
+using ...Kernels
+using ...Interpolations
+import ...Interpolations.Meta
+
+using LazyAlgebra
+import LazyAlgebra: apply, apply!, vcreate
+
 #------------------------------------------------------------------------------
 # Out-of place versions (coordinates cannot be a function).
 
@@ -61,11 +71,11 @@ end
 #------------------------------------------------------------------------------
 # In-place direct operation.
 
-function generate_interp(n::Integer, ker::Symbol, lim::Arg, pos::Arg,
-                         arr::Symbol)
-    J, W = make_varlist(:_j, n), make_varlist(:_w, n)
-    code = generate_getcoefs(J, W, ker, lim, pos)
-    expr = generate_interp_expr(arr, J, W)
+function __generate_interp(n::Integer, ker::Symbol, lim::Meta.Arg,
+                           pos::Meta.Arg, arr::Symbol)
+    J, W = Meta.make_varlist(:_j, n), Meta.make_varlist(:_w, n)
+    code = Meta.generate_getcoefs(J, W, ker, lim, pos)
+    expr = Meta.generate_interp_expr(arr, J, W)
     return (code, expr)
 end
 
@@ -76,7 +86,7 @@ end
                            src::AbstractVector{T},
                            β::Real,
                            dst::AbstractArray{T,N}) where {T,S,N}
-    code, expr = generate_interp(S, :ker, :lim, :pos, :src)
+    code, expr = __generate_interp(S, :ker, :lim, :pos, :src)
     quote
         @assert size(dst) == size(x)
         lim = limits(ker, length(src))
@@ -100,7 +110,7 @@ end
             end
         else
             alpha = convert(T, α)
-        beta = convert(T, β)
+            beta = convert(T, β)
             @inbounds for i in eachindex(dst, x)
                 pos = x[i]
                 $code
@@ -118,7 +128,7 @@ end
                            src::AbstractVector{T},
                            β::Real,
                            dst::AbstractArray{T,N}) where {T,S,N}
-    code, expr = generate_interp(S, :ker, :lim, :pos, :src)
+    code, expr = __generate_interp(S, :ker, :lim, :pos, :src)
     quote
         lim = limits(ker, length(src))
         if α == 0
@@ -154,10 +164,10 @@ end
 #------------------------------------------------------------------------------
 # In-place adjoint operation.
 
-function generate_interp_adj(n::Integer, ker::Symbol, lim::Arg, pos::Arg,
-                             dst::Symbol, val::Symbol)
-    J, W = make_varlist(:_j, n), make_varlist(:_w, n)
-    return (generate_getcoefs(J, W, ker, lim, pos),
+function __generate_interp_adj(n::Integer, ker::Symbol, lim::Meta.Arg,
+                               pos::Meta.Arg, dst::Symbol, val::Symbol)
+    J, W = Meta.make_varlist(:_j, n), Meta.make_varlist(:_w, n)
+    return (Meta.generate_getcoefs(J, W, ker, lim, pos),
             [:($dst[$(J[i])] += $(W[i])*$val) for i in 1:n]...)
 end
 
@@ -168,7 +178,7 @@ end
                            src::AbstractArray{T,N},
                            β::Real,
                            dst::AbstractVector{T}) where {T,S,N}
-    code = generate_interp_adj(S, :ker, :lim, :pos, :dst, :val)
+    code = __generate_interp_adj(S, :ker, :lim, :pos, :dst, :val)
     quote
         @assert size(src) == size(x)
         vscale!(dst, β)
@@ -198,7 +208,7 @@ end
                            src::AbstractArray{T,N},
                            β::Real,
                            dst::AbstractVector{T}) where {T,S,N}
-    code = generate_interp_adj(S, :ker, :lim, :pos, :dst, :val)
+    code = __generate_interp_adj(S, :ker, :lim, :pos, :dst, :val)
     quote
         vscale!(dst, β)
         lim = limits(ker, length(dst))
@@ -219,3 +229,5 @@ end
         return dst
     end
 end
+
+end # module

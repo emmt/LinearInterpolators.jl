@@ -40,7 +40,7 @@ end
                              lim::FlatLimits{T}, x::T) where {T,S}
 
     c = ((S + 1) >> 1)
-    J = make_varlist(:j, S)
+    J = Meta.make_varlist(:j, S)
     setindices = ([:(  $(J[i]) = $(J[c]) - $(c - i)  ) for i in 1:c-1]...,
                   [:(  $(J[i]) = $(J[c]) + $(i - c)  ) for i in c+1:S]...)
     clampindices = [:( $(J[i]) = clamp($(J[i]), lim) ) for i in 1:S]

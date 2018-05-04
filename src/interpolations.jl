@@ -22,13 +22,13 @@ using ..AffineTransforms
 using LazyAlgebra
 import LazyAlgebra: apply, apply!, vcreate, output_size, input_size
 
-export SparseInterpolator
-#    SparseInterpolator,
-#    limits,
-#    boundaries,
-#    inferior,
-#    superior,
-#    getcoefs
+export
+    SparseInterpolator,
+    limits,
+    boundaries,
+    inferior,
+    superior,
+    getcoefs
 
 """
 
@@ -175,11 +175,25 @@ where `R` is an `AffineTransform2D`.
 
 """ apply
 
+function coefficients end
+function rows end
+function columns end
+function fit end
+function regularize end
+function regularize! end
+function boundaries end
+function inferior end
+function superior end
+
+
 include("interp/meta.jl")
+import .Meta
 include("interp/flat.jl")
 include("interp/safeflat.jl")
 include("interp/sparse.jl")
+using .SparseInterpolators
 include("interp/unidimensional.jl")
+using .UnidimensionalInterpolators
 include("interp/separable.jl")
 include("interp/nonseparable.jl")
 

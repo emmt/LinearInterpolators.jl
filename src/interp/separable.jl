@@ -64,12 +64,12 @@ end
                            dst::AbstractArray{T,2}) where {T,S1,S2}
 
     # Generate pieces of code.
-    J1, W1 = make_varlist(:_j1, S1), make_varlist(:_w1, S1)
-    J2, W2 = make_varlist(:_j2, S2), make_varlist(:_w2, S2)
-    code1 = (generate_getcoefs(J1, W1, :ker1, :lim1, :(x1[i1])),)
-    code2 = (generate_getcoefs(J2, W2, :ker2, :lim2, :(x2[i2])),
+    J1, W1 = Meta.make_varlist(:_j1, S1), Meta.make_varlist(:_w1, S1)
+    J2, W2 = Meta.make_varlist(:_j2, S2), Meta.make_varlist(:_w2, S2)
+    code1 = (Meta.generate_getcoefs(J1, W1, :ker1, :lim1, :(x1[i1])),)
+    code2 = (Meta.generate_getcoefs(J2, W2, :ker2, :lim2, :(x2[i2])),
              [:( $(W2[i]) *= alpha ) for i in 1:S2]...)
-    expr = generate_interp_expr(:src, J1, W1, J2, W2)
+    expr = Meta.generate_interp_expr(:src, J1, W1, J2, W2)
 
     quote
         # Get dimensions and limits.
@@ -120,11 +120,11 @@ end
                                                            S1,S2}
 
     # Generate pieces of code.
-    J1, W1 = make_varlist(:_j1, S1), make_varlist(:_w1, S1)
-    J2, W2 = make_varlist(:_j2, S2), make_varlist(:_w2, S2)
-    code1 = [generate_getcoefs(J1, W1, :ker1, :lim1, :(x1[i1]))]
-    code2 = [generate_getcoefs(J2, W2, :ker2, :lim2, :(x2[i2]))]
-    temp = make_varlist(:_tmp, 1:S2)
+    J1, W1 = Meta.make_varlist(:_j1, S1), Meta.make_varlist(:_w1, S1)
+    J2, W2 = Meta.make_varlist(:_j2, S2), Meta.make_varlist(:_w2, S2)
+    code1 = [Meta.generate_getcoefs(J1, W1, :ker1, :lim1, :(x1[i1]))]
+    code2 = [Meta.generate_getcoefs(J2, W2, :ker2, :lim2, :(x2[i2]))]
+    temp = Meta.make_varlist(:_tmp, 1:S2)
     for i2 in 1:S2
         push!(code1, :( $(temp[i2]) = $(W2[i2])*val ))
         for i1 in 1:S1

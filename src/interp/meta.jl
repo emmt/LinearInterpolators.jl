@@ -11,6 +11,8 @@
 # Copyright (C) 2016-2018, Éric Thiébaut.
 #
 
+module Meta
+
 const Arg = Union{Number,Symbol,Expr}
 
 #"""
@@ -187,3 +189,5 @@ function generate_interp_expr(arr::Symbol,
     end
     return generate_sum(ex)
 end
+
+end # module

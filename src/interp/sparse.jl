@@ -12,6 +12,20 @@
 # Copyright (C) 2016-2018, Éric Thiébaut.
 #
 
+# All code is in a module to "hide" private methods.
+module SparseInterpolators
+
+export
+    SparseInterpolator
+
+using ...Kernels
+using ...Interpolations
+import ...Interpolations: Meta, coefficients, columns, rows,
+    fit, regularize, regularize!
+
+using LazyAlgebra
+import LazyAlgebra: apply, apply!, vcreate, output_size, input_size
+
 struct SparseInterpolator{T<:AbstractFloat,S,N} <: LinearMapping
     C::Vector{T}
     J::Vector{Int}
@@ -115,8 +129,8 @@ end
                                  ker::Kernel{T,S,<:Boundaries},
                                  pos::Function) where {T,S,N}
 
-    _J, _W = make_varlist(:_j, S), make_varlist(:_w, S)
-    code = (generate_getcoefs(_J, _W, :ker, :lim, :x),
+    _J, _W = Meta.make_varlist(:_j, S), Meta.make_varlist(:_w, S)
+    code = (Meta.generate_getcoefs(_J, _W, :ker, :lim, :x),
             [:( J[k+$s] = $(_J[s]) ) for s in 1:S]...,
             [:( C[k+$s] = $(_W[s]) ) for s in 1:S]...)
 
@@ -135,9 +149,9 @@ end
     end
 end
 
-function _check(A::SparseInterpolator{T,S,N},
-                out::AbstractArray{T,N},
-                inp::AbstractVector{T}) where {T,S,N}
+function __check(A::SparseInterpolator{T,S,N},
+                 out::AbstractArray{T,N},
+                 inp::AbstractVector{T}) where {T,S,N}
     nvals = S*A.nrows # number of non-zero coefficients
     J, ncols = A.J, A.ncols
     if length(A.C) != nvals
@@ -180,7 +194,7 @@ function apply!(α::Real,
                 x::AbstractVector{T},
                 β::Real,
                 y::AbstractArray{T,N}) where {T,S,N}
-    _check(A, y, x)
+    __check(A, y, x)
     if α == zero(α)
         vscale!(y, β)
     else
@@ -211,7 +225,7 @@ function apply!(α::Real,
                 x::AbstractArray{T,N},
                 β::Real,
                 y::AbstractVector{T}) where {T,S,N}
-    _check(A, x, y)
+    __check(A, x, y)
     vscale!(y, β)
     if α != zero(α)
         alpha = convert(T, α)
@@ -438,3 +452,5 @@ function regularize!(A::AbstractArray{T,2},
 end
 
 @doc @doc(regularize) regularize!
+
+end # module

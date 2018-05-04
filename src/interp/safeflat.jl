@@ -36,7 +36,7 @@ superior(B::SafeFlatLimits) = B.sup
 @generated function getcoefs(ker::Kernel{T,S,SafeFlat},
                              lim::SafeFlatLimits{T}, x::T) where {S,T}
 
-    J, W = make_varlist(:j, S), make_varlist(:w, S)
+    J, W = Meta.make_varlist(:j, S), Meta.make_varlist(:w, S)
     sameindices = [:(  $(J[i]) = j                   ) for i in 1:S]
     beyondfirst = (:(  j = first(lim)                ),
                    sameindices...,

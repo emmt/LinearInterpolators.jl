@@ -68,15 +68,15 @@ end
                            dst::AbstractArray{T,2}) where {T<:AbstractFloat,
                                                            S1,S2}
     # Generate peices of code.
-    J1, W1 = make_varlist(:_j1, S1), make_varlist(:_w1, S1)
-    J2, W2 = make_varlist(:_j2, S2), make_varlist(:_w2, S2)
+    J1, W1 = Meta.make_varlist(:_j1, S1), Meta.make_varlist(:_w1, S1)
+    J2, W2 = Meta.make_varlist(:_j2, S2), Meta.make_varlist(:_w2, S2)
     code2 = (:( pos2 = convert(T, i2)  ),
              :( off1 = R.xy*pos2 + R.x ),
              :( off2 = R.yy*pos2 + R.y ))
     code1 = (:( pos1 = convert(T, i1)  ),
-             generate_getcoefs(J1, W1, :ker1, :lim1, :(R.xx*pos1 + off1)),
-             generate_getcoefs(J2, W2, :ker2, :lim2, :(R.yx*pos1 + off2)))
-    expr = generate_interp_expr(:src, J1, W1, J2, W2)
+             Meta.generate_getcoefs(J1, W1, :ker1, :lim1, :(R.xx*pos1 + off1)),
+             Meta.generate_getcoefs(J2, W2, :ker2, :lim2, :(R.yx*pos1 + off2)))
+    expr = Meta.generate_interp_expr(:src, J1, W1, J2, W2)
 
     quote
         if α == 0
@@ -123,15 +123,15 @@ end
                            dst::AbstractArray{T,2}) where{T<:AbstractFloat,
                                                           S1,S2}
     # Generate pieces of code.
-    J1, W1 = make_varlist(:_j1, S1), make_varlist(:_w1, S1)
-    J2, W2 = make_varlist(:_j2, S2), make_varlist(:_w2, S2)
-    temp = make_varlist(:_tmp, 1:S2)
+    J1, W1 = Meta.make_varlist(:_j1, S1), Meta.make_varlist(:_w1, S1)
+    J2, W2 = Meta.make_varlist(:_j2, S2), Meta.make_varlist(:_w2, S2)
+    temp = Meta.make_varlist(:_tmp, 1:S2)
     code2 = (:( pos2 = convert(T, i2)  ),
              :( off1 = R.xy*pos2 + R.x ),
              :( off2 = R.yy*pos2 + R.y ))
     code1 = [:( pos1 = convert(T, i1)  ),
-             generate_getcoefs(J1, W1, :ker1, :lim1, :(R.xx*pos1 + off1)),
-             generate_getcoefs(J2, W2, :ker2, :lim2, :(R.yx*pos1 + off2))]
+             Meta.generate_getcoefs(J1, W1, :ker1, :lim1, :(R.xx*pos1 + off1)),
+             Meta.generate_getcoefs(J2, W2, :ker2, :lim2, :(R.yx*pos1 + off2))]
     for i2 in 1:S2
         push!(code1, :( $(temp[i2]) = $(W2[i2])*val ))
         for i1 in 1:S1
