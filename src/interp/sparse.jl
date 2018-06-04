@@ -82,11 +82,15 @@ Base.sparse(A::SparseInterpolator) =
 A sparse linear interpolator is created by:
 
 ```julia
-A = SparseInterpolator(ker, pos, grd)
+A = SparseInterpolator([T,], ker, pos, grd)
 ```
 
 which yields a linear interpolator suitable for interpolating with the kernel
-`ker` a function sampled on the grid `grd` at positions `pos`.
+`ker` a function sampled on the grid `grd` at positions `pos`.  Optional
+argument `T` is the floating-point type of the coefficients of the operator
+`A`; by default, the type of the coefficients is determined by that of the
+interpolation kernel `ker`.  Call `eltype(A)` to query the type of the
+coefficients of the sparse interpolator `A`.
 
 Then `y = apply(A, x)` or `y = A(x)` or `y = A*x` yields the interpolated
 values for interpolation weights `x`.  The shape of `y` is the same as that of
@@ -99,10 +103,12 @@ y[i] = sum_j ker((pos[i] - grd[j])/step(grd))*x[j]
 with `step(grd)` the (constant) step size between the nodes of the grid `grd`
 and `grd[j]` the `j`-th position of the grid.
 
-The type of the coefficients of the sparse interpolator `A` is given by
-`eltype(A)` and is determined by the type of the interpolation kernel.
-
 """
+function SparseInterpolator(::Type{T}, ker::Kernel,
+                            args...) where {T<:AbstractFloat}
+    return SparseInterpolator(T(ker), args...)
+end
+
 function SparseInterpolator(ker::Kernel{T,S,<:Boundaries},
                             pos::AbstractArray{<:Real,N},
                             grd::Range) where {T<:AbstractFloat,S,N}
