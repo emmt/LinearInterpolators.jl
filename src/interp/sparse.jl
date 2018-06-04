@@ -81,28 +81,34 @@ Base.sparse(A::SparseInterpolator) =
 
 A sparse linear interpolator is created by:
 
-    op = SparseInterpolator(ker, pos, grd)
+```julia
+A = SparseInterpolator(ker, pos, grd)
+```
 
 which yields a linear interpolator suitable for interpolating with the kernel
 `ker` a function sampled on the grid `grd` at positions `pos`.
 
-Then `y = apply(op, x)` or `y = op(x)` yields the interpolated values for
-interpolation weights `x`.  The shape of `y` is the same as that of `pos`.
+Then `y = apply(A, x)` or `y = A(x)` or `y = A*x` yields the interpolated
+values for interpolation weights `x`.  The shape of `y` is the same as that of
+`pos`.  Formally, this amounts to computing:
 
-Formally, this amounts to computing:
-
-    y[i] = sum_j ker((pos[i] - grd[j])/step(grd))*x[j]
+```julia
+y[i] = sum_j ker((pos[i] - grd[j])/step(grd))*x[j]
+```
 
 with `step(grd)` the (constant) step size between the nodes of the grid `grd`
 and `grd[j]` the `j`-th position of the grid.
 
+The type of the coefficients of the sparse interpolator `A` is given by
+`eltype(A)` and is determined by the type of the interpolation kernel.
+
 """
 function SparseInterpolator(ker::Kernel{T,S,<:Boundaries},
-                            pos::AbstractArray,
-                            grd::Range) where {T<:AbstractFloat,S}
+                            pos::AbstractArray{<:Real,N},
+                            grd::Range) where {T<:AbstractFloat,S,N}
 
     # Parameters to convert the interpolated position into a frational grid
-    # index.
+    # index. FIXME: Use the central position of the grid to minimize the error.
     delta = T(step(grd))
     alpha = one(T)/delta
     beta = T(first(grd)) - delta
@@ -111,8 +117,8 @@ function SparseInterpolator(ker::Kernel{T,S,<:Boundaries},
 end
 
 function SparseInterpolator(ker::Kernel{T,S,<:Boundaries},
-                            pos::AbstractArray,
-                            len::Integer) where {T<:AbstractFloat,S}
+                            pos::AbstractArray{<:Real,N},
+                            len::Integer) where {T<:AbstractFloat,S,N}
     SparseInterpolator(ker, i -> T(pos[i]), CartesianRange(indices(pos)), len)
 end
 
@@ -129,10 +135,11 @@ end
                                  ker::Kernel{T,S,<:Boundaries},
                                  pos::Function) where {T,S,N}
 
-    _J, _W = Meta.make_varlist(:_j, S), Meta.make_varlist(:_w, S)
-    code = (Meta.generate_getcoefs(_J, _W, :ker, :lim, :x),
+    _J = Meta.make_varlist(:_j, S)
+    _C = Meta.make_varlist(:_c, S)
+    code = (Meta.generate_getcoefs(_J, _C, :ker, :lim, :x),
             [:( J[k+$s] = $(_J[s]) ) for s in 1:S]...,
-            [:( C[k+$s] = $(_W[s]) ) for s in 1:S]...)
+            [:( C[k+$s] = $(_C[s]) ) for s in 1:S]...)
 
     quote
         lim = limits(ker, ncols)
@@ -149,30 +156,24 @@ end
     end
 end
 
-function __check(A::SparseInterpolator{T,S,N},
-                 out::AbstractArray{T,N},
-                 inp::AbstractVector{T}) where {T,S,N}
+function _check(A::SparseInterpolator{T,S,N},
+                out::AbstractArray{T,N},
+                inp::AbstractVector{T}) where {T,S,N}
     nvals = S*A.nrows # number of non-zero coefficients
     J, ncols = A.J, A.ncols
-    if length(A.C) != nvals
+    length(A.C) == nvals ||
         error("corrupted sparse interpolator (bad number of coefficients)")
-    end
-    if length(J) != nvals
+    length(J) == nvals ||
         error("corrupted sparse interpolator (bad number of indices)")
-    end
-    if length(inp) != ncols
+    length(inp) == ncols ||
         error("bad vector length (expecting $(A.ncols), got $(length(inp)))")
-    end
-    if size(out) != A.dims
+    size(out) == A.dims ||
         error("bad output array size (expecting $(A.dims), got $(size(out)))")
-    end
-    if length(out) != A.nrows
+    length(out) == A.nrows ||
         error("corrupted sparse interpolator (bad number of \"rows\")")
-    end
     @inbounds for k in 1:nvals
-        if !(1 ≤ J[k] ≤ ncols)
+        1 ≤ J[k] ≤ ncols ||
             error("corrupted sparse interpolator (out of bound indices)")
-        end
     end
 end
 
@@ -194,7 +195,7 @@ function apply!(α::Real,
                 x::AbstractVector{T},
                 β::Real,
                 y::AbstractArray{T,N}) where {T,S,N}
-    __check(A, y, x)
+    _check(A, y, x)
     if α == zero(α)
         vscale!(y, β)
     else
@@ -225,7 +226,7 @@ function apply!(α::Real,
                 x::AbstractArray{T,N},
                 β::Real,
                 y::AbstractVector{T}) where {T,S,N}
-    __check(A, x, y)
+    _check(A, x, y)
     vscale!(y, β)
     if α != zero(α)
         alpha = convert(T, α)
