@@ -16,7 +16,8 @@
 module SparseInterpolators
 
 export
-    SparseInterpolator
+    SparseInterpolator,
+    SparseUnidimensionalInterpolator
 
 using ...Kernels
 using ...Interpolations
@@ -75,22 +76,20 @@ end
 Base.sparse(A::SparseInterpolator) =
     sparse(rows(A), columns(A), coefficients(A), A.nrows, A.ncols)
 
-
 """
 # Sparse linear interpolator
 
 A sparse linear interpolator is created by:
 
 ```julia
-A = SparseInterpolator([T,], ker, pos, grd)
+A = SparseInterpolator([T=eltype(ker),], ker, pos, grd)
 ```
 
 which yields a linear interpolator suitable for interpolating with the kernel
 `ker` a function sampled on the grid `grd` at positions `pos`.  Optional
 argument `T` is the floating-point type of the coefficients of the operator
-`A`; by default, the type of the coefficients is determined by that of the
-interpolation kernel `ker`.  Call `eltype(A)` to query the type of the
-coefficients of the sparse interpolator `A`.
+`A`.  Call `eltype(A)` to query the type of the coefficients of the sparse
+interpolator `A`.
 
 Then `y = apply(A, x)` or `y = A(x)` or `y = A*x` yields the interpolated
 values for interpolation weights `x`.  The shape of `y` is the same as that of
@@ -459,5 +458,250 @@ function regularize!(A::AbstractArray{T,2},
 end
 
 @doc @doc(regularize) regularize!
+
+#------------------------------------------------------------------------------
+
+# Parameter `T` is the floating-point type of the coefficients, parameter `S`
+# is the size of the kernel (number of nodes to combine for a single
+# interpolator) and parameter `D` is the dimension of interpolation.
+struct SparseUnidimensionalInterpolator{T<:AbstractFloat,S,D} <: LinearMapping
+    nrows::Int     # number of rows
+    ncols::Int     # number of columns
+    C::Vector{T}   # coefficients along the dimension of interpolation
+    J::Vector{Int} # columns indices along the dimension of interpolation
+end
+
+(A::SparseUnidimensionalInterpolator)(x) = apply(A, x)
+
+interp_dim(::SparseUnidimensionalInterpolator{T,S,D}) where {T,S,D} = D
+Base.eltype(::SparseUnidimensionalInterpolator{T,S,D}) where {T,S,D} = T
+
+coefficients(A::SparseUnidimensionalInterpolator) = A.C
+columns(A::SparseUnidimensionalInterpolator) = A.J
+Base.size(A::SparseUnidimensionalInterpolator) = (A.nrows, A.ncols)
+Base.size(A::SparseUnidimensionalInterpolator, i::Integer) =
+    (i == 1 ? A.nrows :
+     i == 2 ? A.ncols : error("out of bounds dimension"))
+
+"""
+
+```julia
+SparseUnidimensionalInterpolator([T=eltype(ker),], ker, d, pos, grd)
+```
+
+yields a linear map which interpolates `d`-th dimension of an array with
+kernel `ker` at positions `pos` along the dimension of interpolation `d`
+and assuming the input array has grid coordinates `grd` along the dimension
+of interpolation `d`.  Argument `pos` is a vector of positions, argument
+`grd` may be a range or the length of the dimension of interpolation.
+Optional argument `T` is the floating-point type of the coefficients of the
+operator.
+
+This kind of interpolator is suitable for separable multi-dimensional
+interpolation with precomputed interpolation coefficients.  Having
+precomputed coefficients is mostly interesting when the operator is to be
+applied multiple times (for instance in iterative methods).  Otherwise,
+separable operators which compute the coefficients *on the fly* may be
+preferable.
+
+A combination of instances of `SparseUnidimensionalInterpolator` can be
+built to achieve sperable multi-dimensional interpolation.  For example:
+
+```julia
+using LinearInterpolators
+ker = CatmullRomSpline()
+n1, n2 = 70, 50
+x1 = linspace(1, 70, 201)
+x2 = linspace(1, 50, 201)
+A1 = SparseUnidimensionalInterpolator(ker, 1, x1, 1:n1)
+A2 = SparseUnidimensionalInterpolator(ker, 2, x2, 1:n2)
+A = A1*A2
+```
+
+"""
+function SparseUnidimensionalInterpolator(::Type{T}, ker::Kernel,
+                                          args...) where {T<:AbstractFloat}
+    return SparseUnidimensionalInterpolator(T(ker), args...)
+end
+
+function SparseUnidimensionalInterpolator(ker::Kernel, d::Integer,
+                                          pos::AbstractVector{<:Real},
+                                          len::Integer)
+    len ≥ 1 || throw(ArgumentError("invalid dimension length"))
+    return SparseUnidimensionalInterpolator(ker, d, pos, 1:Int(len))
+end
+
+function SparseUnidimensionalInterpolator(ker::Kernel{T,S,B}, d::Integer,
+                                          pos::AbstractVector{<:Real},
+                                          grd::Range) where {T<:AbstractFloat,
+                                                             S,B}
+    d ≥ 1 || throw(ArgumentError("invalid dimension of interpolation"))
+    nrows = length(pos)
+    ncols = length(grd)
+    c = (convert(T, first(grd)) + convert(T, last(grd)))/2
+    q = 1/convert(T, step(grd))
+    r = convert(T, 1 + length(grd))/2
+    C, J = _sparsecoefs(CartesianRange((nrows,)), ncols, ker,
+                        i -> q*(convert(T, pos[i]) - c) + r)
+    D = Int(d)
+    return SparseUnidimensionalInterpolator{T,S,D}(nrows, ncols, C, J)
+
+end
+
+function vcreate(::Type{Direct}, A::SparseUnidimensionalInterpolator,
+                 x::AbstractArray)
+    nrows, ncols = size(A)
+    return _vcreate(nrows, ncols, A, x)
+end
+
+function vcreate(::Type{Adjoint}, A::SparseUnidimensionalInterpolator,
+                 x::AbstractArray)
+    nrows, ncols = size(A)
+    return _vcreate(ncols, nrows, A, x)
+end
+
+function _vcreate(ny::Int, nx::Int,
+                  A::SparseUnidimensionalInterpolator{Ta,S,D},
+                  x::AbstractArray{Tx,N}) where {Ta<:AbstractFloat,
+                                                 Tx<:AbstractFloat,S,D,N}
+    xdims = size(x)
+    1 ≤ D ≤ N ||
+        throw(DimensionMismatch("out of range dimension of interpolation"))
+    xdims[D] == nx ||
+        throw(DimensionMismatch("dimension $D of `x` must be $nx"))
+    Ty = promote_type(Ta, Tx)
+    ydims = [(d == D ? ny : xdims[d]) for d in 1:N]
+    return Array{Ty,N}(ydims...)
+end
+
+function apply!(α::Real, ::Type{Direct},
+                A::SparseUnidimensionalInterpolator{Ta,S,D},
+                x::AbstractArray{Tx,N},
+                β::Real,
+                y::AbstractArray{Ty,N}) where {Ta<:AbstractFloat,
+                                               Tx<:AbstractFloat,
+                                               Ty<:AbstractFloat,S,D,N}
+    # Check arguments.
+    _check(A, N)
+    xdims = size(x)
+    ydims = size(y)
+    nrows, ncols = size(A)
+    xdims[D] == ncols ||
+        throw(DimensionMismatch("dimension $D of `x` must be $ncols"))
+    ydims[D] == nrows ||
+        throw(DimensionMismatch("dimension $D of `y` must be $nrows"))
+    for k in 1:N
+        k == D || xdims[k] == ydims[k] ||
+            throw(DimensionMismatch("`x` and `y` have incompatible dimensions"))
+    end
+
+    # Apply operator.
+    if α == 0
+        vscale!(y, β)
+    else
+        C = coefficients(A)
+        J = columns(A)
+        I0 = CartesianRange(xdims[1:D-1])
+        I1 = CartesianRange(xdims[D+1:N])
+        T = promote_type(Ta,Tx)
+        alpha = convert(T, α)
+        if β == 0
+            #FIXME: @inbounds
+            for i1 in I1
+                for i0 in I0
+                    K = 1:S
+                    for i in 1:nrows
+                        sum = zero(T)
+                        @simd for k in K
+                            sum += C[k]*x[i0,J[k],i1]
+                        end
+                        y[i0,i,i1] = alpha*sum
+                        K += S
+                    end
+                end
+            end
+        else
+            beta = convert(Ty, β)
+            #FIXME: @inbounds
+            for i1 in I1
+                for i0 in I0
+                    K = 1:S
+                    for i in 1:nrows
+                        sum = zero(T)
+                        @simd for k in K
+                            sum += C[k]*x[i0,J[k],i1]
+                        end
+                        y[i0,i,i1] = alpha*sum + beta*y[i0,i,i1]
+                        K += S
+                    end
+                end
+            end
+        end
+    end
+    return y
+end
+
+function apply!(α::Real, ::Type{Adjoint},
+                A::SparseUnidimensionalInterpolator{Ta,S,D},
+                x::AbstractArray{Tx,N},
+                β::Real,
+                y::AbstractArray{Ty,N}) where {Ta<:AbstractFloat,
+                                               Tx<:AbstractFloat,
+                                               Ty<:AbstractFloat,S,D,N}
+    # Check arguments.
+    _check(A, N)
+    xdims = size(x)
+    ydims = size(y)
+    nrows, ncols = size(A)
+    xdims[D] == nrows ||
+        throw(DimensionMismatch("dimension $D of `x` must be $nrows"))
+    ydims[D] == ncols ||
+        throw(DimensionMismatch("dimension $D of `y` must be $ncols"))
+    for k in 1:N
+        k == D || xdims[k] == ydims[k] ||
+            throw(DimensionMismatch("`x` and `y` have incompatible dimensions"))
+    end
+
+    # Apply adjoint operator.
+    vscale!(y, β)
+    if α != 0
+        C = coefficients(A)
+        J = columns(A)
+        I0 = CartesianRange(xdims[1:D-1])
+        I1 = CartesianRange(xdims[D+1:N])
+        T = promote_type(Ta,Tx)
+        alpha = convert(T, α)
+        @inbounds for i1 in I1
+            for i0 in I0
+                K = 1:S
+                for i in 1:nrows
+                    c = alpha*x[i0,i,i1]
+                    @simd for k in K
+                        y[i0,J[k],i1] += C[k]*c
+                    end
+                    K += S
+                end
+            end
+        end
+    end
+    return y
+end
+
+function _check(A::SparseUnidimensionalInterpolator{T,S,D},
+                N::Int) where {T<:AbstractFloat,S,D}
+    1 ≤ D ≤ N ||
+        throw(DimensionMismatch("out of range dimension of interpolation"))
+    nrows, ncols = size(A)
+    nvals = S*nrows
+    C = coefficients(A)
+    J = columns(A)
+    length(C) == nvals ||
+        throw(DimensionMismatch("array of coefficients must have $nvals elements (has $(length(C)))"))
+    length(J) == nvals ||
+        throw(DimensionMismatch("array of indices must have $nvals elements (has $(length(C)))"))
+    for k in eachindex(J)
+        1 ≤ J[k] ≤ ncols || throw(ErrorException("out of bounds indice(s)"))
+    end
+end
 
 end # module

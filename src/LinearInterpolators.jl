@@ -34,6 +34,7 @@ export
     RectangularSpline,
     SafeFlat,
     SparseInterpolator,
+    SparseUnidimensionalInterpolator,
     TabulatedInterpolator,
     boundaries,
     intercept,
