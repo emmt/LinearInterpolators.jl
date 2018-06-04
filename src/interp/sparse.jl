@@ -601,41 +601,17 @@ function apply!(α::Real, ::Type{Direct},
     else
         C = coefficients(A)
         J = columns(A)
-        I0 = CartesianRange(xdims[1:D-1])
-        I1 = CartesianRange(xdims[D+1:N])
+        Ifast = CartesianRange(xdims[1:D-1])
+        Islow = CartesianRange(xdims[D+1:N])
         T = promote_type(Ta,Tx)
         alpha = convert(T, α)
         if β == 0
-            #FIXME: @inbounds
-            for i1 in I1
-                for i0 in I0
-                    K = 1:S
-                    for i in 1:nrows
-                        sum = zero(T)
-                        @simd for k in K
-                            sum += C[k]*x[i0,J[k],i1]
-                        end
-                        y[i0,i,i1] = alpha*sum
-                        K += S
-                    end
-                end
-            end
+            _apply_direct!(T, Val{S}, C, J, alpha, x, y,
+                           Ifast, nrows, Islow)
         else
             beta = convert(Ty, β)
-            #FIXME: @inbounds
-            for i1 in I1
-                for i0 in I0
-                    K = 1:S
-                    for i in 1:nrows
-                        sum = zero(T)
-                        @simd for k in K
-                            sum += C[k]*x[i0,J[k],i1]
-                        end
-                        y[i0,i,i1] = alpha*sum + beta*y[i0,i,i1]
-                        K += S
-                    end
-                end
-            end
+            _apply_direct!(T, Val{S}, C, J, alpha, x, beta, y,
+                           Ifast, nrows, Islow)
         end
     end
     return y
@@ -665,26 +641,105 @@ function apply!(α::Real, ::Type{Adjoint},
     # Apply adjoint operator.
     vscale!(y, β)
     if α != 0
-        C = coefficients(A)
-        J = columns(A)
-        I0 = CartesianRange(xdims[1:D-1])
-        I1 = CartesianRange(xdims[D+1:N])
         T = promote_type(Ta,Tx)
-        alpha = convert(T, α)
-        @inbounds for i1 in I1
-            for i0 in I0
-                K = 1:S
-                for i in 1:nrows
-                    c = alpha*x[i0,i,i1]
-                    @simd for k in K
-                        y[i0,J[k],i1] += C[k]*c
-                    end
-                    K += S
+        _apply_adjoint!(Val{S}, coefficients(A), columns(A),
+                        convert(T, α), x, y,
+                        CartesianRange(xdims[1:D-1]), nrows,
+                        CartesianRange(xdims[D+1:N]))
+    end
+    return y
+end
+
+# The 3 following private methods are needed to achieve type invariance and win
+# a factor ~1000 in speed!  Also note the way the innermost loop is written
+# with a constant range and an offset k0 which is updated; this is critical for
+# saving a factor 2-3 in speed.
+#
+# The current version takes ~ 4ms (7 iterations of linear conjugate gradients)
+# to fit a 77×77 array of weights interpolated by Catmull-Rom splines to
+# approximate a 256×256 image.
+
+function _apply_direct!(::Type{T},
+                        ::Type{Val{S}},
+                        C::Vector{<:AbstractFloat},
+                        J::Vector{Int},
+                        α::AbstractFloat,
+                        x::AbstractArray{<:AbstractFloat,N},
+                        y::AbstractArray{<:AbstractFloat,N},
+                        Ifast::CartesianRange{CartesianIndex{Nfast}},
+                        len::Int,
+                        Islow::CartesianRange{CartesianIndex{Nslow}}
+                        ) where {T<:AbstractFloat,S,N,Nslow,Nfast}
+    @assert N == Nslow + Nfast + 1
+    @inbounds for islow in Islow
+        for ifast in Ifast
+            k0 = 0
+            for i in 1:len
+                sum = zero(T)
+                @simd for s in 1:S
+                    k = k0 + s
+                    sum += C[k]*x[ifast,J[k],islow]
                 end
+                y[ifast,i,islow] = α*sum
+                k0 += S
             end
         end
     end
-    return y
+end
+
+function _apply_direct!(::Type{T},
+                        ::Type{Val{S}},
+                        C::Vector{<:AbstractFloat},
+                        J::Vector{Int},
+                        α::AbstractFloat,
+                        x::AbstractArray{<:AbstractFloat,N},
+                        β::AbstractFloat,
+                        y::AbstractArray{<:AbstractFloat,N},
+                        Ifast::CartesianRange{CartesianIndex{Nfast}},
+                        len::Int,
+                        Islow::CartesianRange{CartesianIndex{Nslow}}
+                        ) where {T<:AbstractFloat,S,N,Nslow,Nfast}
+    @assert N == Nslow + Nfast + 1
+    @inbounds for islow in Islow
+        for ifast in Ifast
+            k0 = 0
+            for i in 1:len
+                sum = zero(T)
+                @simd for s in 1:S
+                    k = k0 + s
+                    sum += C[k]*x[ifast,J[k],islow]
+                end
+                y[ifast,i,islow] = α*sum + β*y[ifast,i,islow]
+                k0 += S
+            end
+        end
+    end
+end
+
+function _apply_adjoint!(::Type{Val{S}},
+                         C::Vector{<:AbstractFloat},
+                         J::Vector{Int},
+                         α::AbstractFloat,
+                         x::AbstractArray{<:AbstractFloat,N},
+                         y::AbstractArray{<:AbstractFloat,N},
+                         Ifast::CartesianRange{CartesianIndex{Nfast}},
+                         len::Int,
+                         Islow::CartesianRange{CartesianIndex{Nslow}}
+                         ) where {S,N,Nslow,Nfast}
+    @assert N == Nslow + Nfast + 1
+    @inbounds for islow in Islow
+        for ifast in Ifast
+            k0 = 0
+            for i in 1:len
+                c = α*x[ifast,i,islow]
+                @simd for s in 1:S
+                    k = k0 + s
+                    y[ifast,J[k],islow] += C[k]*c
+                end
+                k0 += S
+            end
+        end
+    end
 end
 
 function _check(A::SparseUnidimensionalInterpolator{T,S,D},
