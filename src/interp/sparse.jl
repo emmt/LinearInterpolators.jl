@@ -197,32 +197,43 @@ end
 
 function apply!(α::Real,
                 ::Type{Direct},
-                A::SparseInterpolator{T,S,N},
-                x::AbstractVector{T},
+                A::SparseInterpolator{Ta,S,N},
+                x::AbstractVector{Tx},
                 β::Real,
-                y::AbstractArray{T,N}) where {T,S,N}
+                y::AbstractArray{Ty,N}) where {Ta,Tx<:Real,
+                                               Ty<:AbstractFloat,S,N}
     _check(A, y, x)
-    if α == zero(α)
+    if α == 0
         vscale!(y, β)
     else
-        const alpha = convert(T, α)
-        const beta = convert(T, β)
+        T = float(promote_type(Ta, Tx))
+        alpha = convert(T, α)
         nrows, ncols = A.nrows, A.ncols
         C, J = coefficients(A), columns(A)
         k0 = 0
-        @inbounds for i in 1:nrows
-            sum = zero(T)
-            @simd for s in 1:S
-                k = k0 + s
-                j = J[k]
-                sum += C[k]*x[j]
-            end
-            if beta == zero(beta)
+        if β == 0
+            @inbounds for i in 1:nrows
+                sum = zero(T)
+                @simd for s in 1:S
+                    k = k0 + s
+                    j = J[k]
+                    sum += C[k]*x[j]
+                end
                 y[i] = alpha*sum
-            else
-                y[i] = alpha*sum + beta*y[i]
+                k0 += S
             end
-            k0 += S
+        else
+            beta = convert(Ty, β)
+            @inbounds for i in 1:nrows
+                sum = zero(T)
+                @simd for s in 1:S
+                    k = k0 + s
+                    j = J[k]
+                    sum += C[k]*x[j]
+                end
+                y[i] = alpha*sum + beta*y[i]
+                k0 += S
+            end
         end
     end
     return y
@@ -230,20 +241,22 @@ end
 
 function apply!(α::Real,
                 ::Type{Adjoint},
-                A::SparseInterpolator{T,S,N},
-                x::AbstractArray{T,N},
+                A::SparseInterpolator{Ta,S,N},
+                x::AbstractArray{Tx,N},
                 β::Real,
-                y::AbstractVector{T}) where {T,S,N}
+                y::AbstractVector{Ty}) where {Ta,Tx<:Real,
+                                              Ty<:AbstractFloat,S,N}
     _check(A, x, y)
     vscale!(y, β)
-    if α != zero(α)
+    if α != 0
+        T = float(promote_type(Ta, Tx))
         alpha = convert(T, α)
         nrows, ncols = A.nrows, A.ncols
         C, J = coefficients(A), columns(A)
         k0 = 0
         @inbounds for i in 1:nrows
             c = alpha*x[i]
-            if c != zero(c)
+            if c != 0
                 @simd for s in 1:S
                     k = k0 + s
                     j = J[k]
@@ -575,14 +588,13 @@ end
 
 function _vcreate(ny::Int, nx::Int,
                   A::SparseUnidimensionalInterpolator{Ta,S,D},
-                  x::AbstractArray{Tx,N}) where {Ta<:AbstractFloat,
-                                                 Tx<:AbstractFloat,S,D,N}
+                  x::AbstractArray{Tx,N}) where {Ta,Tx<:Real,S,D,N}
     xdims = size(x)
     1 ≤ D ≤ N ||
         throw(DimensionMismatch("out of range dimension of interpolation"))
     xdims[D] == nx ||
         throw(DimensionMismatch("dimension $D of `x` must be $nx"))
-    Ty = promote_type(Ta, Tx)
+    Ty = float(promote_type(Ta, Tx))
     ydims = [(d == D ? ny : xdims[d]) for d in 1:N]
     return Array{Ty,N}(ydims...)
 end
@@ -592,7 +604,7 @@ function apply!(α::Real, ::Type{Direct},
                 x::AbstractArray{Tx,N},
                 β::Real,
                 y::AbstractArray{Ty,N}) where {Ta<:AbstractFloat,
-                                               Tx<:AbstractFloat,
+                                               Tx<:Real,
                                                Ty<:AbstractFloat,S,D,N}
     # Check arguments.
     _check(A, N)
@@ -635,7 +647,7 @@ function apply!(α::Real, ::Type{Adjoint},
                 x::AbstractArray{Tx,N},
                 β::Real,
                 y::AbstractArray{Ty,N}) where {Ta<:AbstractFloat,
-                                               Tx<:AbstractFloat,
+                                               Tx<:Real,
                                                Ty<:AbstractFloat,S,D,N}
     # Check arguments.
     _check(A, N)
@@ -677,7 +689,7 @@ function _apply_direct!(::Type{T},
                         C::Vector{<:AbstractFloat},
                         J::Vector{Int},
                         α::AbstractFloat,
-                        x::AbstractArray{<:AbstractFloat,N},
+                        x::AbstractArray{<:Real,N},
                         y::AbstractArray{<:AbstractFloat,N},
                         Ifast::CartesianRange{CartesianIndex{Nfast}},
                         len::Int,
@@ -705,7 +717,7 @@ function _apply_direct!(::Type{T},
                         C::Vector{<:AbstractFloat},
                         J::Vector{Int},
                         α::AbstractFloat,
-                        x::AbstractArray{<:AbstractFloat,N},
+                        x::AbstractArray{<:Real,N},
                         β::AbstractFloat,
                         y::AbstractArray{<:AbstractFloat,N},
                         Ifast::CartesianRange{CartesianIndex{Nfast}},
@@ -733,7 +745,7 @@ function _apply_adjoint!(::Type{Val{S}},
                          C::Vector{<:AbstractFloat},
                          J::Vector{Int},
                          α::AbstractFloat,
-                         x::AbstractArray{<:AbstractFloat,N},
+                         x::AbstractArray{<:Real,N},
                          y::AbstractArray{<:AbstractFloat,N},
                          Ifast::CartesianRange{CartesianIndex{Nfast}},
                          len::Int,
