@@ -2,7 +2,7 @@ isdefined(:LinearInterpolators) || include("../src/LinearInterpolators.jl")
 
 module LinearInterpolatorsKernelsDemos
 
-import LinearInterpolators.Kernels
+using LinearInterpolators.Kernels
 
 using PyCall
 # pygui(:gtk); # can be: :wx, :gtk, :qt
@@ -10,20 +10,20 @@ using LaTeXStrings
 import PyPlot
 const plt = PyPlot
 
-box = Kernels.RectangularSpline()
-triangle = Kernels.LinearSpline()
-quadratic = Kernels.QuadraticSpline()
-cubic = Kernels.CubicSpline()
-catmull_rom = Kernels.CatmullRomSpline()
-mitchell_netravali = Kernels.MitchellNetravaliSpline()
-keys = Kernels.KeysSpline(0.5)
-lanczos2 = Kernels.LanczosKernel(2)
-lanczos4 = Kernels.LanczosKernel(4)
-lanczos6 = Kernels.LanczosKernel(6)
-lanczos8 = Kernels.LanczosKernel(8)
-lanczos10 = Kernels.LanczosKernel(10)
+box = RectangularSpline()
+triangle = LinearSpline()
+quadratic = QuadraticSpline()
+cubic = CubicSpline()
+catmull_rom = CatmullRomSpline()
+mitchell_netravali = MitchellNetravaliSpline()
+keys = KeysSpline(0.5)
+lanczos2 = LanczosKernel(2)
+lanczos4 = LanczosKernel(4)
+lanczos6 = LanczosKernel(6)
+lanczos8 = LanczosKernel(8)
+lanczos10 = LanczosKernel(10)
 
-plt.figure(1)
+plt.figure(10)
 plt.clf()
 x = linspace(-6,7,1000)
 plt.plot(x, box(x), color="darkgreen",
@@ -44,5 +44,23 @@ plt.plot(x, lanczos10(x), color="gray",
          linewidth=2.0, linestyle="-", label="Lanczos 10")
 plt.title("Some kernel functions")
 plt.legend()
+
+plt.figure(11)
+plt.clf()
+ker1 = CardinalCubicSpline(-1/2)
+ker2 = CardinalCubicSpline(0)
+x = linspace(-6,7,1000)
+plt.plot(x, ker1(x), color="darkgreen",
+         linewidth=2.0, linestyle="-", label="f(x; c = -1/2)")
+plt.plot(x, ker1'(x), color="darkblue",
+         linewidth=2.0, linestyle="-", label="f'(x; c = -1/2)")
+plt.plot(x, ker2(x), color="darkcyan",
+         linewidth=2.0, linestyle="-", label="f(x; c = 0)")
+plt.plot(x, ker2'(x), color="firebrick",
+         linewidth=2.0, linestyle="-", label="f'(x; c = 0)")
+plt.title("Cardinal cubic splines")
+plt.legend()
+
+
 
 end # module

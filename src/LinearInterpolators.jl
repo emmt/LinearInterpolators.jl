@@ -22,6 +22,7 @@ export
     AffineTransform2D,
     Boundaries,
     CardinalCubicSpline,
+    CardinalCubicSpline′,
     CatmullRomSpline,
     CubicSpline,
     Flat,

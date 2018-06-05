@@ -19,6 +19,7 @@ import Base: convert
 export
     Boundaries,
     CardinalCubicSpline,
+    CardinalCubicSpline′,
     CatmullRomSpline,
     CubicSpline,
     Flat,
@@ -51,6 +52,9 @@ struct SafeFlat <: Boundaries; end
 
 #------------------------------------------------------------------------------
 # INTERPOLATION KERNELS
+
+@inline frac(::Type{T}, num::Integer, den::Integer) where {T<:AbstractFloat} =
+    (convert(T, num)/convert(T, den))
 
 @inline square(x) = x*x
 @inline cube(x) = x*x*x
@@ -325,18 +329,19 @@ yields a cardinal cubic spline interpolation kernel for floating-point type `T`
 tension parameter `c` and boundary conditions `B`.  The slope at `x = ±1` is
 `∓(1 - c)/2`.  Usually `c ≤ 1`, choosing `c = 0` yields a Catmull-Rom spline,
 `c = 1` yields all zero tangents, `c = -1` yields a truncated approximation of
-a cardinal sine.
+a cardinal sine, `c = -1/2` yields an interpolating cubic spline with
+continuous second derivatives (inside its support).
 
 """
 struct CardinalCubicSpline{T,B} <: Kernel{T,4,B}
-    α::T
-    β::T
+    c::T
+    p::T
+    q::T
 
-    (::Type{Kernels.CardinalCubicSpline{T,B}})(α::Real, β::Real) where {T,B} =
-        new{T,B}(α, β)
-
-    (::Type{Kernels.CardinalCubicSpline{T,B}})(c::Real) where {T,B} =
-        new{T,B}((c - 1)/2, (c + 1)/2)
+    function (::Type{CardinalCubicSpline{T,B}})(c_::Real) where {T,B}
+        c = convert(T, c_)
+        new{T,B}(c, (c - 1)/2, (c + 1)/2)
+    end
 end
 
 function CardinalCubicSpline(::Type{T}, c::Real,
@@ -349,40 +354,120 @@ CardinalCubicSpline(c::Real, ::Type{B} = Flat) where {B<:Boundaries} =
     CardinalCubicSpline(Float64, c, B)
 
 iscardinal(::Union{K,Type{K}}) where {K<:CardinalCubicSpline} = true
+
 isnormalized(::Union{K,Type{K}}) where {K<:CardinalCubicSpline} = true
-Base.summary(ker::CardinalCubicSpline) =
-    @sprintf("CardinalCubicSpline(%.1f)", ker.α + ker.β)
+
+Base.show(io::IO, ker::CardinalCubicSpline) =
+    print(io, "CardinalCubicSpline(", @sprintf("%.1f", ker.c), ")")
+
+#Base.summary(ker::CardinalCubicSpline) =
+#    @sprintf("CardinalCubicSpline(%.1f)", ker.p + ker.q)
 
 function convert(::Type{CardinalCubicSpline{T,B}},
                  ker::CardinalCubicSpline) where {T<:AbstractFloat,
                                                   B<:Boundaries}
-    CardinalCubicSpline(T, ker.α + ker.β, B)
+    CardinalCubicSpline(T, ker.c, B)
 end
 
 function (ker::CardinalCubicSpline{T,B})(x::T) where {T<:AbstractFloat,B}
     a = abs(x)
-    return (a ≥ T(2) ? T(0) :
-            a ≥ T(1) ? ker.α*(a - T(1))*square(T(2) - a) :
-            ((ker.β*a + a)*a - a - T(1))*(a - T(1)))
+    return (a ≥ 2 ? zero(T) :
+            a ≥ 1 ? ker.p*(a - 1)*square(2 - a) :
+            ((ker.q*a + a)*a - a - 1)*(a - 1))
 end
 
 @inline function getweights(ker::CardinalCubicSpline{T,B},
                             t::T) where {T<:AbstractFloat,B}
-    α = ker.α
-    β = ker.β
+    p, q = ker.p, ker.q
     # Computation of:
-    #     w1 = α s² t
-    #     w2 = s + t s² - β s t²
-    #     w3 = t + t² s - β s² t
-    #     w4 = α s t²
-    # with s = 1 - t in 13 operations.
-    s = T(1) - t
-    st = s*t
-    ast = α*st
-    return (ast*s,
-            (s - β*t)*st + s,
-            (t - β*s)*st + t,
-            ast*t)
+    #     w1 = p t u²
+    #     w2 = u + t u² - q t² u
+    #     w3 = t + t² u - q t u²
+    #     w4 = p t² u
+    # with u = 1 - t in 13 operations.
+    u = 1 - t
+    tu = t*u
+    ptu = p*tu
+    return (ptu*u,
+            (u - q*t)*tu + u,
+            (t - q*u)*tu + t,
+            ptu*t)
+end
+
+# Prime = ′    \prime + [tab]
+# Second = ″
+# Third = ‴
+
+# First derivative of the cardinal cubic spline.
+
+struct CardinalCubicSpline′{T,B} <: Kernel{T,4,B}
+    c::T
+    p::T
+    q::T
+    r::T
+    s::T
+
+    function (::Type{CardinalCubicSpline′{T,B}})(c_::Real) where {T,B}
+        c = convert(T, c_)
+        t = 3c + 9
+        return new{T,B}(c,
+                        (3c - 3)/2,
+                        t/2,
+                        (2c + 10)/t,
+                        (c - 1)/t)
+    end
+end
+
+function CardinalCubicSpline′(::Type{T}, c::Real,
+                              ::Type{B} = Flat) where {T<:AbstractFloat,
+                                                       B<:Boundaries}
+    CardinalCubicSpline′{T,B}(c)
+end
+
+CardinalCubicSpline′(c::Real, ::Type{B} = Flat) where {B<:Boundaries} =
+    CardinalCubicSpline′(Float64, c, B)
+
+(ker::CardinalCubicSpline′{T,B})(x::T) where {T<:AbstractFloat,B} =
+    x < 0 ? (
+        x ≤ -2 ? zero(T) :
+        x < -1 ? -(x + 2)*(x + frac(T,4,3))*ker.p :
+        -(x + ker.r)*x*ker.q
+    ) : (
+        x ≥ 2 ? zero(T) :
+        x > 1 ? (x - 2)*(x - frac(T,4,3))*ker.p :
+        (x - ker.r)*x*ker.q
+    )
+
+iscardinal(ker::CardinalCubicSpline′) = (ker.c == 1)
+
+isnormalized(::CardinalCubicSpline′) = false
+
+Base.show(io::IO, ker::CardinalCubicSpline′) =
+    print(io, "CardinalCubicSpline′(", @sprintf("%.1f", ker.c), ")")
+
+Base.ctranspose(ker::CardinalCubicSpline{T,B}) where {T,B} =
+    CardinalCubicSpline′{T,B}(ker.c)
+
+function convert(::Type{CardinalCubicSpline′{T,B}},
+                 ker::CardinalCubicSpline′) where {T<:AbstractFloat,
+                                                   B<:Boundaries}
+    CardinalCubicSpline′(T, ker.c, B)
+end
+
+@inline function getweights(ker::CardinalCubicSpline′{T,B},
+                            t::T) where {T<:AbstractFloat,B}
+
+    # Computation of:
+    #     w1 = p*(t - 1)*(t - 1/3)
+    #     w2 = q*(t - r)*t
+    #     w3 = q*(t - 1)*(s - t)
+    #     w4 = p*t*(2/3 - t)
+    # in 13 operations.
+    u = t - 1
+    return (ker.p*u*(t - frac(T,1,3)),
+            ker.q*(t - ker.r)*t,
+            ker.q*u*(ker.s - t),
+            ker.p*t*(frac(T,2,3) - t))
 end
 
 #------------------------------------------------------------------------------
@@ -641,6 +726,8 @@ end
 end
 
 #------------------------------------------------------------------------------
+
+Base.show(io::IO, ::MIME"text/plain", ker::Kernel) = show(io, ker)
 
 # Provide methods for parameter-less kernels.
 for K in (:RectangularSpline, :LinearSpline, :QuadraticSpline,
