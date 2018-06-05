@@ -22,15 +22,18 @@ export
     CardinalCubicSpline′,
     CatmullRomSpline,
     CubicSpline,
+    CubicSpline′,
     Flat,
     Kernel,
     KeysSpline,
     LanczosKernel,
     LinearSpline,
+    LinearSpline′,
     MitchellNetravaliSpline,
     QuadraticSpline,
     QuadraticSpline′,
     RectangularSpline,
+    RectangularSpline′,
     SafeFlat,
     boundaries,
     getweights,
@@ -171,16 +174,27 @@ and `0` elsewhere.
 
 """
 struct RectangularSpline{T,B} <: Kernel{T,1,B}; end
+struct RectangularSpline′{T,B} <: Kernel{T,1,B}; end
 
 iscardinal(::Union{K,Type{K}}) where {K<:RectangularSpline} = true
+iscardinal(::Union{K,Type{K}}) where {K<:RectangularSpline′} = false
+
 isnormalized(::Union{K,Type{K}}) where {K<:RectangularSpline} = true
-Base.summary(::RectangularSpline) = "RectangularSpline()"
+isnormalized(::Union{K,Type{K}}) where {K<:RectangularSpline′} = false
 
-(::RectangularSpline{T,B})(x::T) where {T<:AbstractFloat,B} =
-    T(-1/2) ≤ x < frac(T,1,2) ? T(1) : T(0)
+Base.show(io::IO, ::RectangularSpline) = print(io, "RectangularSpline()")
+Base.show(io::IO, ::RectangularSpline′) = print(io, "RectangularSpline′()")
 
-@inline getweights(::RectangularSpline{T,B}, t::T) where {T<:AbstractFloat,B} =
-    one(T)
+Base.ctranspose(::RectangularSpline{T,B}) where {T,B} = RectangularSpline′()
+
+(::RectangularSpline{T,B})(x::T) where {T,B} =
+    frac(T,-1,2) ≤ x < frac(T,1,2) ? one(T) : zero(T)
+
+@inline getweights(::RectangularSpline{T,B}, t::T) where {T,B} = one(T)
+
+(::RectangularSpline′{T,B})(x::T) where {T,B} = zero(T)
+
+@inline getweights(::RectangularSpline′{T,B}, t::T) where {T,B} = zero(T)
 
 #------------------------------------------------------------------------------
 """
@@ -191,16 +205,35 @@ window) is the 2nd order (linear) B-spline.
 
 """
 struct LinearSpline{T,B} <: Kernel{T,2,B}; end
+struct LinearSpline′{T,B} <: Kernel{T,2,B}; end
 
 iscardinal(::Union{K,Type{K}}) where {K<:LinearSpline} = true
+iscardinal(::Union{K,Type{K}}) where {K<:LinearSpline′} = false
+
 isnormalized(::Union{K,Type{K}}) where {K<:LinearSpline} = true
-Base.summary(::LinearSpline) = "LinearSpline()"
+isnormalized(::Union{K,Type{K}}) where {K<:LinearSpline′} = false
+
+Base.show(io::IO, ::LinearSpline) = print(io, "LinearSpline()")
+Base.show(io::IO, ::LinearSpline′) = print(io, "LinearSpline′()")
+
+Base.ctranspose(::LinearSpline{T,B}) where {T,B} = LinearSpline′()
 
 (::LinearSpline{T,B})(x::T) where {T<:AbstractFloat,B} =
-    (a = abs(x); a < T(1) ? T(1) - a : T(0))
+    (a = abs(x); a < 1 ? 1 - a : zero(T))
 
 @inline getweights(::LinearSpline{T,B}, t::T) where {T<:AbstractFloat,B} =
-    T(1) - t, t
+    (1 - t, t)
+
+# The derivative of the linear B-spline must be non-symmetric for tests to
+# succeed.  In particular we want that interpolating with the derivative of the
+# linear B-spline amounts to taking the finite difference when 0 ≤ t < 1.
+# This implies that f'(x) = 1 for x ∈ [-1,0), f'(x) = -1 for x ∈ [0,1), and
+# f'(x) = 0 elsewhere.
+(::LinearSpline′{T,B})(x::T) where {T<:AbstractFloat,B} =
+    -1 ≤ x < 1 ? (x < 0 ? one(T) : -one(T)) : zero(T)
+
+@inline getweights(::LinearSpline′{T,B}, t::T) where {T<:AbstractFloat,B} =
+    (-one(T), one(T))
 
 #------------------------------------------------------------------------------
 """
@@ -212,19 +245,15 @@ struct QuadraticSpline{T,B} <: Kernel{T,3,B}; end
 struct QuadraticSpline′{T,B} <: Kernel{T,3,B}; end
 
 iscardinal(::Union{K,Type{K}}) where {K<:QuadraticSpline} = false
-
 iscardinal(::Union{K,Type{K}}) where {K<:QuadraticSpline′} = false
 
 isnormalized(::Union{K,Type{K}}) where {K<:QuadraticSpline} = true
-
 isnormalized(::Union{K,Type{K}}) where {K<:QuadraticSpline′} = false
 
 Base.show(io::IO, ::QuadraticSpline) = print(io, "QuadraticSpline()")
-
 Base.show(io::IO, ::QuadraticSpline′) = print(io, "QuadraticSpline′()")
 
-Base.ctranspose(::QuadraticSpline{T,B}) where {T,B} =
-    QuadraticSpline′()
+Base.ctranspose(::QuadraticSpline{T,B}) where {T,B} = QuadraticSpline′()
 
 function (::QuadraticSpline{T,B})(x::T) where {T<:AbstractFloat,B<:Boundaries}
     a = abs(x)
@@ -286,20 +315,28 @@ The 4th order (cubic) B-spline kernel is also known as Parzen window or de la
 Vallée Poussin window.
 """
 struct CubicSpline{T,B} <: Kernel{T,4,B}; end
+struct CubicSpline′{T,B} <: Kernel{T,4,B}; end
 
 iscardinal(::Union{K,Type{K}}) where {K<:CubicSpline} = false
-isnormalized(::Union{K,Type{K}}) where {K<:CubicSpline} = true
-Base.summary(::CubicSpline) = "CubicSpline()"
+iscardinal(::Union{K,Type{K}}) where {K<:CubicSpline′} = false
 
-function (::CubicSpline{T,B})(x::T) where {T<:AbstractFloat,B}
+isnormalized(::Union{K,Type{K}}) where {K<:CubicSpline} = true
+isnormalized(::Union{K,Type{K}}) where {K<:CubicSpline′} = false
+
+Base.show(io::IO, ::CubicSpline) = print(io, "CubicSpline()")
+Base.show(io::IO, ::CubicSpline′) = print(io, "CubicSpline′()")
+
+Base.ctranspose(::CubicSpline{T,B}) where {T,B} = CubicSpline′()
+
+function (::CubicSpline{T,B})(x::T) where {T,B}
     a = abs(x)
-    return (a ≥ T(2) ? T(0) :
-            a ≥ T(1) ? cube(T(2) - a)*frac(T,1,6) :
-            (frac(T,1,2)*a - T(1))*a*a + frac(T,2,3))
+    return (a ≥ 2 ? zero(T) :
+            a ≥ 1 ? cube(2 - a)*frac(T,1,6) :
+            (frac(T,1,2)*a - 1)*a*a + frac(T,2,3))
 end
 
 @inline function getweights(ker::CubicSpline{T,B},
-                            t::T) where {T<:AbstractFloat,B}
+                            t::T) where {T,B}
     # The weights are:
     #     w1 = 1/6 - t/2 + t^2/2 - t^3/6
     #        = 1/6 + (t^2 - t)/2 - t^3/6
@@ -330,13 +367,31 @@ end
     return w1, w2, w3, w4
 end
 
+(::CubicSpline′{T,B})(x::T) where {T,B} =
+    -2 < x < 2 ? (
+        x < -1 ? frac(T,1,2)*square(x + 2) :
+        x <  0 ? frac(T,-3,2)*x*(x + frac(T,4,3)) :
+        x <  1 ? frac(T,+3,2)*x*(x - frac(T,4,3)) :
+        frac(T,-1,2)*square(x - 2)
+    ) : zero(T)
+
+@inline function getweights(ker::CubicSpline′{T,B},
+                            t::T) where {T,B}
+    return (frac(T,-1,2)*(t - 1)^2,
+            frac(T, 3,2)*(t - frac(T,4,3))*t,
+            frac(T, 1,2) + (1 - frac(T,3,2)*t)*t,
+            frac(T, 1,2)*t^2)
+end
+
 #------------------------------------------------------------------------------
 # Catmull-Rom kernel is a special case of Mitchell & Netravali kernel.
 
 struct CatmullRomSpline{T,B} <: Kernel{T,4,B}; end
 
 iscardinal(::Union{K,Type{K}}) where {K<:CatmullRomSpline} = true
+
 isnormalized(::Union{K,Type{K}}) where {K<:CatmullRomSpline} = true
+
 Base.summary(::CatmullRomSpline) = "CatmullRomSpline()"
 
 function (::CatmullRomSpline{T,B})(x::T) where {T<:AbstractFloat,B}
@@ -770,9 +825,11 @@ end
 Base.show(io::IO, ::MIME"text/plain", ker::Kernel) = show(io, ker)
 
 # Provide methods for parameter-less kernels.
-for K in (:RectangularSpline, :LinearSpline,
-          :QuadraticSpline, :(QuadraticSpline′),
-          :CubicSpline, :CatmullRomSpline)
+for K in (:RectangularSpline, :RectangularSpline′,
+          :LinearSpline, :LinearSpline′,
+          :QuadraticSpline, :QuadraticSpline′,
+          :CubicSpline, :CubicSpline′,
+          :CatmullRomSpline)
     @eval begin
 
         # Constructors.

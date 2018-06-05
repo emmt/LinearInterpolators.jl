@@ -49,7 +49,7 @@ plt.figure(11)
 plt.clf()
 ker1 = CardinalCubicSpline(-1/2)
 ker2 = CardinalCubicSpline(0)
-x = linspace(-6,7,1000)
+x = linspace(-3,4,141)
 plt.plot(x, ker1(x), color="darkgreen",
          linewidth=2.0, linestyle="-", label="f(x; c = -1/2)")
 plt.plot(x, ker1'(x), color="darkblue",
@@ -61,10 +61,21 @@ plt.plot(x, ker2'(x), color="firebrick",
 plt.title("Cardinal cubic splines")
 plt.legend()
 
-plt.figure(11)
+plt.figure(12)
+plt.clf()
+ker = LinearSpline()
+x = linspace(-3,4,141)
+plt.plot(x, ker(x), color="darkgreen",
+         linewidth=2.0, linestyle="-", label="f(x)")
+plt.plot(x, ker'(x), color="darkblue",
+         linewidth=2.0, linestyle="-", label="f'(x)")
+plt.title("Linear B-spline")
+plt.legend()
+
+plt.figure(13)
 plt.clf()
 ker = QuadraticSpline()
-x = linspace(-6,7,1000)
+x = linspace(-3,4,141)
 plt.plot(x, ker(x), color="darkgreen",
          linewidth=2.0, linestyle="-", label="f(x)")
 plt.plot(x, ker'(x), color="darkblue",
@@ -72,6 +83,15 @@ plt.plot(x, ker'(x), color="darkblue",
 plt.title("Quadratic B-spline")
 plt.legend()
 
-
+plt.figure(14)
+plt.clf()
+ker = CubicSpline()
+x = linspace(-3,4,141)
+plt.plot(x, ker(x), color="darkgreen",
+         linewidth=2.0, linestyle="-", label="f(x)")
+plt.plot(x, ker'(x), color="darkblue",
+         linewidth=2.0, linestyle="-", label="f'(x)")
+plt.title("Cubic B-spline")
+plt.legend()
 
 end # module
