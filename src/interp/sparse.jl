@@ -62,12 +62,13 @@ function rows(A::SparseInterpolator{T,S,N}) where {T,S,N}
     @assert length(A.C) == nvals
     @assert length(A.J) == nvals
     I = Array{Int}(nvals)
-    K = 1:S
+    k0 = 0
     for i in 1:nrows
-        for k in K
+        for s in 1:S
+            k = k0 + s
             @inbounds I[k] = i
         end
-        K += S
+        k0 += S
     end
     return I
 end
@@ -207,10 +208,12 @@ function apply!(α::Real,
         const alpha = convert(T, α)
         const beta = convert(T, β)
         nrows, ncols = A.nrows, A.ncols
-        C, J, K = A.C, A.J, 1:S
+        C, J = coefficients(A), columns(A)
+        k0 = 0
         @inbounds for i in 1:nrows
             sum = zero(T)
-            @simd for k in K
+            @simd for s in 1:S
+                k = k0 + s
                 j = J[k]
                 sum += C[k]*x[j]
             end
@@ -219,7 +222,7 @@ function apply!(α::Real,
             else
                 y[i] = alpha*sum + beta*y[i]
             end
-            K += S
+            k0 += S
         end
     end
     return y
@@ -236,16 +239,18 @@ function apply!(α::Real,
     if α != zero(α)
         alpha = convert(T, α)
         nrows, ncols = A.nrows, A.ncols
-        C, J, K = A.C, A.J, 1:S
+        C, J = coefficients(A), columns(A)
+        k0 = 0
         @inbounds for i in 1:nrows
             c = alpha*x[i]
             if c != zero(c)
-                @simd for k in K
+                @simd for s in 1:S
+                    k = k0 + s
                     j = J[k]
                     y[j] += C[k]*c
                 end
             end
-            K += S
+            k0 += S
         end
     end
     return y
@@ -279,20 +284,24 @@ function AtA!(dst::AbstractArray{T,2},
     nrows, ncols = A.nrows, A.ncols
     @assert size(dst) == (ncols, ncols)
     fill!(dst, zero(T))
-    C, J, K = A.C, A.J, 1:S
+    C, J = coefficients(A), columns(A)
+    k0 = 0
     @assert length(J) == length(C)
     @inbounds for i in 1:nrows
-        for k in K
+        for s in 1:S
+            k = k0 + s
             1 ≤ J[k] ≤ ncols || error("corrupted interpolator table")
         end
-        for k1 in K
+        for s1 in 1:S
+            k1 = k0 + s1
             j1, c1 = J[k1], C[k1]
-            @simd for k2 in K
+            @simd for s2 in 1:S
+                k2 = k0 + s2
                 j2, c2 = J[k2], C[k2]
                 dst[j1,j2] += c1*c2
             end
         end
-        K += S
+        k0 += S
     end
     return dst
 end
@@ -304,22 +313,26 @@ function AtWA!(dst::AbstractArray{T,2}, A::SparseInterpolator{T,S,N},
     @assert size(dst) == (ncols, ncols)
     @assert size(wgt) == output_size(A)
     fill!(dst, zero(T))
-    C, J, K = A.C, A.J, 1:S
+    C, J = coefficients(A), columns(A)
+    k0 = 0
     @assert length(J) == length(C)
     @inbounds for i in 1:nrows
-        for k in K
+        for s in 1:S
+            k = k0 + s
             1 ≤ J[k] ≤ ncols || error("corrupted interpolator table")
         end
         w = wgt[i]
-        for k1 in K
+        for s1 in 1:S
+            k1 = k0 + s1
             j1 = J[k1],
             wc1 = w*C[k1]
-            @simd for k2 in K
+            @simd for s2 in 1:S
+                k2 = k0 + s2
                 j2 = J[k2]
                 dst[j1,j2] += C[k2]*wc1
             end
         end
-        K += S
+        k0 += S
     end
     return dst
 end
