@@ -61,6 +61,17 @@ plt.plot(x, ker2'(x), color="firebrick",
 plt.title("Cardinal cubic splines")
 plt.legend()
 
+plt.figure(11)
+plt.clf()
+ker = QuadraticSpline()
+x = linspace(-6,7,1000)
+plt.plot(x, ker(x), color="darkgreen",
+         linewidth=2.0, linestyle="-", label="f(x)")
+plt.plot(x, ker'(x), color="darkblue",
+         linewidth=2.0, linestyle="-", label="f'(x)")
+plt.title("Quadratic B-spline")
+plt.legend()
+
 
 
 end # module

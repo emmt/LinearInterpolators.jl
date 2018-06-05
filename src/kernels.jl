@@ -29,6 +29,7 @@ export
     LinearSpline,
     MitchellNetravaliSpline,
     QuadraticSpline,
+    QuadraticSpline′,
     RectangularSpline,
     SafeFlat,
     boundaries,
@@ -176,7 +177,7 @@ isnormalized(::Union{K,Type{K}}) where {K<:RectangularSpline} = true
 Base.summary(::RectangularSpline) = "RectangularSpline()"
 
 (::RectangularSpline{T,B})(x::T) where {T<:AbstractFloat,B} =
-    T(-1/2) ≤ x < T(1/2) ? T(1) : T(0)
+    T(-1/2) ≤ x < frac(T,1,2) ? T(1) : T(0)
 
 @inline getweights(::RectangularSpline{T,B}, t::T) where {T<:AbstractFloat,B} =
     one(T)
@@ -208,30 +209,67 @@ Base.summary(::LinearSpline) = "LinearSpline()"
 The quadratic spline is the 3rd order (quadratic) B-spline.
 """
 struct QuadraticSpline{T,B} <: Kernel{T,3,B}; end
+struct QuadraticSpline′{T,B} <: Kernel{T,3,B}; end
 
 iscardinal(::Union{K,Type{K}}) where {K<:QuadraticSpline} = false
+
+iscardinal(::Union{K,Type{K}}) where {K<:QuadraticSpline′} = false
+
 isnormalized(::Union{K,Type{K}}) where {K<:QuadraticSpline} = true
-Base.summary(::QuadraticSpline) = "QuadraticSpline()"
+
+isnormalized(::Union{K,Type{K}}) where {K<:QuadraticSpline′} = false
+
+Base.show(io::IO, ::QuadraticSpline) = print(io, "QuadraticSpline()")
+
+Base.show(io::IO, ::QuadraticSpline′) = print(io, "QuadraticSpline′()")
+
+Base.ctranspose(::QuadraticSpline{T,B}) where {T,B} =
+    QuadraticSpline′()
 
 function (::QuadraticSpline{T,B})(x::T) where {T<:AbstractFloat,B<:Boundaries}
     a = abs(x)
-    return (a ≥ T(3/2) ? T(0) :
-            a ≤ T(1/2) ? T(3/4) - a*a :
-            square(a - T(3/2))*T(1/2))
+    return (a ≥ frac(T,3,2) ? zero(T) :
+            a ≤ frac(T,1,2) ? frac(T,3,4) - a*a :
+            square(a - frac(T,3,2))*frac(T,1,2))
 end
 
-@inline function getweights(::QuadraticSpline{T,B},
+@static if false
+    # Compute quadratic B-spline weights in 8 operations.
+    @inline function getweights(::QuadraticSpline{T,B},
+                                t::T) where {T<:AbstractFloat,B}
+        # w1 = (1/8)*(1 - 2*t)^2 = (1/2)*((1/2) - t)^2
+        # w2 = (3/4) - t^2
+        # w3 = (1/8)*(1 + 2*t)^2 = (1/2)*((1/2) + t)^2
+        const h = frac(T,1,2)
+        return (h*square(h - t), frac(T,3,4) - t*t, h*square(h + t))
+    end
+else
+    # Same result, but with 7 operations.
+    @inline function getweights(::QuadraticSpline{T,B},
+                                t::T) where {T<:AbstractFloat,B}
+        # c1 = 1/sqrt(8)
+        const c1 = T(0.35355339059327376220042218105242451964241796884424)
+        # c2 = 2/sqrt(8)
+        const c2 = T(0.70710678118654752440084436210484903928483593768847)
+        # c2 = 3/4
+        const c3 = frac(T,3,4)
+        c2t = c2*t
+        q1 = c1 - c2t
+        q3 = c1 + c2t
+        return (q1*q1, c3 - t*t, q3*q3)
+    end
+end
+
+(::QuadraticSpline′{T,B})(x::T) where {T,B} =
+    frac(T,-3,2) < x < frac(T,3,2) ? (
+        x < frac(T,-1,2) ? x + frac(T,3,2) :
+        x ≤ frac(T,1,2) ? -2x : x - frac(T,3,2)
+    ) : zero(T)
+
+@inline function getweights(::QuadraticSpline′{T,B},
                             t::T) where {T<:AbstractFloat,B}
-    #return (T(1/8)*(T(1) - T(2)*t)^2,
-    #        T(3/4) - t^2,
-    #        T(1/8)*(T(1) + T(2)*t)^2)
-    const c1 = T(0.35355339059327376220042218105242451964241796884424) # 1/sqrt(8)
-    const c2 = T(0.70710678118654752440084436210484903928483593768847) # 2/sqrt(8)
-    const c3 = T(3/4)
-    c2t = c2*t
-    q1 = c1 - c2t
-    q3 = c1 + c2t
-    return (q1*q1, c3 - t*t, q3*q3)
+    const h = frac(T,1,2)
+    return (t - h, -2t, t + h)
 end
 
 #------------------------------------------------------------------------------
@@ -256,8 +294,8 @@ Base.summary(::CubicSpline) = "CubicSpline()"
 function (::CubicSpline{T,B})(x::T) where {T<:AbstractFloat,B}
     a = abs(x)
     return (a ≥ T(2) ? T(0) :
-            a ≥ T(1) ? cube(T(2) - a)*T(1/6) :
-            (T(1/2)*a - T(1))*a*a + T(2/3))
+            a ≥ T(1) ? cube(T(2) - a)*frac(T,1,6) :
+            (frac(T,1,2)*a - T(1))*a*a + frac(T,2,3))
 end
 
 @inline function getweights(ker::CubicSpline{T,B},
@@ -279,13 +317,15 @@ end
     # operations, then 6 operations per cubic polynomial are needed.
     #
     # Using factorizations, I manage to only use 15 operations.
-    const q = T(1/6)
-    r = T(1) - t
+    const h = frac(T,1,2)
+    const p = frac(T,2,3)
+    const q = frac(T,1,6)
+    r = 1 - t
     r2 = r*r
     t2 = t*t
     w1 = q*r2*r
-    w2 = T(2/3) + (T(1/2)*t - T(1))*t2
-    w3 = T(4/6) - T(1/2)*r2*(t + T(1))
+    w2 = p + (h*t - 1)*t2
+    w3 = p - h*r2*(t + 1)
     w4 = q*t2*t
     return w1, w2, w3, w4
 end
@@ -302,8 +342,8 @@ Base.summary(::CatmullRomSpline) = "CatmullRomSpline()"
 function (::CatmullRomSpline{T,B})(x::T) where {T<:AbstractFloat,B}
     a = abs(x)
     return (a ≥ T(2) ? T(0) :
-            a ≤ T(1) ? (T(3/2)*a - T(5/2))*a*a + T(1) :
-            ((T(5/2) - T(1/2)*a)*a - T(4))*a + T(2))
+            a ≤ T(1) ? (frac(T,3,2)*a - frac(T,5,2))*a*a + T(1) :
+            ((frac(T,5,2) - frac(T,1,2)*a)*a - T(4))*a + T(2))
 end
 
 @inline function getweights(::CatmullRomSpline{T,B},
@@ -546,7 +586,7 @@ end
 function MitchellNetravaliSpline(::Type{T} = Float64,
                                  ::Type{B} = Flat) where {T<:AbstractFloat,
                                                           B<:Boundaries}
-    MitchellNetravaliSpline{T,B}(T(1/3), T(1/3))
+    MitchellNetravaliSpline{T,B}(frac(T,1,3), frac(T,1,3))
 end
 
 iscardinal(ker::MitchellNetravaliSpline{T,B}) where {T<:AbstractFloat,B} =
@@ -730,7 +770,8 @@ end
 Base.show(io::IO, ::MIME"text/plain", ker::Kernel) = show(io, ker)
 
 # Provide methods for parameter-less kernels.
-for K in (:RectangularSpline, :LinearSpline, :QuadraticSpline,
+for K in (:RectangularSpline, :LinearSpline,
+          :QuadraticSpline, :(QuadraticSpline′),
           :CubicSpline, :CatmullRomSpline)
     @eval begin
 

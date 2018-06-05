@@ -32,6 +32,7 @@ export
     LinearSpline,
     MitchellNetravaliSpline,
     QuadraticSpline,
+    QuadraticSpline′,
     RectangularSpline,
     SafeFlat,
     SparseInterpolator,

@@ -29,6 +29,8 @@ shortname(str::AbstractString) =
          2, true, true),
         ("Quadratic B-spline", QuadraticSpline(),
          3, true, false),
+        ("Derivative of Quadratic B-spline", QuadraticSpline′(),
+         3, false, false),
         ("Cubic B-spline", CubicSpline(SafeFlat),
          4, true, false),
         ("Catmull-Rom spline", CatmullRomSpline(),
