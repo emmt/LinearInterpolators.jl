@@ -92,6 +92,18 @@ shortname(str::AbstractString) =
         end
     end
 
+    # Check that type and boundaries are preserved when taking the
+    # derivatives of a kernel.
+    for ker in (RectangularSpline(Float32,SafeFlat),
+                LinearSpline(Float32,SafeFlat),
+                QuadraticSpline(Float32,SafeFlat),
+                CubicSpline(Float32,SafeFlat),
+                CardinalCubicSpline(Float32,-1,SafeFlat))
+        kerp = ker'
+        @test eltype(kerp) == eltype(ker)
+        @test Kernels.boundaries(kerp) == Kernels.boundaries(ker)
+    end
+
 end
 
 end # module

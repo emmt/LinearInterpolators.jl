@@ -186,8 +186,6 @@ isnormalized(::Union{K,Type{K}}) where {K<:RectangularSpline′} = false
 Base.show(io::IO, ::RectangularSpline) = print(io, "RectangularSpline()")
 Base.show(io::IO, ::RectangularSpline′) = print(io, "RectangularSpline′()")
 
-Base.ctranspose(::RectangularSpline{T,B}) where {T,B} = RectangularSpline′()
-
 (::RectangularSpline{T,B})(x::T) where {T,B} =
     frac(T,-1,2) ≤ x < frac(T,1,2) ? one(T) : zero(T)
 
@@ -216,8 +214,6 @@ isnormalized(::Union{K,Type{K}}) where {K<:LinearSpline′} = false
 
 Base.show(io::IO, ::LinearSpline) = print(io, "LinearSpline()")
 Base.show(io::IO, ::LinearSpline′) = print(io, "LinearSpline′()")
-
-Base.ctranspose(::LinearSpline{T,B}) where {T,B} = LinearSpline′()
 
 (::LinearSpline{T,B})(x::T) where {T<:AbstractFloat,B} =
     (a = abs(x); a < 1 ? 1 - a : zero(T))
@@ -253,8 +249,6 @@ isnormalized(::Union{K,Type{K}}) where {K<:QuadraticSpline′} = false
 
 Base.show(io::IO, ::QuadraticSpline) = print(io, "QuadraticSpline()")
 Base.show(io::IO, ::QuadraticSpline′) = print(io, "QuadraticSpline′()")
-
-Base.ctranspose(::QuadraticSpline{T,B}) where {T,B} = QuadraticSpline′()
 
 function (::QuadraticSpline{T,B})(x::T) where {T<:AbstractFloat,B<:Boundaries}
     a = abs(x)
@@ -326,8 +320,6 @@ isnormalized(::Union{K,Type{K}}) where {K<:CubicSpline′} = false
 
 Base.show(io::IO, ::CubicSpline) = print(io, "CubicSpline()")
 Base.show(io::IO, ::CubicSpline′) = print(io, "CubicSpline′()")
-
-Base.ctranspose(::CubicSpline{T,B}) where {T,B} = CubicSpline′()
 
 function (::CubicSpline{T,B})(x::T) where {T,B}
     a = abs(x)
@@ -540,9 +532,6 @@ isnormalized(::CardinalCubicSpline′) = false
 
 Base.show(io::IO, ker::CardinalCubicSpline′) =
     print(io, "CardinalCubicSpline′(", @sprintf("%.1f", ker.c), ")")
-
-Base.ctranspose(ker::CardinalCubicSpline{T,B}) where {T,B} =
-    CardinalCubicSpline′{T,B}(ker.c)
 
 function convert(::Type{CardinalCubicSpline′{T,B}},
                  ker::CardinalCubicSpline′) where {T<:AbstractFloat,
@@ -823,6 +812,7 @@ end
 
 #------------------------------------------------------------------------------
 
+# Manage to call the short version of `show` for MIME output.
 Base.show(io::IO, ::MIME"text/plain", ker::Kernel) = show(io, ker)
 
 """
@@ -853,6 +843,20 @@ end
 
 nameof(::LanczosKernel{T,S,B}) where {T,S,B} =
     "Lanczos resampling kernel of size $S"
+
+# Manage to yield the derivative of (some) kernels when the notation `ker'` is
+# used.
+for (T, T′) in (
+    (:RectangularSpline, :RectangularSpline′),
+    (:LinearSpline, :LinearSpline′),
+    (:QuadraticSpline, :QuadraticSpline′),
+    (:CubicSpline, :CubicSpline′))
+    @eval Base.ctranspose(ker::$T{T,B}) where {T,B} = $T′{T,B}()
+end
+
+Base.ctranspose(ker::CardinalCubicSpline{T,B}) where {T,B} =
+    CardinalCubicSpline′{T,B}(ker.c)
+
 
 # Provide methods for parameter-less kernels.
 for K in (:RectangularSpline, :RectangularSpline′,
