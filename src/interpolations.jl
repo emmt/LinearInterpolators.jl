@@ -14,23 +14,24 @@
 
 module Interpolations
 
-import Base: eltype, length, size, first, last, clamp, convert
-
-using ..Kernels
-using ..AffineTransforms
-
-using LazyAlgebra
-import LazyAlgebra: apply, apply!, vcreate, output_size, input_size
-
 export
     SparseInterpolator,
     SparseUnidimensionalInterpolator,
     TabulatedInterpolator,
     limits,
-    boundaries,
     inferior,
     superior,
     getcoefs
+
+import Base: eltype, length, size, first, last, clamp, convert
+
+using ..Kernels
+import ..Kernels: boundaries
+
+using ..AffineTransforms
+
+using LazyAlgebra
+import LazyAlgebra: apply, apply!, vcreate, output_size, input_size
 
 """
 
@@ -183,7 +184,6 @@ function columns end
 function fit end
 function regularize end
 function regularize! end
-function boundaries end
 function inferior end
 function superior end
 
