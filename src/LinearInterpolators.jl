@@ -46,6 +46,7 @@ export
     iscardinal,
     isnormalized,
     jacobian,
+    nameof,
     rotate
 
 include("AffineTransforms.jl")

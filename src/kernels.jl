@@ -38,7 +38,8 @@ export
     boundaries,
     getweights,
     iscardinal,
-    isnormalized
+    isnormalized,
+    nameof
 
 #------------------------------------------------------------------------------
 # EXTRAPOLATION METHODS
@@ -823,6 +824,35 @@ end
 #------------------------------------------------------------------------------
 
 Base.show(io::IO, ::MIME"text/plain", ker::Kernel) = show(io, ker)
+
+"""
+```julia
+nameof(ker)
+```
+
+yields the name of kernel `ker`.
+
+""" nameof
+
+for (T, str) in (
+    (:RectangularSpline, "rectangular B-spline"),
+    (:RectangularSpline′, "derivative of rectangular B-spline"),
+    (:LinearSpline, "linear B-spline"),
+    (:LinearSpline′, "derivative of linear B-spline"),
+    (:QuadraticSpline, "quadratic B-spline"),
+    (:QuadraticSpline′, "derivative of quadratic B-spline"),
+    (:CubicSpline, "cubic B-spline"),
+    (:CubicSpline′, "derivative of cubic B-spline"),
+    (:CardinalCubicSpline, "cardinal cubic spline"),
+    (:CardinalCubicSpline′, "derivative of cardinal cubic spline"),
+    (:CatmullRomSpline, "Catmull & Rom cubic spline"),
+    (:MitchellNetravaliSpline, "Mitchell & Netravali cubic spline"),
+    (:KeysSpline, "Keys cubic spline"))
+    @eval nameof(::$T) = $str
+end
+
+nameof(::LanczosKernel{T,S,B}) where {T,S,B} =
+    "Lanczos resampling kernel of size $S"
 
 # Provide methods for parameter-less kernels.
 for K in (:RectangularSpline, :RectangularSpline′,

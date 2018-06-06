@@ -59,6 +59,7 @@ shortname(str::AbstractString) =
          6, false, true),
         ("Lanczos 8 kernel", LanczosKernel(8),
          8, false, true))
+        name = nameof(ker)
         @testset "$nam" begin
             @test isnormalized(ker) == nrml
             @test iscardinal(ker) == card
