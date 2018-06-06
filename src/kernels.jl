@@ -389,16 +389,16 @@ Base.summary(::CatmullRomSpline) = "CatmullRomSpline()"
 
 function (::CatmullRomSpline{T,B})(x::T) where {T<:AbstractFloat,B}
     a = abs(x)
-    return (a ≥ T(2) ? T(0) :
-            a ≤ T(1) ? (frac(T,3,2)*a - frac(T,5,2))*a*a + T(1) :
-            ((frac(T,5,2) - frac(T,1,2)*a)*a - T(4))*a + T(2))
+    return (a ≥ 2 ? zero(T) :
+            a ≤ 1 ? (frac(T,3,2)*a - frac(T,5,2))*a*a + 1 :
+            ((frac(T,5,2) - frac(T,1,2)*a)*a - 4)*a + 2)
 end
 
 @inline function getweights(::CatmullRomSpline{T,B},
                             t::T) where {T<:AbstractFloat,B}
     # 10 operations
-    s = T(1) - t
-    q = T(-1/2)*t*s
+    s = 1 - t
+    q = frac(T,-1,2)*t*s
     w1 = q*s
     w4 = q*t
     r = w4 - w1
@@ -634,8 +634,7 @@ function MitchellNetravaliSpline(::Type{T} = Float64,
     MitchellNetravaliSpline{T,B}(frac(T,1,3), frac(T,1,3))
 end
 
-iscardinal(ker::MitchellNetravaliSpline{T,B}) where {T<:AbstractFloat,B} =
-    (ker.b == T(0))
+iscardinal(ker::MitchellNetravaliSpline{T,B}) where {T,B} = (ker.b == 0)
 
 isnormalized(::Union{K,Type{K}}) where {K<:MitchellNetravaliSpline} = true
 
@@ -656,15 +655,15 @@ end
 
 function (ker::MitchellNetravaliSpline{T,B})(x::T) where {T<:AbstractFloat,B}
     a = abs(x)
-    return (a ≥ T(2) ? T(0) : a ≤ T(1) ? _p(ker, a) : _q(ker, a))
+    return (a ≥ 2 ? zero(T) : a ≤ 1 ? _p(ker, a) : _q(ker, a))
 end
 
 @inline function getweights(ker::MitchellNetravaliSpline{T,B},
                             t::T) where {T<:AbstractFloat,B}
-    return (_q(ker, t + T(1)),
+    return (_q(ker, t + 1),
             _p(ker, t),
-            _p(ker, T(1) - t),
-            _q(ker, T(2) - t))
+            _p(ker, 1 - t),
+            _q(ker, 2 - t))
 end
 
 #------------------------------------------------------------------------------
@@ -727,15 +726,15 @@ end
 
 function (ker::KeysSpline{T,B})(x::T) where {T<:AbstractFloat,B}
     a = abs(x)
-    return (a ≥ T(2) ? T(0) : a ≤ T(1) ? _p(ker, a) : _q(ker, a))
+    return (a ≥ 2 ? zero(T) : a ≤ 1 ? _p(ker, a) : _q(ker, a))
 end
 
 @inline function getweights(ker::KeysSpline{T,B},
                             t::T) where {T<:AbstractFloat,B}
-    return (_q(ker, t + T(1)),
+    return (_q(ker, t + 1),
             _p(ker, t),
-            _p(ker, T(1) - t),
-            _q(ker, T(2) - t))
+            _p(ker, 1 - t),
+            _q(ker, 2 - t))
 end
 
 #------------------------------------------------------------------------------
@@ -793,7 +792,7 @@ end
     ker.b*sin(pi*x)*sin(ker.c*x)/(x*x)
 
 (ker::LanczosKernel{T,S,B})(x::T) where {T,S,B} =
-    (abs(x) ≥ ker.a ? T(0) : x == T(0) ? T(1) : _p(ker, x))
+    (abs(x) ≥ ker.a ? zero(T) : x == 0 ? 1 : _p(ker, x))
 
 @generated function getweights(ker::LanczosKernel{T,S,B}, t::T) where {T,S,B}
     c = (S >> 1) # central index
@@ -804,9 +803,9 @@ end
          Expr(:if, :(t == zero(T)),
               Expr(:block, [:($(W[i]) = $(i == c ? 1 : 0)) for i in 1:S]...),
               Expr(:block,
-                   [:($(W[i]) = _p(ker, t + T($(c - i)))) for i in 1:c-1]...,
+                   [:($(W[i]) = _p(ker, t + $(c - i))) for i in 1:c-1]...,
                    :($(W[c]) = _p(ker, t)),
-                   [:($(W[i]) = _p(ker, t - T($(i - c)))) for i in c+1:S]...)),
+                   [:($(W[i]) = _p(ker, t - $(i - c))) for i in c+1:S]...)),
          Expr(:return, Expr(:tuple, W...)))
 end
 
@@ -894,17 +893,17 @@ for K in subtypes(Kernel)
     # Unfortunately, defining:
     #
     #     (ker::$K{T,B})(x::Real) where {T<:AbstractFloat,B<:Boundaries} =
-    #         ker(T(x))
+    #         ker(convert(T,x))
     #
     # leads to ambiguities, the following is ugly but works...
     for T in subtypes(AbstractFloat), R in (subtypes(AbstractFloat)..., Integer)
         if R != T
             if K <: LanczosKernel
                 @eval @inline (ker::$K{$T,S,B})(x::$R) where {S,B<:Boundaries} =
-                    ker($T(x))
+                    ker(convert($T, x))
             else
                 @eval @inline (ker::$K{$T,B})(x::$R) where {B<:Boundaries} =
-                    ker($T(x))
+                    ker(convert($T, x))
             end
         end
     end
