@@ -39,7 +39,7 @@ export
     getweights,
     iscardinal,
     isnormalized,
-    nameof
+    brief
 
 #------------------------------------------------------------------------------
 # EXTRAPOLATION METHODS
@@ -816,12 +816,12 @@ Base.show(io::IO, ::MIME"text/plain", ker::Kernel) = show(io, ker)
 
 """
 ```julia
-nameof(ker)
+brief(ker)
 ```
 
 yields the name of kernel `ker`.
 
-""" nameof
+""" brief
 
 for (T, str) in (
     (:RectangularSpline, "rectangular B-spline"),
@@ -837,10 +837,10 @@ for (T, str) in (
     (:CatmullRomSpline, "Catmull & Rom cubic spline"),
     (:MitchellNetravaliSpline, "Mitchell & Netravali cubic spline"),
     (:KeysSpline, "Keys cubic spline"))
-    @eval nameof(::$T) = $str
+    @eval brief(::$T) = $str
 end
 
-nameof(::LanczosKernel{T,S,B}) where {T,S,B} =
+brief(::LanczosKernel{T,S,B}) where {T,S,B} =
     "Lanczos resampling kernel of size $S"
 
 # Manage to yield the derivative of (some) kernels when the notation `ker'` is
