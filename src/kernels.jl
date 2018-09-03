@@ -264,7 +264,7 @@ end
         # w1 = (1/8)*(1 - 2*t)^2 = (1/2)*((1/2) - t)^2
         # w2 = (3/4) - t^2
         # w3 = (1/8)*(1 + 2*t)^2 = (1/2)*((1/2) + t)^2
-        const h = frac(T,1,2)
+        h = frac(T,1,2)
         return (h*square(h - t), frac(T,3,4) - t*t, h*square(h + t))
     end
 else
@@ -272,11 +272,11 @@ else
     @inline function getweights(::QuadraticSpline{T,B},
                                 t::T) where {T<:AbstractFloat,B}
         # c1 = 1/sqrt(8)
-        const c1 = T(0.35355339059327376220042218105242451964241796884424)
+        c1 = T(0.35355339059327376220042218105242451964241796884424)
         # c2 = 2/sqrt(8)
-        const c2 = T(0.70710678118654752440084436210484903928483593768847)
+        c2 = T(0.70710678118654752440084436210484903928483593768847)
         # c2 = 3/4
-        const c3 = frac(T,3,4)
+        c3 = frac(T,3,4)
         c2t = c2*t
         q1 = c1 - c2t
         q3 = c1 + c2t
@@ -292,7 +292,7 @@ end
 
 @inline function getweights(::QuadraticSpline′{T,B},
                             t::T) where {T<:AbstractFloat,B}
-    const h = frac(T,1,2)
+    h = frac(T,1,2)
     return (t - h, -2t, t + h)
 end
 
@@ -347,9 +347,9 @@ end
     # operations, then 6 operations per cubic polynomial are needed.
     #
     # Using factorizations, I manage to only use 15 operations.
-    const h = frac(T,1,2)
-    const p = frac(T,2,3)
-    const q = frac(T,1,6)
+    h = frac(T,1,2)
+    p = frac(T,2,3)
+    q = frac(T,1,6)
     r = 1 - t
     r2 = r*r
     t2 = t*t
