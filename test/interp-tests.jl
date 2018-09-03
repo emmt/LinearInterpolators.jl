@@ -65,19 +65,16 @@ t = range(1, stop=length(xsub), length=length(x));
 end
 
 @testset "SparseInterpolators" begin
-    tol = 1e-14
-
     for K in kernels,
         C in conditions
         tol = isa(K, RectangularSpline) ? 0.02 : 0.006
         ker = C(K)
         S = SparseInterpolator(ker, t, length(xsub))
         T = TabulatedInterpolator(ker, t, length(xsub))
-        @test distance(S(ysub), S*ysub) ≤ 0
-        @test distance(S(ysub), T(ysub)) ≤ 0
+        @test distance(S(ysub), S*ysub) ≤ 1e-15
+        @test distance(S(ysub), T(ysub)) ≤ 1e-15
         @test distance(S(ysub), y) ≤ tol
         @test distance(S(ysub), apply(ker,t,ysub)) ≤ 1e-15
-
     end
 end
 
