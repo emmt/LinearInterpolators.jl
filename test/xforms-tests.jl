@@ -1,13 +1,15 @@
-isdefined(:LinearInterpolators) || include("../src/LinearInterpolators.jl")
+#isdefined(:LinearInterpolators) || include("../src/LinearInterpolators.jl")
 
 module LinearInterpolatorsAffineTransformsTests
 
 using LinearInterpolators.AffineTransforms
 
-@static if VERSION < v"0.7.0-DEV.2005"
-    using Base.Test
-else
-    using Test
+# Deal with compatibility issues.
+using Compat
+using Compat.Test
+using Compat.LinearAlgebra
+@static if isdefined(Base, :MathConstants)
+    import Base.MathConstants: φ
 end
 
 distance(a::Real, b::Real) = abs(a - b)
@@ -177,7 +179,7 @@ distance(A::AffineTransform2D, B::AffineTransform2D) =
 
     @testset "show" begin
         for M in (I, A, B, C)
-            @test ismatch(r"AffineTransform2D{Float64}", string(M))
+            @test occursin(r"AffineTransform2D{Float64}", string(M))
         end
     end
 end

@@ -1,4 +1,4 @@
-isdefined(:LinearInterpolators) || include("../src/LinearInterpolators.jl")
+#isdefined(:LinearInterpolators) || include("../src/LinearInterpolators.jl")
 
 module LinearInterpolatorsInterpolationsTests
 
@@ -6,11 +6,10 @@ using LazyAlgebra
 
 using LinearInterpolators
 
-@static if VERSION < v"0.7.0-DEV.2005"
-    using Base.Test
-else
-    using Test
-end
+using Compat
+using Compat.Printf
+using Compat.Test
+using Compat.Statistics
 
 distance(a::Real, b::Real) = abs(a - b)
 
@@ -24,7 +23,7 @@ distance(A::AffineTransform2D, B::AffineTransform2D) =
 distance(A::AbstractArray{Ta,N}, B::AbstractArray{Tb,N}) where {Ta,Tb,N} =
     mean(abs.(A - B))
 
-shortname(::Void) = ""
+shortname(::Nothing) = ""
 shortname(m::RegexMatch) = m.captures[1]
 shortname(::Type{T}) where {T} = shortname(string(T))
 shortname(str::AbstractString) =
@@ -38,11 +37,11 @@ conditions = (Flat, SafeFlat)
 
 const VERBOSE = true
 sub = 3
-x = linspace(-1, 1, 100*sub + 1);
+x = range(-1, stop=1, length=100*sub + 1);
 xsub = x[1:sub:end];
-y = cos.(2.*x.*(x + 2));
+y = cos.(2 .* x .* (x .+ 2));
 ysub = y[1:sub:end];
-t = linspace(1, length(xsub), length(x));
+t = range(1, stop=length(xsub), length=length(x));
 
 @testset "TabulatedInterpolators" begin
     tol = 1e-14

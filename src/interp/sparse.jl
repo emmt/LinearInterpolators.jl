@@ -19,6 +19,9 @@ export
     SparseInterpolator,
     SparseUnidimensionalInterpolator
 
+using Compat
+import .Compat.SparseArrays: sparse
+
 using ...Kernels
 using ...Interpolations
 import ...Interpolations: Meta, coefficients, columns, rows,
@@ -61,7 +64,7 @@ function rows(A::SparseInterpolator{T,S,N}) where {T,S,N}
     nvals = S*nrows       # number of non-zero coefficients
     @assert length(A.C) == nvals
     @assert length(A.J) == nvals
-    I = Array{Int}(nvals)
+    I = Array{Int}(undef, nvals)
     k0 = 0
     for i in 1:nrows
         for s in 1:S
@@ -74,7 +77,7 @@ function rows(A::SparseInterpolator{T,S,N}) where {T,S,N}
 end
 
 # Convert to a sparse matrix.
-Base.sparse(A::SparseInterpolator) =
+sparse(A::SparseInterpolator) =
     sparse(rows(A), columns(A), coefficients(A), A.nrows, A.ncols)
 
 """
@@ -111,7 +114,7 @@ end
 
 function SparseInterpolator(ker::Kernel{T,S,<:Boundaries},
                             pos::AbstractArray{<:Real,N},
-                            grd::Range) where {T<:AbstractFloat,S,N}
+                            grd::AbstractRange) where {T<:AbstractFloat,S,N}
 
     # Parameters to convert the interpolated position into a frational grid
     # index. FIXME: Use the central position of the grid to minimize the error.
@@ -119,24 +122,24 @@ function SparseInterpolator(ker::Kernel{T,S,<:Boundaries},
     alpha = one(T)/delta
     beta = T(first(grd)) - delta
     SparseInterpolator(ker, i -> (T(pos[i]) - beta)*alpha,
-                       CartesianRange(indices(pos)), length(grd))
+                       CartesianIndices(axes(pos)), length(grd))
 end
 
 function SparseInterpolator(ker::Kernel{T,S,<:Boundaries},
                             pos::AbstractArray{<:Real,N},
                             len::Integer) where {T<:AbstractFloat,S,N}
-    SparseInterpolator(ker, i -> T(pos[i]), CartesianRange(indices(pos)), len)
+    SparseInterpolator(ker, i -> T(pos[i]), CartesianIndices(axes(pos)), len)
 end
 
 function SparseInterpolator(ker::Kernel{T,S,<:Boundaries},
                             pos::Function,
-                            R::CartesianRange{CartesianIndex{N}},
+                            R::CartesianIndices{N},
                             ncols::Integer) where {T<:AbstractFloat,S,N}
     C, J = _sparsecoefs(R, Int(ncols), ker, pos)
     return SparseInterpolator{T,S,N}(C, J, size(R), ncols)
 end
 
-@generated function _sparsecoefs(R::CartesianRange{CartesianIndex{N}},
+@generated function _sparsecoefs(R::CartesianIndices{N},
                                  ncols::Int,
                                  ker::Kernel{T,S,<:Boundaries},
                                  pos::Function) where {T,S,N}
@@ -150,8 +153,8 @@ end
     quote
         lim = limits(ker, ncols)
         nvals = S*length(R)
-        J = Array{Int}(nvals)
-        C = Array{T}(nvals)
+        J = Array{Int}(undef, nvals)
+        C = Array{T}(undef, nvals)
         k = 0
         @inbounds for i in R
             x = convert(T, pos(i))
@@ -186,13 +189,13 @@ end
 function vcreate(::Type{Direct},
                  A::SparseInterpolator{T,S,N},
                  x::AbstractVector{T}) where {T,S,N}
-    return Array{T}(output_size(A))
+    return Array{T}(undef, output_size(A))
 end
 
 function vcreate(::Type{Adjoint},
                  A::SparseInterpolator{T,S,N},
                  x::AbstractArray{T,N}) where {T,S,N}
-    return Array{T}(input_size(A))
+    return Array{T}(undef, input_size(A))
 end
 
 function apply!(α::Real,
@@ -278,7 +281,7 @@ weights `W = diag(w)`.
 function AtWA(A::SparseInterpolator{T,S,N},
               w::AbstractArray{T,N}) where {T,S,N}
     ncols = A.ncols
-    AtWA!(Array{T}(ncols, ncols), A, w)
+    AtWA!(Array{T}(undef, ncols, ncols), A, w)
 end
 
 """
@@ -288,7 +291,7 @@ end
 """
 function AtA(A::SparseInterpolator{T,S,N}) where {T,S,N}
     ncols = A.ncols
-    AtA!(Array{T}(ncols, ncols), A)
+    AtA!(Array{T}(undef, ncols, ncols), A)
 end
 
 # Build the `A'*A` matrix from a sparse linear operator `A`.
@@ -434,7 +437,7 @@ stores the regularized matrix in `A` (and returns it).
 
 """
 regularize(A::AbstractArray{T,2}, args...) where {T<:AbstractFloat} =
-    regularize!(copy!(Array{T}(size(A)), A), args...)
+    regularize!(copy!(Array{T}(undef, size(A)), A), args...)
 
 function regularize!(A::AbstractArray{T,2},
                      eps::Real = RGL_EPS,
@@ -448,7 +451,7 @@ function regularize!(A::AbstractArray{T,2},
     @assert eps ≥ zero(T)
     @assert mu ≥ zero(T)
     @assert size(A,1) == size(A,2)
-    const n = size(A,1)
+    n = size(A,1)
     if eps > zero(T) || mu > zero(T)
         rho = A[1,1]
         for j in 2:n
@@ -559,7 +562,7 @@ end
 
 function SparseUnidimensionalInterpolator(ker::Kernel{T,S,B}, d::Integer,
                                           pos::AbstractVector{<:Real},
-                                          grd::Range) where {T<:AbstractFloat,
+                                          grd::AbstractRange) where {T<:AbstractFloat,
                                                              S,B}
     d ≥ 1 || throw(ArgumentError("invalid dimension of interpolation"))
     nrows = length(pos)
@@ -567,7 +570,7 @@ function SparseUnidimensionalInterpolator(ker::Kernel{T,S,B}, d::Integer,
     c = (convert(T, first(grd)) + convert(T, last(grd)))/2
     q = 1/convert(T, step(grd))
     r = convert(T, 1 + length(grd))/2
-    C, J = _sparsecoefs(CartesianRange((nrows,)), ncols, ker,
+    C, J = _sparsecoefs(CartesianIndices((nrows,)), ncols, ker,
                         i -> q*(convert(T, pos[i]) - c) + r)
     D = Int(d)
     return SparseUnidimensionalInterpolator{T,S,D}(nrows, ncols, C, J)
@@ -596,7 +599,7 @@ function _vcreate(ny::Int, nx::Int,
         throw(DimensionMismatch("dimension $D of `x` must be $nx"))
     Ty = float(promote_type(Ta, Tx))
     ydims = [(d == D ? ny : xdims[d]) for d in 1:N]
-    return Array{Ty,N}(ydims...)
+    return Array{Ty,N}(undef, ydims...)
 end
 
 function apply!(α::Real, ::Type{Direct},
@@ -626,8 +629,8 @@ function apply!(α::Real, ::Type{Direct},
     else
         C = coefficients(A)
         J = columns(A)
-        Ifast = CartesianRange(xdims[1:D-1])
-        Islow = CartesianRange(xdims[D+1:N])
+        Ifast = CartesianIndices(xdims[1:D-1])
+        Islow = CartesianIndices(xdims[D+1:N])
         T = promote_type(Ta,Tx)
         alpha = convert(T, α)
         if β == 0
@@ -669,8 +672,8 @@ function apply!(α::Real, ::Type{Adjoint},
         T = promote_type(Ta,Tx)
         _apply_adjoint!(Val{S}, coefficients(A), columns(A),
                         convert(T, α), x, y,
-                        CartesianRange(xdims[1:D-1]), nrows,
-                        CartesianRange(xdims[D+1:N]))
+                        CartesianIndices(xdims[1:D-1]), nrows,
+                        CartesianIndices(xdims[D+1:N]))
     end
     return y
 end
@@ -691,9 +694,9 @@ function _apply_direct!(::Type{T},
                         α::AbstractFloat,
                         x::AbstractArray{<:Real,N},
                         y::AbstractArray{<:AbstractFloat,N},
-                        Ifast::CartesianRange{CartesianIndex{Nfast}},
+                        Ifast::CartesianIndices{Nfast},
                         len::Int,
-                        Islow::CartesianRange{CartesianIndex{Nslow}}
+                        Islow::CartesianIndices{Nslow}
                         ) where {T<:AbstractFloat,S,N,Nslow,Nfast}
     @assert N == Nslow + Nfast + 1
     @inbounds for islow in Islow
@@ -720,9 +723,9 @@ function _apply_direct!(::Type{T},
                         x::AbstractArray{<:Real,N},
                         β::AbstractFloat,
                         y::AbstractArray{<:AbstractFloat,N},
-                        Ifast::CartesianRange{CartesianIndex{Nfast}},
+                        Ifast::CartesianIndices{Nfast},
                         len::Int,
-                        Islow::CartesianRange{CartesianIndex{Nslow}}
+                        Islow::CartesianIndices{Nslow}
                         ) where {T<:AbstractFloat,S,N,Nslow,Nfast}
     @assert N == Nslow + Nfast + 1
     @inbounds for islow in Islow
@@ -747,9 +750,9 @@ function _apply_adjoint!(::Type{Val{S}},
                          α::AbstractFloat,
                          x::AbstractArray{<:Real,N},
                          y::AbstractArray{<:AbstractFloat,N},
-                         Ifast::CartesianRange{CartesianIndex{Nfast}},
+                         Ifast::CartesianIndices{Nfast},
                          len::Int,
-                         Islow::CartesianRange{CartesianIndex{Nslow}}
+                         Islow::CartesianIndices{Nslow}
                          ) where {S,N,Nslow,Nfast}
     @assert N == Nslow + Nfast + 1
     @inbounds for islow in Islow

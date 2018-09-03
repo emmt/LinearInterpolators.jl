@@ -33,13 +33,13 @@ end
 function apply(::Type{Direct}, ker::Kernel{T,S,<:Boundaries},
                x::AbstractArray{T,N},
                src::AbstractVector{T}) where {T,S,N}
-    return apply!(Array{T}(size(x)), Direct, ker, x, src)
+    return apply!(Array{T}(undef, size(x)), Direct, ker, x, src)
 end
 
 function apply(::Type{Adjoint}, ker::Kernel{T,S,<:Boundaries},
                x::AbstractArray{T,N},
                src::AbstractArray{T,N}, len::Integer) where {T,S,N}
-    return apply!(Array{T}(len), Adjoint, ker, x, src)
+    return apply!(Array{T}(undef, len), Adjoint, ker, x, src)
 end
 
 #------------------------------------------------------------------------------

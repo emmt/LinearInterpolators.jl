@@ -112,7 +112,7 @@ function runtests{T<:AbstractFloat}(::Type{T} = Float64,
     K10 = CatmullRomSpline(T, SafeFlat)
     x = rand(T(1 - w):T(dim + w), len)
     y = randn(T, dim)
-    z = Array{T}(len)
+    z = Array{T}(undef, len)
     # compile methods
     testdirect!(z,  K01, x, y, 3)
     testadjoint!(y, K01, x, z, 3)

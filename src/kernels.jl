@@ -41,6 +41,17 @@ export
     isnormalized,
     brief
 
+# Deal with compatibility issues.
+using Compat
+using Compat.Printf
+using Compat.InteractiveUtils
+@static if isdefined(Base, :adjoint)
+    import Base: adjoint
+else
+    import Base: ctranspose
+    const adjoint = ctranspose
+end
+
 #------------------------------------------------------------------------------
 # EXTRAPOLATION METHODS
 
@@ -850,10 +861,10 @@ for (T, T′) in (
     (:LinearSpline, :LinearSpline′),
     (:QuadraticSpline, :QuadraticSpline′),
     (:CubicSpline, :CubicSpline′))
-    @eval Base.ctranspose(ker::$T{T,B}) where {T,B} = $T′{T,B}()
+    @eval adjoint(ker::$T{T,B}) where {T,B} = $T′{T,B}()
 end
 
-Base.ctranspose(ker::CardinalCubicSpline{T,B}) where {T,B} =
+adjoint(ker::CardinalCubicSpline{T,B}) where {T,B} =
     CardinalCubicSpline′{T,B}(ker.c)
 
 

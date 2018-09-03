@@ -23,9 +23,17 @@ export
     scale,
     translate
 
+# Deal with compatibility issues.
 @static if isdefined(Base, :scale)
     import Base.scale
 end
+using Compat
+import Compat: LinearAlgebra
+
+# Imports for extension (at least * must be imported for for deprecation).
+import Base: +, *, ∘, /, \, inv, eltype
+import .LinearAlgebra: ⋅, det
+
 
 """
 # Affine 2D Transforms
@@ -116,13 +124,13 @@ struct AffineTransform2D{T<:AbstractFloat} <: Function
     yx::T
     yy::T
     y ::T
-    (::Type{AffineTransform2D{T}}){T}() = new{T}(1,0,0, 0,1,0)
-    (::Type{AffineTransform2D{T}}){T}(a11::Real, a12::Real, a13::Real,
-                                      a21::Real, a22::Real, a23::Real) =
-                                          new{T}(a11,a12,a13, a21,a22,a23)
+    (::Type{AffineTransform2D{T}})() where T = new{T}(1,0,0, 0,1,0)
+    (::Type{AffineTransform2D{T}})(a11::Real, a12::Real, a13::Real,
+                                   a21::Real, a22::Real, a23::Real) where T =
+                                       new{T}(a11,a12,a13, a21,a22,a23)
 end
 
-Base.eltype(::AffineTransform2D{T}) where {T} = T
+eltype(::AffineTransform2D{T}) where {T} = T
 
 # Use Float64 type by default.
 AffineTransform2D() = AffineTransform2D{Float64}()
@@ -131,13 +139,13 @@ AffineTransform2D(a11::Real, a12::Real, a13::Real,
                       AffineTransform2D{Float64}(a11,a12,a13, a21,a22,a23)
 
 @deprecate(
-    AffineTransform2D{T<:AbstractFloat}(::Type{T}),
+    AffineTransform2D(::Type{T}) where {T<:AbstractFloat},
     AffineTransform2D{T}())
 
 @deprecate(
-    AffineTransform2D{T<:AbstractFloat}(::Type{T},
-                                        a11::Real, a12::Real, a13::Real,
-                                        a21::Real, a22::Real, a23::Real),
+    AffineTransform2D(::Type{T},
+                      a11::Real, a12::Real, a13::Real,
+                      a21::Real, a22::Real, a23::Real) where {T<:AbstractFloat},
     AffineTransform2D{T}(a11,a12,a13, a21,a22,a23))
 
 # The following is a no-op when the destination type matches that of the
@@ -359,7 +367,7 @@ end
 `det(A)` returns the determinant of the linear part of the affine
 transform `A`.
 """
-Base.det(A::AffineTransform2D) = A.xx*A.yy - A.xy*A.yx
+det(A::AffineTransform2D) = A.xx*A.yy - A.xy*A.yx
 
 """
 `jacobian(A)` returns the Jacobian of the affine transform `A`, that is the
@@ -370,7 +378,7 @@ jacobian(A::AffineTransform2D) = abs(det(A))
 """
 `inv(A)` returns the inverse of the affine transform `A`.
 """
-function Base.inv(A::AffineTransform2D{T}) where {T<:AbstractFloat}
+function inv(A::AffineTransform2D{T}) where {T<:AbstractFloat}
     d = det(A)
     d == zero(T) && error("transformation is not invertible")
     Txx =  A.yy/d
@@ -477,27 +485,25 @@ function intercept(A::AffineTransform2D{T}) where {T<:AbstractFloat}
 end
 
 
-Base.:+(v::Tuple{Real,Real}, A::AffineTransform2D) = translate(v, A)
++(v::Tuple{Real,Real}, A::AffineTransform2D) = translate(v, A)
 
-Base.:+(A::AffineTransform2D, v::Tuple{Real,Real}) = translate(A, v)
++(A::AffineTransform2D, v::Tuple{Real,Real}) = translate(A, v)
 
-for op in (:(∘), :(*), :(⋅))
+for op in (:∘, :*, :⋅)
     @eval begin
-        Base.$op(A::AffineTransform2D, B::AffineTransform2D) = compose(A, B)
+        $op(A::AffineTransform2D, B::AffineTransform2D) = compose(A, B)
     end
 end
 
-# This import is needed for deprecation.
-import Base: *
 @deprecate(*(A::AffineTransform2D, v::Tuple{Real,Real}), A(v))
 
-Base.:*(ρ::Real, A::AffineTransform2D) = scale(ρ, A)
+*(ρ::Real, A::AffineTransform2D) = scale(ρ, A)
 
-Base.:*(A::AffineTransform2D, ρ::Real) = scale(A, ρ)
+*(A::AffineTransform2D, ρ::Real) = scale(A, ρ)
 
-Base.:\(A::AffineTransform2D, B::AffineTransform2D) = leftdivide(A, B)
+\(A::AffineTransform2D, B::AffineTransform2D) = leftdivide(A, B)
 
-Base.:/(A::AffineTransform2D, B::AffineTransform2D) = rightdivide(A, B)
+/(A::AffineTransform2D, B::AffineTransform2D) = rightdivide(A, B)
 
 Base.show(io::IO, ::MIME"text/plain", A::AffineTransform2D) =
     print(io, typeof(A),

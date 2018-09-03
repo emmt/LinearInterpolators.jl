@@ -13,6 +13,8 @@
 
 module Meta
 
+using Compat
+
 const Arg = Union{Number,Symbol,Expr}
 
 #"""
@@ -182,7 +184,7 @@ function generate_interp_expr(arr::Symbol,
                               W2::AbstractVector{Symbol})
     @assert length(J2) == length(W2)
     n = length(J2)
-    ex = Array{Expr}(n)
+    ex = Array{Expr}(undef, n)
     for i in 1:n
         sub = generate_interp_expr(arr, J1, W1, J2[i])
         ex[i] = :($sub*$(W2[i]))

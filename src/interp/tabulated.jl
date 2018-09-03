@@ -82,7 +82,7 @@ function TabulatedInterpolator(::Type{T},
                                pos::Function,
                                nrows::Integer,
                                ncols::Integer) where {T<:AbstractFloat,
-                                                      D<:Union{Void,Int},S}
+                                                      D<:Union{Nothing,Int},S}
     nrows ≥ 1 || error("number of rows too small")
     ncols ≥ 1 || error("number of columns too small")
     J, W = __maketables(ker, pos, convert(Int, nrows), convert(Int, ncols))
@@ -94,7 +94,7 @@ function TabulatedInterpolator(::Type{T},
                                ker::Kernel{T,S},
                                x::AbstractVector{<:Real},
                                ncols::Integer) where {T<:AbstractFloat,
-                                                      D<:Union{Void,Int},S}
+                                                      D<:Union{Nothing,Int},S}
     nrows = length(x)
     nrows ≥ 1 || error("number of positions too small")
     ncols ≥ 1 || error("number of columns too small")
@@ -107,7 +107,7 @@ function TabulatedInterpolator(::Type{T},
                                d::D,
                                ker::Kernel{K,S,B},
                                args...) where {T<:AbstractFloat,
-                                               D<:Union{Void,Int},K,S,B}
+                                               D<:Union{Nothing,Int},K,S,B}
     TabulatedInterpolator(T, d, T(ker), args...)
 end
 
@@ -115,14 +115,14 @@ function TabulatedInterpolator(d::D,
                                ker::Kernel{T,S},
                                pos::Function,
                                nrows::Integer,
-                               ncols::Integer) where {D<:Union{Void,Int},T,S}
+                               ncols::Integer) where {D<:Union{Nothing,Int},T,S}
     TabulatedInterpolator(float(T), d, ker, pos, nrows, ncols)
 end
 
 function TabulatedInterpolator(d::D,
                                ker::Kernel{Tk,S},
                                x::AbstractVector{Tx},
-                               ncols::Integer) where {D<:Union{Void,Int},
+                               ncols::Integer) where {D<:Union{Nothing,Int},
                                                       Tk<:AbstractFloat,S,
                                                       Tx<:Real}
     TabulatedInterpolator(float(promote_type(Tk, Tx)), d, ker, x, ncols)
@@ -149,8 +149,8 @@ TabulatedInterpolator(d::Integer, ker::Kernel, args...) =
             [:( J[$s,i] = $(_J[s]) ) for s in 1:S]...,
             [:( W[$s,i] = $(_W[s]) ) for s in 1:S]...)
     quote
-        J = Array{Int}(S, nrows)
-        W = Array{T}(S, nrows)
+        J = Array{Int}(undef, S, nrows)
+        W = Array{T}(undef, S, nrows)
         lim = limits(ker, ncols)
         @inbounds for i in 1:nrows
             x = convert(T, X[i])
@@ -169,8 +169,8 @@ end
             [:( J[$s,i] = $(_J[s]) ) for s in 1:S]...,
             [:( W[$s,i] = $(_W[s]) ) for s in 1:S]...)
     quote
-        J = Array{Int}(S, nrows)
-        W = Array{T}(S, nrows)
+        J = Array{Int}(undef, S, nrows)
+        W = Array{T}(undef, S, nrows)
         lim = limits(ker, ncols)
         @inbounds for i in 1:nrows
             x = convert(T, pos(i))
@@ -205,7 +205,7 @@ end
 
 # For vectors, the dimension to interpolate is 1.
 function vcreate(::Type{P},
-                 A::TabulatedInterpolator{R,S,Void},
+                 A::TabulatedInterpolator{R,S,Nothing},
                  src::AbstractVector{T}) where {P<:Operations,
                                                 R<:AbstractFloat,S,
                                                 T<:RorC{R}}
@@ -213,7 +213,7 @@ function vcreate(::Type{P},
 end
 
 function vcreate(::Type{P},
-                 A::TabulatedInterpolator{R,S,Void},
+                 A::TabulatedInterpolator{R,S,Nothing},
                  src::AbstractArray{T,N}) where {P<:Operations,
                                                  R<:AbstractFloat,S,
                                                  T<:RorC{R},N}
@@ -221,7 +221,7 @@ function vcreate(::Type{P},
 end
 
 function vcreate(::Type{P},
-                 A::TabulatedInterpolator{R,S,Void},
+                 A::TabulatedInterpolator{R,S,Nothing},
                  d::Integer,
                  src::AbstractArray{T,N}) where {P<:Operations,
                                                  R<:AbstractFloat,S,
@@ -231,7 +231,7 @@ end
 
 function apply!(alpha::Real,
                 ::Type{P},
-                A::TabulatedInterpolator{R,S,Void},
+                A::TabulatedInterpolator{R,S,Nothing},
                 d::Integer,
                 src::AbstractArray{T,N},
                 beta::Real,
@@ -244,7 +244,7 @@ end
 # For vectors, the dimension to interpolate is 1.
 function apply!(alpha::Real,
                 ::Type{P},
-                A::TabulatedInterpolator{R,S,Void},
+                A::TabulatedInterpolator{R,S,Nothing},
                 src::AbstractVector{T},
                 beta::Real,
                 dst::AbstractVector{T}) where {P<:Operations,
@@ -255,7 +255,7 @@ end
 
 function apply!(alpha::Real,
                 ::Type{P},
-                A::TabulatedInterpolator{R,S,Void},
+                A::TabulatedInterpolator{R,S,Nothing},
                 src::AbstractArray{T,N},
                 beta::Real,
                 dst::AbstractArray{T,N}) where {P<:Operations,
@@ -291,8 +291,8 @@ function __vcreate(::Type{Direct},
     1 ≤ d ≤ N || error("out of range dimension $d")
     nrows = A.nrows
     srcdims = size(src)
-    dstdims = ntuple(i -> (i == d ? nrows : srcdims[i]), Val{N})
-    return Array{T}(dstdims)
+    dstdims = ntuple(i -> (i == d ? nrows : srcdims[i]), Val(N))
+    return Array{T}(undef, dstdims)
 end
 
 function __vcreate(::Type{Adjoint},
@@ -303,8 +303,8 @@ function __vcreate(::Type{Adjoint},
     1 ≤ d ≤ N || error("out of range dimension $d")
     ncols = A.ncols
     srcdims = size(src)
-    dstdims = ntuple(i -> (i == d ? ncols : srcdims[i]), Val{N})
-    return Array{T}(dstdims)
+    dstdims = ntuple(i -> (i == d ? ncols : srcdims[i]), Val(N))
+    return Array{T}(undef, dstdims)
 end
 
 function  __apply!(alpha::Real,
@@ -334,7 +334,7 @@ function  __apply!(alpha::Real,
         vscale!(dst, beta)
     else
         __direct!(convert(R, alpha), A, src,
-                  CartesianRange(predims), nrows, CartesianRange(postdims),
+                  CartesianIndices(predims), nrows, CartesianIndices(postdims),
                   convert(R, beta), dst)
     end
     return dst
@@ -366,8 +366,8 @@ function __apply!(alpha::Real,
     # alpha = 0.
     vscale!(dst, beta)
     if alpha != 0
-        __adjoint!(convert(R, alpha), A, src, CartesianRange(predims), nrows,
-                   CartesianRange(postdims), dst)
+        __adjoint!(convert(R, alpha), A, src, CartesianIndices(predims), nrows,
+                   CartesianIndices(postdims), dst)
     end
     return dst
 end
@@ -375,9 +375,9 @@ end
 function __direct!(α::R,
                    A::TabulatedInterpolator{R,S,D},
                    src::AbstractArray{T,N},
-                   Ipre::CartesianRange,
+                   Ipre::CartesianIndices,
                    nrows::Int,
-                   Ipost::CartesianRange,
+                   Ipost::CartesianIndices,
                    β::R,
                    dst::AbstractArray{T,N}) where {R<:AbstractFloat,S,D,
                                                    T<:RorC{R},N}
@@ -416,9 +416,9 @@ end
 function __adjoint!(α::R,
                     A::TabulatedInterpolator{R,S,D},
                     src::AbstractArray{T,N},
-                    Ipre::CartesianRange,
+                    Ipre::CartesianIndices,
                     nrows::Int,
-                    Ipost::CartesianRange,
+                    Ipost::CartesianIndices,
                     dst::AbstractArray{T,N}) where {R<:AbstractFloat,S,D,
                                                     T<:RorC{R},N}
     J, W = A.J, A.W
