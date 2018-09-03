@@ -20,7 +20,8 @@ export
     SparseUnidimensionalInterpolator
 
 using Compat
-import .Compat.SparseArrays: sparse
+import Compat: axes
+import Compat.SparseArrays: sparse
 
 using ...Kernels
 using ...Interpolations

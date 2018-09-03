@@ -9,7 +9,8 @@ using LinearInterpolators
 using Compat
 using Compat.Printf
 using Compat.Test
-using Compat.Statistics
+using Compat.Statistics: mean
+using Compat: range
 
 distance(a::Real, b::Real) = abs(a - b)
 

@@ -17,6 +17,8 @@ module TabulatedInterpolators
 export
     TabulatedInterpolator
 
+using Compat
+
 using ...Kernels
 using ...Interpolations
 import ...Interpolations.Meta
