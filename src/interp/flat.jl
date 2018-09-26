@@ -15,7 +15,7 @@
 
 struct FlatLimits{T<:AbstractFloat} <: Limits{T}
     len::Int # length of dimension in interpolated array
-    function (::Type{FlatLimits{T}})(len::Integer) where {T}
+    function FlatLimits{T}(len::Integer) where {T}
         @assert len ≥ 1
         new{T}(len)
     end

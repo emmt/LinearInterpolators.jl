@@ -124,9 +124,9 @@ struct AffineTransform2D{T<:AbstractFloat} <: Function
     yx::T
     yy::T
     y ::T
-    (::Type{AffineTransform2D{T}})() where T = new{T}(1,0,0, 0,1,0)
-    (::Type{AffineTransform2D{T}})(a11::Real, a12::Real, a13::Real,
-                                   a21::Real, a22::Real, a23::Real) where T =
+    AffineTransform2D{T}() where T = new{T}(1,0,0, 0,1,0)
+    AffineTransform2D{T}(a11::Real, a12::Real, a13::Real,
+                         a21::Real, a22::Real, a23::Real) where T =
                                        new{T}(a11,a12,a13, a21,a22,a23)
 end
 
@@ -174,7 +174,7 @@ function Base.convert(::Type{AffineTransform2D{T}},
 end
 
 for T in (BigFloat, Float64, Float32, Float16)
-    @eval (::Type{$T})(A::AffineTransform2D) =
+    @eval $T(A::AffineTransform2D) =
         convert(AffineTransform2D{$T}, A)
 end
 
