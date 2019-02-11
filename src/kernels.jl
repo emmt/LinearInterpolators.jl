@@ -70,7 +70,7 @@ struct SafeFlat <: Boundaries; end
 # INTERPOLATION KERNELS
 
 @inline frac(::Type{T}, num::Integer, den::Integer) where {T<:AbstractFloat} =
-    (convert(T, num)/convert(T, den))
+    (T(num)/T(den))
 
 @inline square(x) = x*x
 @inline cube(x) = x*x*x
