@@ -171,10 +171,11 @@ destination array into fractional coordinates in the source array (for the
 direct operation).  The syntax is:
 
 ```julia
-apply(ker1, [ker2=ker1,] R, src) -> dst
+apply!(dst, [P=Direct,] ker1, [ker2=ker1,] R, src) -> dst
 ```
 
-where `R` is an `AffineTransform2D`.
+where `R` is an `AffineTransform2D` and `P` is `Direct` (the default) or
+`Adjoint`.
 
 """ apply
 
