@@ -438,7 +438,7 @@ stores the regularized matrix in `A` (and returns it).
 
 """
 regularize(A::AbstractArray{T,2}, args...) where {T<:AbstractFloat} =
-    regularize!(copy!(Array{T}(undef, size(A)), A), args...)
+    regularize!(copyto!(Array{T}(undef, size(A)), A), args...)
 
 function regularize!(A::AbstractArray{T,2},
                      eps::Real = RGL_EPS,
