@@ -1,13 +1,12 @@
 # LinearInterpolators
 
-[![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md)
-[![Build Status](https://travis-ci.org/emmt/LinearInterpolators.jl.svg?branch=master)](https://travis-ci.org/emmt/LinearInterpolators.jl)
-[![Coverage Status](https://coveralls.io/repos/emmt/LinearInterpolators.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/emmt/LinearInterpolators.jl?branch=master)
-[![codecov.io](http://codecov.io/github/emmt/LinearInterpolators.jl/coverage.svg?branch=master)](http://codecov.io/github/emmt/LinearInterpolators.jl?branch=master)
+| **Documentation**               | **License**                     | **Build Status**                                                | **Code Coverage**                                                   |
+|:--------------------------------|:--------------------------------|:----------------------------------------------------------------|:--------------------------------------------------------------------|
+| [![][doc-dev-img]][doc-dev-url] | [![][license-img]][license-url] | [![][travis-img]][travis-url] [![][appveyor-img]][appveyor-url] | [![][coveralls-img]][coveralls-url] [![][codecov-img]][codecov-url] |
 
 The **LinearInterpolators** package provides many linear interpolation methods
-for [`Julia`](http://julialang.org/).  These interpolations are *linear* in the
-sense that the result depends linearly on the input.
+for [**Julia**][julia-url]. These interpolations are *linear* in the sense
+that the result depends linearly on the input.
 
 
 ## Features
@@ -40,16 +39,45 @@ sense that the result depends linearly on the input.
 ## Installation
 
 [LazyAlgebra](https://github.com/emmt/LazyAlgebra.jl) is a prerequisite for
-.  To install `LazyAlgebra`, simply do:
+LinearInterpolators.  See [Documentation of
+LazyAlgebra](https://emmt.github.io/LazyAlgebra.jl/dev/install/) for installing
+this package.
+
+LinearInterpolators is not yet an [official Julia package][julia-url] so you
+have to clone the repository.  In Julia, hit the `]` key to switch to the
+package manager REPL (you should get a `... pkg>` prompt) and type:
 
 ```julia
-Pkg.clone("https://github.com/emmt/LazyAlgebra.jl.git")
+pkg> add "https://github.com/emmt/LinearInterpolators.jl.git"
 ```
 
-LinearInterpolators is not yet an
-[official Julia package](https://pkg.julialang.org/) so you have to clone the
-repository:
+if you use HTTPS, or:
 
 ```julia
-Pkg.clone("https://github.com/emmt/LinearInterpolators.jl.git")
+pkg> add "git@github.com:emmt/LinearInterpolators.jl.git"
 ```
+
+if you use SSH.
+
+[doc-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
+[doc-stable-url]: https://emmt.github.io/LinearInterpolators.jl/stable
+
+[doc-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
+[doc-dev-url]: https://emmt.github.io/LinearInterpolators.jl/dev
+
+[license-url]: ./LICENSE.md
+[license-img]: http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat
+
+[travis-img]: https://travis-ci.org/emmt/LinearInterpolators.jl.svg?branch=master
+[travis-url]: https://travis-ci.org/emmt/LinearInterpolators.jl
+
+[appveyor-img]: https://ci.appveyor.com/api/projects/status/github/emmt/LinearInterpolators.jl?branch=master
+[appveyor-url]: https://ci.appveyor.com/project/emmt/LinearInterpolators-jl/branch/master
+
+[coveralls-img]: https://coveralls.io/repos/emmt/LinearInterpolators.jl/badge.svg?branch=master&service=github
+[coveralls-url]: https://coveralls.io/github/emmt/LinearInterpolators.jl?branch=master
+
+[codecov-img]: http://codecov.io/github/emmt/LinearInterpolators.jl/coverage.svg?branch=master
+[codecov-url]: http://codecov.io/github/emmt/LinearInterpolators.jl?branch=master
+
+[julia-url]: https://pkg.julialang.org/
