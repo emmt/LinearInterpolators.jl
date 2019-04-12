@@ -30,7 +30,7 @@ end
 using Compat
 import Compat: LinearAlgebra
 
-# Imports for extension (at least * must be imported for for deprecation).
+# Imports for extension (at least * must be imported for deprecation).
 import Base: +, *, ∘, /, \, inv, eltype
 import .LinearAlgebra: ⋅, det
 
@@ -173,10 +173,12 @@ function Base.convert(::Type{AffineTransform2D{T}},
     return AffineTransform2D{T}(A.xx, A.xy, A.x, A.yx, A.yy, A.y)
 end
 
-for T in (BigFloat, Float64, Float32, Float16)
-    @eval $T(A::AffineTransform2D) =
+for T in (:Float64, :Float32, :Float16)
+    @eval Base.$T(A::AffineTransform2D) =
         convert(AffineTransform2D{$T}, A)
 end
+Base.MPFR.BigFloat(A::AffineTransform2D) =
+        convert(AffineTransform2D{Base.MPFR.BigFloat}, A)
 
 #------------------------------------------------------------------------------
 # apply the transform to some coordinates:
