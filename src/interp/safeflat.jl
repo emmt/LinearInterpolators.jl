@@ -17,7 +17,7 @@ struct SafeFlatLimits{T<:AbstractFloat} <: Limits{T}
     inf::T   # bound for all neighbors before range
     sup::T   # bound for all neighbors after range
     len::Int # length of dimension in interpolated array
-    function (::Type{SafeFlatLimits{T}})(inf, sup, len::Integer) where {T}
+    function SafeFlatLimits{T}(inf, sup, len::Integer) where {T}
         @assert inf < sup
         @assert len ≥ 1
         new{T}(inf, sup, len)

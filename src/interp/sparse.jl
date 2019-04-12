@@ -37,10 +37,10 @@ struct SparseInterpolator{T<:AbstractFloat,S,N} <: LinearMapping
     nrows::Int
     ncols::Int
     dims::NTuple{N,Int} # dimensions of result
-    function (::Type{SparseInterpolator{T,S,N}})(C::Vector{T},
-                                                 J::Vector{Int},
-                                                 dims::NTuple{N,Int},
-                                                 ncols::Int) where {T,S,N}
+    function SparseInterpolator{T,S,N}(C::Vector{T},
+                                       J::Vector{Int},
+                                       dims::NTuple{N,Int},
+                                       ncols::Int) where {T,S,N}
         @assert S ≥ 1
         @assert minimum(dims) ≥ 1
         nrows = prod(dims)

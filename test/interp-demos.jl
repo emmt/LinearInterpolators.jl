@@ -80,26 +80,26 @@ function printtest(prefix::String, count::Integer, tup)
             prefix, CPU*elt/count, mem, 1e2*gct/elt)
 end
 
-function testdirect!{T,S,B}(dst::Vector{T}, ker::Kernel{T,S,B},
-                            x::AbstractVector{T}, src::Vector{T},
-                            cnt::Integer)
+function testdirect!(dst::Vector{T}, ker::Kernel{T,S,B},
+                     x::AbstractVector{T}, src::Vector{T},
+                     cnt::Integer) where {T,S,B}
     for k in 1:cnt
         apply!(dst, Direct, ker, x, src)
     end
     return dst
 end
 
-function testadjoint!{T,S,B}(dst::Vector{T}, ker::Kernel{T,S,B},
-                             x::AbstractVector{T}, src::Vector{T},
-                             cnt::Integer)
+function testadjoint!(dst::Vector{T}, ker::Kernel{T,S,B},
+                      x::AbstractVector{T}, src::Vector{T},
+                      cnt::Integer) where {T,S,B}
     for k in 1:cnt
         apply!(dst, Adjoint, ker, x, src)
     end
     return dst
 end
 
-function runtests{T<:AbstractFloat}(::Type{T} = Float64,
-                                    len::Integer = 1000, cnt::Integer = 100)
+function runtests(::Type{T} = Float64,
+                  len::Integer = 1000, cnt::Integer = 100) where T<:AbstractFloat
     dim = 500
     w = 10
     K01 = RectangularSpline(T, Flat)

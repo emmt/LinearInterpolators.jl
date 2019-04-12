@@ -437,7 +437,7 @@ struct CardinalCubicSpline{T,B} <: Kernel{T,4,B}
     p::T
     q::T
 
-    function (::Type{CardinalCubicSpline{T,B}})(c_::Real) where {T,B}
+    function CardinalCubicSpline{T,B}(c_::Real) where {T,B}
         c = convert(T, c_)
         new{T,B}(c, (c - 1)/2, (c + 1)/2)
     end
@@ -506,7 +506,7 @@ struct CardinalCubicSpline′{T,B} <: Kernel{T,4,B}
     r::T
     s::T
 
-    function (::Type{CardinalCubicSpline′{T,B}})(c_::Real) where {T,B}
+    function CardinalCubicSpline′{T,B}(c_::Real) where {T,B}
         c = convert(T, c_)
         t = 3c + 9
         return new{T,B}(c,
@@ -613,8 +613,8 @@ struct MitchellNetravaliSpline{T,B} <: Kernel{T,4,B}
     q1::T
     q2::T
     q3::T
-    function (::Type{MitchellNetravaliSpline{T,B}})(b::Real,
-                                                    c::Real) where {T,B}
+    function MitchellNetravaliSpline{T,B}(b::Real,
+                                          c::Real) where {T,B}
         new{T,B}(
             b, c,
             (   6 -  2*b       )/6,
@@ -707,7 +707,7 @@ struct KeysSpline{T,B} <: Kernel{T,4,B}
     q1::T
     q2::T
     q3::T
-    function (::Type{KeysSpline{T,B}})(a::Real) where {T,B}
+    function KeysSpline{T,B}(a::Real) where {T,B}
         new{T,B}(a, 1, -a - 3, a + 2, -4*a, 8*a, -5*a, a)
     end
 end
@@ -769,7 +769,7 @@ struct LanczosKernel{T,S,B} <: Kernel{T,S,B}
     a::T   # 1/2 support
     b::T   # a/pi^2
     c::T   # pi/a
-    function (::Type{LanczosKernel{T,S,B}})() where {T,S,B}
+    function LanczosKernel{T,S,B}() where {T,S,B}
         @assert typeof(S) == Int && S > 0 && iseven(S)
         a = S/2
         new{T,S,B}(a, a/pi^2, pi/a)
