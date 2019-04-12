@@ -62,7 +62,8 @@ The positions to interpolate can also be specified by a vector `x` as in:
 TabulatedInterpolator([T,] [d = nothing,] ker, x, ncols)
 ```
 
-to produce an interpolator whose output dimension is `nrows = length(x)`.
+to produce an interpolator whose output dimension is `nrows = length(x)`.  Here
+`x` can be an abstract vector.
 
 Optional argument `T` is the floating-point type of the coefficients of the
 linear map.  By default, it is given by the promotion of the element type of
@@ -71,7 +72,7 @@ the arguments `ker` and, if specified, `x`.
 The tabulated operator, say `A`, can be applied to an argument `x`:
 
 ```julia
-apply!(α, P::Operations, A, [d,] x, β, y)
+apply!(α, P::Operations, A, [d,] x, scratch, β, y) -> y
 ```
 
 to overwrite `y` with `α*P(A)⋅x + β*y`.  If `x` and `y` are multi-dimensional,
@@ -208,15 +209,17 @@ end
 # For vectors, the dimension to interpolate is 1.
 function vcreate(::Type{P},
                  A::TabulatedInterpolator{R,S,Nothing},
-                 src::AbstractVector{T}) where {P<:Operations,
-                                                R<:AbstractFloat,S,
-                                                T<:RorC{R}}
+                 src::AbstractVector{T},
+                 scratch::Bool=false) where {P<:Operations,
+                                             R<:AbstractFloat,S,
+                                             T<:RorC{R}}
     __vcreate(P, A, 1, src)
 end
 
 function vcreate(::Type{P},
                  A::TabulatedInterpolator{R,S,Nothing},
-                 src::AbstractArray{T,N}) where {P<:Operations,
+                 src::AbstractArray{T,N},
+                 scratch::Bool=false) where {P<:Operations,
                                                  R<:AbstractFloat,S,
                                                  T<:RorC{R},N}
     error("dimension to interpolate must be provided")
@@ -225,7 +228,8 @@ end
 function vcreate(::Type{P},
                  A::TabulatedInterpolator{R,S,Nothing},
                  d::Integer,
-                 src::AbstractArray{T,N}) where {P<:Operations,
+                 src::AbstractArray{T,N},
+                 scratch::Bool=false) where {P<:Operations,
                                                  R<:AbstractFloat,S,
                                                  T<:RorC{R},N}
     __vcreate(P, A, convert(Int, d), src)
@@ -236,6 +240,7 @@ function apply!(alpha::Real,
                 A::TabulatedInterpolator{R,S,Nothing},
                 d::Integer,
                 src::AbstractArray{T,N},
+                scratch::Bool,
                 beta::Real,
                 dst::AbstractArray{T,N}) where {P<:Operations,
                                                 R<:AbstractFloat,S,
@@ -248,6 +253,7 @@ function apply!(alpha::Real,
                 ::Type{P},
                 A::TabulatedInterpolator{R,S,Nothing},
                 src::AbstractVector{T},
+                scratch::Bool,
                 beta::Real,
                 dst::AbstractVector{T}) where {P<:Operations,
                                                R<:AbstractFloat,S,
@@ -259,6 +265,7 @@ function apply!(alpha::Real,
                 ::Type{P},
                 A::TabulatedInterpolator{R,S,Nothing},
                 src::AbstractArray{T,N},
+                scratch::Bool,
                 beta::Real,
                 dst::AbstractArray{T,N}) where {P<:Operations,
                                                 R<:AbstractFloat,S,
@@ -268,7 +275,8 @@ end
 
 function vcreate(::Type{P},
                  A::TabulatedInterpolator{R,S,Int},
-                 src::AbstractArray{T,N}) where {P<:Operations,
+                 src::AbstractArray{T,N},
+                 scratch::Bool=false) where {P<:Operations,
                                                  R<:AbstractFloat,S,
                                                  T<:RorC{R},N}
     __vcreate(P, A, A.d, src)
@@ -278,6 +286,7 @@ function apply!(alpha::Real,
                 ::Type{P},
                 A::TabulatedInterpolator{R,S,Int},
                 src::AbstractArray{T,N},
+                scratch::Bool,
                 beta::Real,
                 dst::AbstractArray{T,N}) where {P<:Operations,
                                                 R<:AbstractFloat,S,

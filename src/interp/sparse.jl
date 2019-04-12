@@ -189,13 +189,15 @@ end
 
 function vcreate(::Type{Direct},
                  A::SparseInterpolator{T,S,N},
-                 x::AbstractVector{T}) where {T,S,N}
+                 x::AbstractVector{T},
+                 scratch::Bool=false) where {T,S,N}
     return Array{T}(undef, output_size(A))
 end
 
 function vcreate(::Type{Adjoint},
                  A::SparseInterpolator{T,S,N},
-                 x::AbstractArray{T,N}) where {T,S,N}
+                 x::AbstractArray{T,N},
+                 scratch::Bool=false) where {T,S,N}
     return Array{T}(undef, input_size(A))
 end
 
@@ -203,6 +205,7 @@ function apply!(α::Real,
                 ::Type{Direct},
                 A::SparseInterpolator{Ta,S,N},
                 x::AbstractVector{Tx},
+                scratch::Bool,
                 β::Real,
                 y::AbstractArray{Ty,N}) where {Ta,Tx<:Real,
                                                Ty<:AbstractFloat,S,N}
@@ -247,6 +250,7 @@ function apply!(α::Real,
                 ::Type{Adjoint},
                 A::SparseInterpolator{Ta,S,N},
                 x::AbstractArray{Tx,N},
+                scratch::Bool,
                 β::Real,
                 y::AbstractVector{Ty}) where {Ta,Tx<:Real,
                                               Ty<:AbstractFloat,S,N}
@@ -578,14 +582,18 @@ function SparseUnidimensionalInterpolator(ker::Kernel{T,S,B}, d::Integer,
 
 end
 
-function vcreate(::Type{Direct}, A::SparseUnidimensionalInterpolator,
-                 x::AbstractArray)
+function vcreate(::Type{Direct},
+                 A::SparseUnidimensionalInterpolator,
+                 x::AbstractArray,
+                 scratch::Bool=false)
     nrows, ncols = size(A)
     return _vcreate(nrows, ncols, A, x)
 end
 
-function vcreate(::Type{Adjoint}, A::SparseUnidimensionalInterpolator,
-                 x::AbstractArray)
+function vcreate(::Type{Adjoint},
+                 A::SparseUnidimensionalInterpolator,
+                 x::AbstractArray,
+                 scratch::Bool=false)
     nrows, ncols = size(A)
     return _vcreate(ncols, nrows, A, x)
 end
@@ -606,6 +614,7 @@ end
 function apply!(α::Real, ::Type{Direct},
                 A::SparseUnidimensionalInterpolator{Ta,S,D},
                 x::AbstractArray{Tx,N},
+                scratch::Bool,
                 β::Real,
                 y::AbstractArray{Ty,N}) where {Ta<:AbstractFloat,
                                                Tx<:Real,
@@ -649,6 +658,7 @@ end
 function apply!(α::Real, ::Type{Adjoint},
                 A::SparseUnidimensionalInterpolator{Ta,S,D},
                 x::AbstractArray{Tx,N},
+                scratch::Bool,
                 β::Real,
                 y::AbstractArray{Ty,N}) where {Ta<:AbstractFloat,
                                                Tx<:Real,
