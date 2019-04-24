@@ -345,7 +345,7 @@ function AtWA!(dst::AbstractArray{T,2}, A::SparseInterpolator{T,S,N},
         w = wgt[i]
         for s1 in 1:S
             k1 = k0 + s1
-            j1 = J[k1],
+            j1 = J[k1]
             wc1 = w*C[k1]
             @simd for s2 in 1:S
                 k2 = k0 + s2
