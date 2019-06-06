@@ -48,13 +48,13 @@ have to clone the repository.  In Julia, hit the `]` key to switch to the
 package manager REPL (you should get a `... pkg>` prompt) and type:
 
 ```julia
-pkg> add "https://github.com/emmt/LinearInterpolators.jl.git"
+pkg> add https://github.com/emmt/LinearInterpolators.jl.git
 ```
 
 if you use HTTPS, or:
 
 ```julia
-pkg> add "git@github.com:emmt/LinearInterpolators.jl.git"
+pkg> add git@github.com:emmt/LinearInterpolators.jl.git
 ```
 
 if you use SSH.
