@@ -24,21 +24,23 @@ shortname(str::AbstractString) =
          1, true, true),
         ("Triangle", LinearSpline(),
          2, true, true),
-        ("Derivative of Linear B-spline", LinearSpline′(),
+        ("Derivative of Linear B-spline", LinearSplinePrime(),
          2, false, false),
         ("Quadratic B-spline", QuadraticSpline(),
          3, true, false),
-        ("Derivative of Quadratic B-spline", QuadraticSpline′(),
+        ("Derivative of Quadratic B-spline", QuadraticSplinePrime(),
          3, false, false),
         ("Cubic B-spline", CubicSpline(SafeFlat),
          4, true, false),
-        ("Derivative of Cubic B-spline", CubicSpline′(),
+        ("Derivative of Cubic B-spline", CubicSplinePrime(),
          4, false, false),
         ("Catmull-Rom spline", CatmullRomSpline(),
          4, true, true),
+        ("Derivative of Catmull-Rom spline", CatmullRomSplinePrime(),
+         4, false, false),
         ("Cardinal cubic spline", CardinalCubicSpline(-1),
          4, true, true),
-        ("Derivative of cardinal cubic spline", CardinalCubicSpline′(-1/2),
+        ("Derivative of cardinal cubic spline", CardinalCubicSplinePrime(-1/2),
          4, false, false),
         ("Mitchell & Netravali spline", MitchellNetravaliSpline(),
          4, true, false),
@@ -62,8 +64,8 @@ shortname(str::AbstractString) =
             @test iscardinal(ker) == card
             @test length(ker) == sup
             @test length(typeof(ker)) == sup
-            @test size(ker) == sup
-            @test size(typeof(ker)) == sup
+            @test size(ker) == (sup,)
+            @test size(typeof(ker)) == (sup,)
             for T in types
                 @test eltype(T(ker)) == T
                 @test eltype(typeof(T(ker))) == T
