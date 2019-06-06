@@ -938,12 +938,9 @@ brief(::LanczosKernel{T,S,B}) where {T,S,B} =
 
 # Manage to yield the derivative of (some) kernels when the notation `ker'` is
 # used.
-for (T, Tp) in (
-    (:RectangularSpline, :RectangularSplinePrime),
-    (:LinearSpline, :LinearSplinePrime),
-    (:QuadraticSpline, :QuadraticSplinePrime),
-    (:CubicSpline, :CubicSplinePrime))
-    @eval adjoint(ker::$T{T,B}) where {T,B} = $Tp{T,B}()
+for T in (:RectangularSpline, :LinearSpline, :QuadraticSpline,
+          :CubicSpline, :CatmullRomSpline)
+    @eval adjoint(ker::$T{T,B}) where {T,B} = $(Symbol(T,:Prime)){T,B}()
 end
 
 adjoint(ker::CardinalCubicSpline{T,B}) where {T,B} =
