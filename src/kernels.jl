@@ -9,7 +9,7 @@
 # This file is part of the LinearInterpolators package licensed under the MIT
 # "Expat" License.
 #
-# Copyright (C) 2016-2018, Éric Thiébaut.
+# Copyright (C) 2016-2019, Éric Thiébaut.
 #
 
 module Kernels
@@ -201,9 +201,22 @@ The rectangular spline (also known as box kernel or Fourier window or Dirichlet
 window) is the 1st order (constant) B-spline equals to `1` on `[-1/2,+1/2)`,
 and `0` elsewhere.
 
+A rectangular spline instance is created by:
+
+```julia
+RectangularSpline([T=Float64,] B=Flat)
+```
+
+Its derivative is created by:
+
+```julia
+RectangularSplinePrime([T=Float64,] B=Flat)
+```
+
 """
 struct RectangularSpline{T,B} <: Kernel{T,1,B}; end
 struct RectangularSplinePrime{T,B} <: Kernel{T,1,B}; end
+@doc @doc(RectangularSpline) RectangularSplinePrime
 
 iscardinal(::Union{K,Type{K}}) where {K<:RectangularSpline} = true
 iscardinal(::Union{K,Type{K}}) where {K<:RectangularSplinePrime} = false
@@ -230,9 +243,22 @@ Base.show(io::IO, ::RectangularSplinePrime) = print(io, "RectangularSplinePrime(
 The linear spline (also known as triangle kernel or Bartlett window or Fejér
 window) is the 2nd order (linear) B-spline.
 
+A linear spline instance is created by:
+
+```julia
+LinearSpline([T=Float64,] B=Flat)
+```
+
+Its derivative is created by:
+
+```julia
+LinearSplinePrime([T=Float64,] B=Flat)
+```
+
 """
 struct LinearSpline{T,B} <: Kernel{T,2,B}; end
 struct LinearSplinePrime{T,B} <: Kernel{T,2,B}; end
+@doc @doc(LinearSpline) LinearSplinePrime
 
 iscardinal(::Union{K,Type{K}}) where {K<:LinearSpline} = true
 iscardinal(::Union{K,Type{K}}) where {K<:LinearSplinePrime} = false
@@ -265,9 +291,23 @@ Base.show(io::IO, ::LinearSplinePrime) = print(io, "LinearSplinePrime()")
 # Quadratic Spline
 
 The quadratic spline is the 3rd order (quadratic) B-spline.
+
+A quadratic spline instance is created by:
+
+```julia
+QuadraticSpline([T=Float64,] B=Flat)
+```
+
+Its derivative is created by:
+
+```julia
+QuadraticSplinePrime([T=Float64,] B=Flat)
+```
+
 """
 struct QuadraticSpline{T,B} <: Kernel{T,3,B}; end
 struct QuadraticSplinePrime{T,B} <: Kernel{T,3,B}; end
+@doc @doc(QuadraticSpline) QuadraticSplinePrime
 
 iscardinal(::Union{K,Type{K}}) where {K<:QuadraticSpline} = false
 iscardinal(::Union{K,Type{K}}) where {K<:QuadraticSplinePrime} = false
@@ -328,7 +368,7 @@ end
 """
 # Cubic Spline
 
-    CubicSpline([::Type{T} = Float64,] [::Type{B} = Flat])
+    CubicSpline([T=Float64,] B=Flat)
 
 where `T <: AbstractFloat` and `B <: Boundaries` yields a cubic spline kernel
 which operates with floating-point type `T` and use boundary conditions `B`
@@ -336,9 +376,17 @@ which operates with floating-point type `T` and use boundary conditions `B`
 
 The 4th order (cubic) B-spline kernel is also known as Parzen window or de la
 Vallée Poussin window.
+
+Its derivative is given by:
+
+```julia
+CubicSplinePrime([T=Float64,] B=Flat)
+```
+
 """
 struct CubicSpline{T,B} <: Kernel{T,4,B}; end
 struct CubicSplinePrime{T,B} <: Kernel{T,4,B}; end
+@doc @doc(CubicSpline) CubicSplinePrime
 
 iscardinal(::Union{K,Type{K}}) where {K<:CubicSpline} = false
 iscardinal(::Union{K,Type{K}}) where {K<:CubicSplinePrime} = false
@@ -516,6 +564,12 @@ tension parameter `c` and boundary conditions `B`.  The slope at `x = ±1` is
 a cardinal sine, `c = -1/2` yields an interpolating cubic spline with
 continuous second derivatives (inside its support).
 
+Its derivative is given by:
+
+```julia
+CardinalCubicSplinePrime([T=Float64,] c, B=Flat) -> ker
+```
+
 """
 struct CardinalCubicSpline{T,B} <: Kernel{T,4,B}
     c::T
@@ -597,6 +651,8 @@ struct CardinalCubicSplinePrime{T,B} <: Kernel{T,4,B}
                         (c - 1)/t)
     end
 end
+
+@doc @doc(CardinalCubicSpline) CardinalCubicSplinePrime
 
 function CardinalCubicSplinePrime(::Type{T}, c::Real,
                               ::Type{B} = Flat) where {T<:AbstractFloat,
@@ -771,7 +827,7 @@ yields an interpolation kernel of the Keys family of cardinal kernels for
 floating-point type `T`, parameter `a` and boundary conditions `B`.
 
 These kernels are piecewise normalized cardinal cubic spline which depend on
-one parameter `a`.
+one parameter `a` which is the slope of the spline at abscissa 1.
 
 Reference:
 
@@ -843,6 +899,12 @@ floating-point type `T` and boundary conditions `B`..
 
 The Lanczos kernels doe not have the partition of unity property.  However,
 Lanczos kernels tend to be normalized for large support size.
+
+The derivative of Lanczos kernel of support size `S` is given by:
+
+```julia
+LanczosKernelPrime([T=Float64,] S, B=Flat)
+```
 
 See also: [link](https://en.wikipedia.org/wiki/Lanczos_resampling).
 
@@ -1039,13 +1101,7 @@ end
 # Provide methods for all kernels.
 for K in subtypes(Kernel)
 
-    if K <: LanczosKernel
-        lanczos = true
-    elseif K <: LanczosKernelPrime
-        lanczos = true
-    else
-        lanczos = false
-    end
+    lanczos = (K <: LanczosKernel || K <: LanczosKernelPrime)
 
     # We want that calling the kernel on a different type of real argument than
     # the floting-point type of the kernel convert the argument.
