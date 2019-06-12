@@ -52,6 +52,8 @@ shortname(str::AbstractString) =
          4, true, true),
         ("Keys's cardinal cubics", KeysSpline(-0.7),
          4, true, true),
+        ("Derivative of Keys's cardinal cubics", KeysSplinePrime(-0.6),
+         4, false, false),
         ("Lanczos 2 kernel", LanczosKernel(2),
          2, false, true),
         ("Lanczos 4 kernel", LanczosKernel(Float64,4,SafeFlat),

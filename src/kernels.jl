@@ -27,6 +27,7 @@ export
     Flat,
     Kernel,
     KeysSpline,
+    KeysSplinePrime,
     LanczosKernel,
     LanczosKernelPrime,
     LinearSpline,
@@ -76,6 +77,8 @@ struct SafeFlat <: Boundaries; end
 
 @inline square(x) = x*x
 @inline cube(x) = x*x*x
+
+@inline signabs(x::Real) = ifelse(x < 0, (oftype(one(x),-1), -x), (one(x), x))
 
 """
 # Interpolation Kernels
@@ -829,6 +832,41 @@ floating-point type `T`, parameter `a` and boundary conditions `B`.
 These kernels are piecewise normalized cardinal cubic spline which depend on
 one parameter `a` which is the slope of the spline at abscissa 1.
 
+Keys splines are defined by:
+
+```
+ker(x) = p(abs(x))   if abs(x) ≤ 1
+         q(abs(x))   if 1 ≤ abs(x) ≤ 2
+         0           if abs(x) ≥ 2
+```
+
+with:
+
+```
+p(x) = 1 - (a + 3)*x^2 + (a + 2)*x^3
+q(x) = -4a + 8a*x - 5a*x^2 + a*x^3
+```
+
+Their derivatives are given by:
+
+```julia
+KeysSplinePrime([T=Float64,] a, B=Flat) -> ker′
+```
+
+defined by:
+
+```
+ker′(x) = p′(abs(x))*sign(x)   if abs(x) ≤ 1
+          q′(abs(x))*sign(x)   if 1 ≤ abs(x) ≤ 2
+          0                    if abs(x) ≥ 2
+```
+
+with:
+```
+p(x) = -2*(a + 3)*x + 3*(a + 2)*x^2
+q(x) = 8a - 10a*x + 3a*x^2
+```
+
 Reference:
 
 * Keys, Robert, G., "Cubic Convolution Interpolation for Digital Image
@@ -846,9 +884,29 @@ struct KeysSpline{T,B} <: Kernel{T,4,B}
     q2::T
     q3::T
     function KeysSpline{T,B}(a::Real) where {T,B}
-        new{T,B}(a, 1, -a - 3, a + 2, -4*a, 8*a, -5*a, a)
+        new{T,B}(a,
+                 1, -a - 3, a + 2,
+                 -4a, 8a, -5a, a)
     end
 end
+
+struct KeysSplinePrime{T,B} <: Kernel{T,4,B}
+    a::T
+    b::T # 2*(a + 3)
+    c::T # a + 2
+    p1::T
+    p2::T
+    q0::T
+    q1::T
+    q2::T
+    function KeysSplinePrime{T,B}(a::Real) where {T,B}
+        new{T,B}(a, 2a + 6, a + 2,
+                 -2a - 6, 3a + 6,
+                 8a, -10a, 3a)
+    end
+end
+
+@doc @doc(KeysSpline) KeysSplinePrime
 
 function KeysSpline(::Type{T}, a::Real,
                     ::Type{B} = Flat) where {T<:AbstractFloat, B<:Boundaries}
@@ -858,13 +916,30 @@ end
 KeysSpline(a::Real, ::Type{B} = Flat) where {B<:Boundaries} =
     KeysSpline(Float64, a, B)
 
+function KeysSplinePrime(::Type{T}, a::Real,
+                    ::Type{B} = Flat) where {T<:AbstractFloat, B<:Boundaries}
+    KeysSplinePrime{T,B}(a)
+end
+
+KeysSplinePrime(a::Real, ::Type{B} = Flat) where {B<:Boundaries} =
+    KeysSplinePrime(Float64, a, B)
+
 iscardinal(::Union{K,Type{K}}) where {K<:KeysSpline} = true
 isnormalized(::Union{K,Type{K}}) where {K<:KeysSpline} = true
 Base.summary(ker::KeysSpline) = @sprintf("KeysSpline(%.1f)", ker.a)
 
+iscardinal(::Union{K,Type{K}}) where {K<:KeysSplinePrime} = false
+isnormalized(::Union{K,Type{K}}) where {K<:KeysSplinePrime} = false
+Base.summary(ker::KeysSplinePrime) = @sprintf("KeysSplinePrime(%.1f)", ker.a)
+
 function convert(::Type{KeysSpline{T,B}},
                  ker::KeysSpline) where {T<:AbstractFloat, B<:Boundaries}
     KeysSpline(T, ker.a, B)
+end
+
+function convert(::Type{KeysSplinePrime{T,B}},
+                 ker::KeysSplinePrime) where {T<:AbstractFloat, B<:Boundaries}
+    KeysSplinePrime(T, ker.a, B)
 end
 
 @inline _p(ker::KeysSpline{T,B}, x::T) where {T,B} =
@@ -878,12 +953,67 @@ function (ker::KeysSpline{T,B})(x::T) where {T<:AbstractFloat,B}
     return (a ≥ 2 ? zero(T) : a ≤ 1 ? _p(ker, a) : _q(ker, a))
 end
 
+@inline _p(ker::KeysSplinePrime{T,B}, x::T, a::T) where {T,B} =
+    (ker.p2*a + ker.p1)*x
+
+@inline _q(ker::KeysSplinePrime{T,B}, x::T, s::T, a::T) where {T,B} =
+    ((ker.q2*a + ker.q1)*x + ker.q0*s)
+
+function (ker::KeysSplinePrime{T,B})(x::T) where {T<:AbstractFloat,B}
+    s, a = signabs(x)
+    return (a ≥ 2 ? zero(T) : a ≤ 1 ? _p(ker, x, a) : _q(ker, x, s, a))
+end
+
 @inline function getweights(ker::KeysSpline{T,B},
                             t::T) where {T<:AbstractFloat,B}
-    return (_q(ker, t + 1),
-            _p(ker, t),
-            _p(ker, 1 - t),
-            _q(ker, 2 - t))
+    # t ∈ [0,1), S=4
+    # w1 = f(t1) = f4(t1) = q(t1)     t1 = t + 1 ∈ [1,2)
+    # w2 = f(t2) = f3(t2) = p(t2)     t2 = t     ∈ [0,1)
+    # w3 = f(t3) = f2(t3) = p(-t3)    t3 = t - 1 ∈ [-1,0)
+    # w4 = f(t4) = f1(t4) = q(-t4)    t4 = t - 2 ∈ [-2,0)
+    #
+    # w1 = a*(1 - t)^2*t
+    # w2 = 1 - (3 + a)*t^2 + (2 + a)*t^3
+    # w3 = -t*(a*(1 - t)^2 + t*(2*t - 3))
+    # w4 = a*(1 - t)*t^2
+    #
+    # in 12 operations (instead of 25 with the polynomials):
+    a = ker.a
+    r = 1 - t
+    s = (ker.p3*r + 1)*t*t
+    art = a*r*t
+    w1 = art*r
+    w4 = art*t
+    w2 = 1 - s
+    w3 = s - w1 - w4
+    return w1, w2, w3, w4
+end
+
+@inline function getweights(ker::KeysSplinePrime{T,B},
+                            t::T) where {T<:AbstractFloat,B}
+    # t ∈ [0,1), S=4
+    # w1 = f(t1) = f4(t1) =  q(t1)     t1 = t + 1 ∈ [1,2)
+    # w2 = f(t2) = f3(t2) =  p(t2)     t2 = t     ∈ [0,1)
+    # w3 = f(t3) = f2(t3) = -p(-t3)    t3 = t - 1 ∈ [-1,0)
+    # w4 = f(t4) = f1(t4) = -q(-t4)    t4 = t - 2 ∈ [-2,0)
+    #
+    # w1 = a*(1 - t)*(1 - 3*t)
+    # w2 = (3*(2 + a)*t - 2*(3 + a))*t
+    # w3 = (1 - t)*(3*(2 + a)*t - a)
+    # w4 = a*(2 - 3*t)*t
+    #
+    # in 13 operations:
+    a = ker.a
+    b = ker.b
+    c = ker.c
+    q = 3*t
+    r = 1 - t
+    s = c*q
+    w1 = (a - a*q)*r
+    w2 = (s - b)*t
+    w3 = (s - a)*r
+    w4 = (2 - q)*t*a
+    return w1, w2, w3, w4
 end
 
 #------------------------------------------------------------------------------
@@ -1046,7 +1176,8 @@ for (T, str) in (
     (:CatmullRomSpline, "Catmull & Rom cubic spline"),
     (:CatmullRomSplinePrime, "derivative of Catmull & Rom cubic spline"),
     (:MitchellNetravaliSpline, "Mitchell & Netravali cubic spline"),
-    (:KeysSpline, "Keys cubic spline"))
+    (:KeysSpline, "Keys cubic spline"),
+    (:KeysSplinePrime, "derivative of Keys cubic spline"))
     @eval brief(::$T) = $str
 end
 
@@ -1194,10 +1325,12 @@ end
 # Second = ″
 # Third = ‴
 
-@deprecate CardinalCubicSpline′ CardinalCubicSplinePrime
-@deprecate    CatmullRomSpline′    CatmullRomSplinePrime
+@deprecate          KeysSpline′          KeysSplinePrime
 @deprecate         CubicSpline′         CubicSplinePrime
 @deprecate        LinearSpline′        LinearSplinePrime
-@deprecate     QuadraticSpline′     QuadraticSplinePrime
 @deprecate       LanczosKernel′       LanczosKernelPrime
+@deprecate     QuadraticSpline′     QuadraticSplinePrime
+@deprecate    CatmullRomSpline′    CatmullRomSplinePrime
+@deprecate CardinalCubicSpline′ CardinalCubicSplinePrime
+
 end # module
