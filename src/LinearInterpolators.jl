@@ -31,6 +31,7 @@ export
     Kernel,
     KeysSpline,
     LanczosKernel,
+    LanczosKernelPrime,
     LinearSpline,
     LinearSplinePrime,
     MitchellNetravaliSpline,

@@ -22,6 +22,8 @@ shortname(str::AbstractString) =
     for (nam, ker, sup, nrml, card) in (
         ("Box", RectangularSpline(),
          1, true, true),
+        ("Derivative of rectangular spline", RectangularSplinePrime(),
+         1, false, false),
         ("Triangle", LinearSpline(),
          2, true, true),
         ("Derivative of Linear B-spline", LinearSplinePrime(),
@@ -57,7 +59,11 @@ shortname(str::AbstractString) =
         ("Lanczos 6 kernel", LanczosKernel(6),
          6, false, true),
         ("Lanczos 8 kernel", LanczosKernel(8),
-         8, false, true))
+         8, false, true),
+        ("Derivative of Lanczos 4 kernel", LanczosKernelPrime(4),
+         4, false, false),
+        ("Derivative of Lanczos 6 kernel", LanczosKernelPrime(6),
+         6, false, false))
         name = brief(ker)
         @testset "$nam" begin
             @test isnormalized(ker) == nrml

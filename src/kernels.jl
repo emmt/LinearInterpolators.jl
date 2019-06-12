@@ -28,6 +28,7 @@ export
     Kernel,
     KeysSpline,
     LanczosKernel,
+    LanczosKernelPrime,
     LinearSpline,
     LinearSplinePrime,
     MitchellNetravaliSpline,
@@ -857,19 +858,41 @@ struct LanczosKernel{T,S,B} <: Kernel{T,S,B}
     end
 end
 
+struct LanczosKernelPrime{T,S,B} <: Kernel{T,S,B}
+    a::T   # 1/2 support
+    c::T   # pi/a
+    function LanczosKernelPrime{T,S,B}() where {T,S,B}
+        @assert typeof(S) == Int && S > 0 && iseven(S)
+        a = T(S)/T(2)
+        new{T,S,B}(a, T(π)/a)
+    end
+end
+
 function LanczosKernel(::Type{T}, s::Integer,
                        ::Type{B} = Flat) where {T<:AbstractFloat,
                                                 B<:Boundaries}
-    LanczosKernel{T,Int(s),B}()
+    return LanczosKernel{T,Int(s),B}()
 end
 
-function LanczosKernel(s::Integer, ::Type{B} = Flat) where {B<:Boundaries}
-    LanczosKernel{Float64,Int(s),B}()
+function LanczosKernelPrime(::Type{T}, s::Integer,
+                            ::Type{B} = Flat) where {T<:AbstractFloat,
+                                                     B<:Boundaries}
+    return LanczosKernelPrime{T,Int(s),B}()
 end
+
+LanczosKernel(s::Integer, ::Type{B} = Flat) where {B<:Boundaries} =
+    LanczosKernel{Float64,Int(s),B}()
+
+LanczosKernelPrime(s::Integer, ::Type{B} = Flat) where {B<:Boundaries} =
+    LanczosKernelPrime{Float64,Int(s),B}()
 
 iscardinal(::Union{K,Type{K}}) where {K<:LanczosKernel} = true
 isnormalized(::Union{K,Type{K}}) where {K<:LanczosKernel} = false
 Base.summary(::LanczosKernel{T,S,B}) where {T,S,B} = "LanczosKernel($S)"
+
+iscardinal(::Union{K,Type{K}}) where {K<:LanczosKernelPrime} = false
+isnormalized(::Union{K,Type{K}}) where {K<:LanczosKernelPrime} = false
+Base.summary(::LanczosKernelPrime{T,S,B}) where {T,S,B} = "LanczosKernelPrime($S)"
 
 # `convert` should give something which is almost equivalent, so here we
 # enforce the same support size.
@@ -879,11 +902,31 @@ function convert(::Type{LanczosKernel{T,S,B}},
     LanczosKernel{T,S,B}()
 end
 
+function convert(::Type{LanczosKernelPrime{T,S,B}},
+                 ::LanczosKernelPrime{<:AbstractFloat,S,<:Boundaries}
+                 ) where {T<:AbstractFloat,S,B<:Boundaries}
+    LanczosKernelPrime{T,S,B}()
+end
+
 # Expression for non-zero argument in the range (-S/2,S/2).
 @inline _p(ker::LanczosKernel{T,S,B}, x::T) where {T,S,B} =
     ker.b*sin(π*x)*sin(ker.c*x)/(x*x)
 
+# Expression for non-zero argument in the range (-S/2,S/2).
+@inline function _p(ker::LanczosKernelPrime{T,S,B}, x::T) where {T,S,B}
+    x1 = π*x
+    s1, c1 = sin(x1), cos(x1)
+    r1 = s1/x1
+    x2 = ker.c*x # π*x/a
+    s2, c2 = sin(x2), cos(x2)
+    r2 = s2/x2
+    return (c1*r2 + c2*r1 - 2*r1*r2)/x
+end
+
 (ker::LanczosKernel{T,S,B})(x::T) where {T,S,B} =
+    (abs(x) ≥ ker.a ? zero(T) : x == 0 ? one(T) : _p(ker, x))
+
+(ker::LanczosKernelPrime{T,S,B})(x::T) where {T,S,B} =
     (abs(x) ≥ ker.a ? zero(T) : x == 0 ? one(T) : _p(ker, x))
 
 @generated function getweights(ker::LanczosKernel{T,S,B}, t::T) where {T,S,B}
@@ -898,6 +941,18 @@ end
                    [:($(W[i]) = _p(ker, t + $(c - i))) for i in 1:c-1]...,
                    :($(W[c]) = _p(ker, t)),
                    [:($(W[i]) = _p(ker, t - $(i - c))) for i in c+1:S]...)),
+         Expr(:return, Expr(:tuple, W...)))
+end
+
+@generated function getweights(ker::LanczosKernelPrime{T,S,B}, t::T) where {T,S,B}
+    c = (S >> 1) # central index
+    W = [Symbol("w",i) for i in 1:S] # all weights
+    Expr(:block,
+         #Expr(:meta, :inline),
+         Expr(:local, [:($w::T) for w in W]...),
+         [:($(W[i]) = ker(t + $(c - i))) for i in 1:c-1]...,
+         :($(W[c]) = ker(t)),
+         [:($(W[i]) = ker(t - $(i - c))) for i in c+1:S]...,
          Expr(:return, Expr(:tuple, W...)))
 end
 
@@ -936,6 +991,9 @@ end
 brief(::LanczosKernel{T,S,B}) where {T,S,B} =
     "Lanczos resampling kernel of size $S"
 
+brief(::LanczosKernelPrime{T,S,B}) where {T,S,B} =
+    "derivative of Lanczos resampling kernel of size $S"
+
 # Manage to yield the derivative of (some) kernels when the notation `ker'` is
 # used.
 for T in (:RectangularSpline, :LinearSpline, :QuadraticSpline,
@@ -945,6 +1003,9 @@ end
 
 adjoint(ker::CardinalCubicSpline{T,B}) where {T,B} =
     CardinalCubicSplinePrime{T,B}(ker.c)
+
+adjoint(ker::LanczosKernel{T,S,B}) where {T,S,B} =
+    LanczosKernelPrime{T,S,B}()
 
 
 # Provide methods for parameter-less kernels.
@@ -978,6 +1039,14 @@ end
 # Provide methods for all kernels.
 for K in subtypes(Kernel)
 
+    if K <: LanczosKernel
+        lanczos = true
+    elseif K <: LanczosKernelPrime
+        lanczos = true
+    else
+        lanczos = false
+    end
+
     # We want that calling the kernel on a different type of real argument than
     # the floting-point type of the kernel convert the argument.
     # Unfortunately, defining:
@@ -988,19 +1057,19 @@ for K in subtypes(Kernel)
     # leads to ambiguities, the following is ugly but works...
     for T in subtypes(AbstractFloat), R in (subtypes(AbstractFloat)..., Integer)
         if R != T
-            if K <: LanczosKernel
+            if lanczos
                 @eval @inline (ker::$K{$T,S,B})(x::$R) where {S,B<:Boundaries} =
-                    ker(convert($T, x))
+                    ker($T(x))
             else
                 @eval @inline (ker::$K{$T,B})(x::$R) where {B<:Boundaries} =
-                    ker(convert($T, x))
+                    ker($T(x))
             end
         end
     end
 
     # Change type.
     for R in (:Float16, :Float32, :Float64)
-        if K <: LanczosKernel
+        if lanczos
             @eval Base.$R(ker::$K{T,S,B}) where {T,S,B} =
                 convert($K{$R,S,B}, ker)
         else
@@ -1011,7 +1080,7 @@ for K in subtypes(Kernel)
 
     # Change boundary conditions.
     for C in (:Flat, :SafeFlat)
-        if K <: LanczosKernel
+        if lanczos
             @eval $C(ker::$K{T,S,B}) where {T,S,B} =
                 convert($K{T,S,$C}, ker)
         else
@@ -1021,7 +1090,7 @@ for K in subtypes(Kernel)
     end
 
     # Calling the kernel on an array.  FIXME: should be deprecated!
-    if K <: LanczosKernel
+    if lanczos
         @eval function (ker::$K{T,S,B})(A::AbstractArray
                                         ) where {T<:AbstractFloat,S,
                                                  B<:Boundaries}
@@ -1036,7 +1105,7 @@ for K in subtypes(Kernel)
 
     # Calling the kernel as a function to convert to another floating-point
     # type and/or other boundary conditions.
-    if K <: LanczosKernel
+    if lanczos
         @eval begin
             (ker::$K{T,S,B})(::Type{newT}, ::Type{newB}=B) where {
                 T, S, B, newT<:AbstractFloat, newB<:Boundaries
@@ -1074,5 +1143,5 @@ end
 @deprecate         CubicSpline′         CubicSplinePrime
 @deprecate        LinearSpline′        LinearSplinePrime
 @deprecate     QuadraticSpline′     QuadraticSplinePrime
-
+@deprecate       LanczosKernel′       LanczosKernelPrime
 end # module
