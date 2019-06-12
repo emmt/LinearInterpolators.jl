@@ -852,8 +852,8 @@ struct LanczosKernel{T,S,B} <: Kernel{T,S,B}
     c::T   # pi/a
     function LanczosKernel{T,S,B}() where {T,S,B}
         @assert typeof(S) == Int && S > 0 && iseven(S)
-        a = S/2
-        new{T,S,B}(a, a/pi^2, pi/a)
+        a = frac(T,S,2)
+        new{T,S,B}(a, a/T(π)^2, T(π)/a)
     end
 end
 
@@ -881,10 +881,10 @@ end
 
 # Expression for non-zero argument in the range (-S/2,S/2).
 @inline _p(ker::LanczosKernel{T,S,B}, x::T) where {T,S,B} =
-    ker.b*sin(pi*x)*sin(ker.c*x)/(x*x)
+    ker.b*sin(π*x)*sin(ker.c*x)/(x*x)
 
 (ker::LanczosKernel{T,S,B})(x::T) where {T,S,B} =
-    (abs(x) ≥ ker.a ? zero(T) : x == 0 ? 1 : _p(ker, x))
+    (abs(x) ≥ ker.a ? zero(T) : x == 0 ? one(T) : _p(ker, x))
 
 @generated function getweights(ker::LanczosKernel{T,S,B}, t::T) where {T,S,B}
     c = (S >> 1) # central index
