@@ -30,6 +30,7 @@ export
     Flat,
     Kernel,
     KeysSpline,
+    KeysSplinePrime,
     LanczosKernel,
     LanczosKernelPrime,
     LinearSpline,
