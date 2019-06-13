@@ -36,6 +36,7 @@ export
     LinearSpline,
     LinearSplinePrime,
     MitchellNetravaliSpline,
+    MitchellNetravaliSplinePrime,
     QuadraticSpline,
     QuadraticSplinePrime,
     RectangularSpline,

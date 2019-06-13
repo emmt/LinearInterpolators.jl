@@ -33,6 +33,7 @@ export
     LinearSpline,
     LinearSplinePrime,
     MitchellNetravaliSpline,
+    MitchellNetravaliSplinePrime,
     QuadraticSpline,
     QuadraticSplinePrime,
     RectangularSpline,
@@ -768,6 +769,29 @@ struct MitchellNetravaliSpline{T,B} <: Kernel{T,4,B}
     end
 end
 
+struct MitchellNetravaliSplinePrime{T,B} <: Kernel{T,4,B}
+    b ::T
+    c ::T
+    p1::T
+    p2::T
+    q0::T
+    q1::T
+    q2::T
+    function MitchellNetravaliSplinePrime{T,B}(_b::Real,
+                                               _c::Real) where {T,B}
+        b, c = T(_b), T(_c)
+        new{T,B}(
+            b, c,
+            ( -18 + 12*b +  6*c)/3,
+            (  12 -  9*b -  6*c)/2,
+            (     - 12*b - 48*c)/6,
+            (        6*b + 30*c)/3,
+            (     -    b -  6*c)/2)
+    end
+end
+
+@doc @doc(MitchellNetravaliSpline) MitchellNetravaliSplinelPrime
+
 function MitchellNetravaliSpline(::Type{T}, b::Real, c::Real,
                                  ::Type{B} = Flat) where {T<:AbstractFloat,
                                                           B<:Boundaries}
@@ -779,6 +803,17 @@ function MitchellNetravaliSpline(b::Real, c::Real,
     MitchellNetravaliSpline(Float64, b, c, B)
 end
 
+function MitchellNetravaliSplinePrime(::Type{T}, b::Real, c::Real,
+                                      ::Type{B} = Flat) where {T<:AbstractFloat,
+                                                               B<:Boundaries}
+    MitchellNetravaliSplinePrime{T,B}(b, c)
+end
+
+function MitchellNetravaliSplinePrime(b::Real, c::Real,
+                                      ::Type{B} = Flat) where {B<:Boundaries}
+    MitchellNetravaliSplinePrime(Float64, b, c, B)
+end
+
 # Create Mitchell-Netravali kernel with default "good" parameters.
 function MitchellNetravaliSpline(::Type{T} = Float64,
                                  ::Type{B} = Flat) where {T<:AbstractFloat,
@@ -786,17 +821,34 @@ function MitchellNetravaliSpline(::Type{T} = Float64,
     MitchellNetravaliSpline{T,B}(frac(T,1,3), frac(T,1,3))
 end
 
+function MitchellNetravaliSplinePrime(::Type{T} = Float64,
+                                      ::Type{B} = Flat) where {T<:AbstractFloat,
+                                                               B<:Boundaries}
+    MitchellNetravaliSplinePrime{T,B}(frac(T,1,3), frac(T,1,3))
+end
+
 iscardinal(ker::MitchellNetravaliSpline{T,B}) where {T,B} = (ker.b == 0)
+iscardinal(ker::MitchellNetravaliSplinePrime{T,B}) where {T,B} = false
 
 isnormalized(::Union{K,Type{K}}) where {K<:MitchellNetravaliSpline} = true
+isnormalized(::Union{K,Type{K}}) where {K<:MitchellNetravaliSplinePrime} = false
 
 Base.summary(ker::MitchellNetravaliSpline{T,B}) where {T,B} =
     @sprintf("MitchellNetravaliSpline(%.1f,%.1f)", ker.b, ker.c)
+
+Base.summary(ker::MitchellNetravaliSplinePrime{T,B}) where {T,B} =
+    @sprintf("MitchellNetravaliSplinePrime(%.1f,%.1f)", ker.b, ker.c)
 
 function convert(::Type{MitchellNetravaliSpline{T,B}},
                  ker::MitchellNetravaliSpline) where {T<:AbstractFloat,
                                                       B<:Boundaries}
     MitchellNetravaliSpline(T, ker.b, ker.c, B)
+end
+
+function convert(::Type{MitchellNetravaliSplinePrime{T,B}},
+                 ker::MitchellNetravaliSplinePrime) where {T<:AbstractFloat,
+                                                           B<:Boundaries}
+    MitchellNetravaliSplinePrime(T, ker.b, ker.c, B)
 end
 
 @inline _p(ker::MitchellNetravaliSpline{T,B}, x::T) where {T,B} =
@@ -812,10 +864,31 @@ end
 
 @inline function getweights(ker::MitchellNetravaliSpline{T,B},
                             t::T) where {T<:AbstractFloat,B}
+    # 25 operations
     return (_q(ker, t + 1),
             _p(ker, t),
             _p(ker, 1 - t),
             _q(ker, 2 - t))
+end
+
+@inline _p(ker::MitchellNetravaliSplinePrime{T,B}, x::T) where {T,B} =
+    (ker.p2*x + ker.p1)*x
+
+@inline _q(ker::MitchellNetravaliSplinePrime{T,B}, x::T) where {T,B} =
+    (ker.q2*x + ker.q1)*x + ker.q0
+
+function (ker::MitchellNetravaliSplinePrime{T,B})(x::T) where {T<:AbstractFloat,B}
+    s, a = signabs(x)
+    return (a ≥ 2 ? zero(T) : a ≤ 1 ? s*_p(ker, a) : s*_q(ker, a))
+end
+
+@inline function getweights(ker::MitchellNetravaliSplinePrime{T,B},
+                            t::T) where {T<:AbstractFloat,B}
+    # 19 operations
+    return (_q(ker, t + 1),
+            _p(ker, t),
+            -_p(ker, 1 - t),
+            -_q(ker, 2 - t))
 end
 
 #------------------------------------------------------------------------------
@@ -1060,6 +1133,8 @@ struct LanczosKernelPrime{T,S,B} <: Kernel{T,S,B}
     end
 end
 
+@doc @doc(LanczosKernel) LanczosKernelPrime
+
 function LanczosKernel(::Type{T}, s::Integer,
                        ::Type{B} = Flat) where {T<:AbstractFloat,
                                                 B<:Boundaries}
@@ -1176,6 +1251,7 @@ for (T, str) in (
     (:CatmullRomSpline, "Catmull & Rom cubic spline"),
     (:CatmullRomSplinePrime, "derivative of Catmull & Rom cubic spline"),
     (:MitchellNetravaliSpline, "Mitchell & Netravali cubic spline"),
+    (:MitchellNetravaliSplinePrime, "derivative of Mitchell & Netravali cubic spline"),
     (:KeysSpline, "Keys cubic spline"),
     (:KeysSplinePrime, "derivative of Keys cubic spline"))
     @eval brief(::$T) = $str
@@ -1199,6 +1275,12 @@ adjoint(ker::CardinalCubicSpline{T,B}) where {T,B} =
 
 adjoint(ker::LanczosKernel{T,S,B}) where {T,S,B} =
     LanczosKernelPrime{T,S,B}()
+
+adjoint(ker::MitchellNetravaliSpline{T,B}) where {T,B} =
+    MitchellNetravaliSplinePrime{T,B}(ker.b, ker.c)
+
+adjoint(ker::KeysSpline{T,B}) where {T,B} =
+    KeysSplinePrime{T,B}(ker.a)
 
 
 # Provide methods for parameter-less kernels.
@@ -1325,12 +1407,13 @@ end
 # Second = ″
 # Third = ‴
 
-@deprecate          KeysSpline′          KeysSplinePrime
-@deprecate         CubicSpline′         CubicSplinePrime
-@deprecate        LinearSpline′        LinearSplinePrime
-@deprecate       LanczosKernel′       LanczosKernelPrime
-@deprecate     QuadraticSpline′     QuadraticSplinePrime
-@deprecate    CatmullRomSpline′    CatmullRomSplinePrime
-@deprecate CardinalCubicSpline′ CardinalCubicSplinePrime
+@deprecate          KeysSpline′                  KeysSplinePrime
+@deprecate         CubicSpline′                 CubicSplinePrime
+@deprecate        LinearSpline′                LinearSplinePrime
+@deprecate       LanczosKernel′               LanczosKernelPrime
+@deprecate     QuadraticSpline′             QuadraticSplinePrime
+@deprecate    CatmullRomSpline′            CatmullRomSplinePrime
+@deprecate CardinalCubicSpline′         CardinalCubicSplinePrime
+@deprecate MitchellNetravaliSpline′ MitchellNetravaliSplinePrime
 
 end # module
