@@ -6,9 +6,13 @@ version = "0.1.0"
 [deps]
 Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
 LazyAlgebra = "aeaa251e-9d76-11e9-311b-83636bf44738"
+InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+
 
 [targets]
-test = ["Test"]
+test = ["Test", "Random"]
