@@ -563,7 +563,7 @@ CardinalCubicSpline([T=Float64,] c, B=Flat) -> ker
 
 yields a cardinal cubic spline interpolation kernel for floating-point type `T`
 tension parameter `c` and boundary conditions `B`.  The slope at `x = ±1` is
-`∓(1 - c)/2`.  Usually `c ≤ 1`, choosing `c = 0` yields a Catmull-Rom spline,
+`±(c - 1)/2`.  Usually `c ≤ 1`, choosing `c = 0` yields a Catmull-Rom spline,
 `c = 1` yields all zero tangents, `c = -1` yields a truncated approximation of
 a cardinal sine, `c = -1/2` yields an interpolating cubic spline with
 continuous second derivatives (inside its support).
@@ -576,13 +576,15 @@ CardinalCubicSplinePrime([T=Float64,] c, B=Flat) -> ker
 
 """
 struct CardinalCubicSpline{T,B} <: Kernel{T,4,B}
-    c::T
-    p::T
+    c::T # cardinal cubic spline parameter
+    p::T # slope at x=1
     q::T
+    r::T
 
     function CardinalCubicSpline{T,B}(c_::Real) where {T,B}
-        c = convert(T, c_)
-        new{T,B}(c, (c - 1)/2, (c + 1)/2)
+        c = T(c_)
+        q = (c + 1)/2
+        new{T,B}(c, q - 1, q, q + 1)
     end
 end
 
@@ -602,9 +604,6 @@ isnormalized(::Union{K,Type{K}}) where {K<:CardinalCubicSpline} = true
 Base.show(io::IO, ker::CardinalCubicSpline) =
     print(io, "CardinalCubicSpline(", @sprintf("%.1f", ker.c), ")")
 
-#Base.summary(ker::CardinalCubicSpline) =
-#    @sprintf("CardinalCubicSpline(%.1f)", ker.p + ker.q)
-
 function convert(::Type{CardinalCubicSpline{T,B}},
                  ker::CardinalCubicSpline) where {T<:AbstractFloat,
                                                   B<:Boundaries}
@@ -615,7 +614,7 @@ function (ker::CardinalCubicSpline{T,B})(x::T) where {T<:AbstractFloat,B}
     a = abs(x)
     return (a ≥ 2 ? zero(T) :
             a ≥ 1 ? ker.p*(a - 1)*square(2 - a) :
-            ((ker.q*a + a)*a - a - 1)*(a - 1))
+            ((ker.r*a - 1)*a - 1)*(a - 1))
 end
 
 @inline function getweights(ker::CardinalCubicSpline{T,B},
