@@ -1,4 +1,6 @@
 # See example script at https://github.com/JuliaLang/Example.jl
+# Also see Travis script https://github.com/travis-ci/travis-build/blob/master/lib/travis/build/script/julia.rb
+
 language: julia
 
 os:
@@ -6,7 +8,7 @@ os:
   - osx
 
 julia:
-  - 0.6
+# - 0.6
   - 0.7
   - 1.0
   - 1.1
@@ -18,6 +20,13 @@ matrix:
 
 notifications:
   email: false
+
+before_script:
+  - julia -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/emmt/LazyAlgebra.jl", rev="master"))'
+
+codecov: true
+
+coveralls: true
 
 #script: # the default script is equivalent to the following
 #  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
