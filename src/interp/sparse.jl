@@ -19,9 +19,8 @@ export
     SparseInterpolator,
     SparseUnidimensionalInterpolator
 
-using Compat
-import Compat: axes
-import Compat.SparseArrays: sparse
+import Base: axes
+import SparseArrays: sparse
 
 using ...Kernels
 using ...Interpolations

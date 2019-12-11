@@ -23,16 +23,11 @@ export
     scale,
     translate
 
-# Deal with compatibility issues.
-@static if isdefined(Base, :scale)
-    import Base.scale
-end
-using Compat
-import Compat: LinearAlgebra
+using LinearAlgebra
 
 # Imports for extension (at least * must be imported for deprecation).
 import Base: +, *, ∘, /, \, inv, eltype
-import .LinearAlgebra: ⋅, det
+import LinearAlgebra: ⋅, det
 
 
 """

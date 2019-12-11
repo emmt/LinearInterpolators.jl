@@ -13,8 +13,6 @@
 
 module Meta
 
-using Compat
-
 const Arg = Union{Number,Symbol,Expr}
 
 #"""

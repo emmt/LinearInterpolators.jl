@@ -14,8 +14,6 @@
 # All code is in a module to "hide" private methods.
 module UnidimensionalInterpolators
 
-using Compat
-
 using ...Kernels
 using ...Interpolations
 import ...Interpolations.Meta

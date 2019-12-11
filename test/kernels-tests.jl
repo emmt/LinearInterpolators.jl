@@ -4,8 +4,7 @@ module LinearInterpolatorsKernelsTests
 
 using LinearInterpolators.Kernels
 
-using Compat
-using Compat.Test
+using Test
 
 shortname(::Nothing) = ""
 shortname(m::RegexMatch) = m.captures[1]

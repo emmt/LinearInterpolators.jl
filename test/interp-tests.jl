@@ -6,11 +6,9 @@ using LazyAlgebra
 
 using LinearInterpolators
 
-using Compat
-using Compat.Printf
-using Compat.Test
-using Compat.Statistics: mean
-using Compat: range
+using Printf
+using Test
+using Statistics: mean
 
 distance(a::Real, b::Real) = abs(a - b)
 

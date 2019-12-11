@@ -2,8 +2,6 @@ isdefined(:LinearInterpolators) || include("../src/LinearInterpolators.jl")
 
 module LinearInterpolatorsInterpolationsDemos
 
-using Compat
-
 using LazyAlgebra
 using LinearInterpolators.Kernels
 using LinearInterpolators.Interpolations
