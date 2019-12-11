@@ -8,34 +8,39 @@ os:
   - osx
 
 julia:
-# - 0.6
-  - 0.7
   - 1.0
   - 1.1
   - 1.2
+  - 1.3
   - nightly
 
 matrix:
   allow_failures:
-  - julia: 1.2
   - julia: nightly
 
 notifications:
   email: false
 
-before_script:
-  - julia -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/emmt/LazyAlgebra.jl", rev="master"))'
+#before_script:
+#  - julia -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/emmt/LazyAlgebra.jl", rev="master"))'
 
 codecov: true
 
 coveralls: true
 
+script:
+  - julia --project --color=yes --check-bounds=yes -e 'using Pkg;
+        Pkg.add(PackageSpec(url="https://github.com/emmt/ArrayTools.jl", rev="master"));
+        Pkg.add(PackageSpec(url="https://github.com/emmt/LazyAlgebra.jl", rev="master"));
+        Pkg.instantiate()'
+  - julia --project --color=yes --check-bounds=yes -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.test(coverage=true)'
+
 #script: # the default script is equivalent to the following
 #  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
 #  - julia -e 'Pkg.clone(pwd()); Pkg.build("LinearInterpolators"); Pkg.test("LinearInterpolators"; coverage=true)';
 
-after_success:
-  - julia -e 'if VERSION >= v"0.7.0-" using Pkg end; cd(Pkg.dir("LinearInterpolators")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())';
+#after_success:
+#  - julia -e 'if VERSION >= v"0.7.0-" using Pkg end; cd(Pkg.dir("LinearInterpolators")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())';
 
 #jobs:
 #  include:
