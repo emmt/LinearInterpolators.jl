@@ -28,7 +28,8 @@ import Base: eltype, length, size, first, last, clamp, convert
 using ..Kernels
 import ..Kernels: boundaries
 
-using ..AffineTransforms
+using TwoDimensional.AffineTransforms
+using TwoDimensional: AffineTransform2D
 
 using LazyAlgebra
 import LazyAlgebra: apply, apply!, vcreate, output_size, input_size

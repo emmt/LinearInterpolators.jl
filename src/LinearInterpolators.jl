@@ -53,8 +53,8 @@ export
     nameof,
     rotate
 
-include("AffineTransforms.jl")
-using .AffineTransforms
+using TwoDimensional.AffineTransforms
+using TwoDimensional.Suffixed: AffineTransform2D
 
 include("kernels.jl")
 using .Kernels
