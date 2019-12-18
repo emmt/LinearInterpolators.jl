@@ -2,7 +2,7 @@
 
 module LinearInterpolatorsInterpolationsTests
 
-using LazyAlgebra
+using LazyAlgebra, TwoDimensional
 
 using LinearInterpolators
 
@@ -74,6 +74,27 @@ end
         @test distance(S(ysub), y) ≤ tol
         @test distance(S(ysub), apply(ker,t,ysub)) ≤ 1e-15
     end
+end
+
+@testset "TwoDimensionalTransformInterpolator" begin
+    kerlist = (RectangularSpline(), LinearSpline(), CatmullRomSpline())
+    rows = (11,16)
+    cols = (10,15)
+
+    # Define a rotation around c.
+    c = (5.6, 6.4)
+    R = c + rotate(AffineTransform2D{Float64}() - c, 0.2)
+
+    for ker1 in kerlist, ker2 in kerlist
+        A = TwoDimensionalTransformInterpolator(rows, cols, ker1, ker2, R)
+        x = randn(cols)
+        y = randn(rows)
+        #x0 = randn(cols)
+        #y0 = Array{Float64}(undef, rows)
+        #x1 = Array{Float64}(undef, cols)
+        @test vdot(A*x, y) ≈ vdot(x, A'*y)
+    end
+
 end
 
 end # module
