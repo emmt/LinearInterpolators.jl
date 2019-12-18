@@ -18,6 +18,7 @@ export
     SparseInterpolator,
     SparseUnidimensionalInterpolator,
     TabulatedInterpolator,
+    TwoDimensionalTransformInterpolator,
     limits,
     inferior,
     superior,

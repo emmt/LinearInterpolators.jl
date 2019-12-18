@@ -45,6 +45,7 @@ export
     SparseInterpolator,
     SparseUnidimensionalInterpolator,
     TabulatedInterpolator,
+    TwoDimensionalTransformInterpolator,
     boundaries,
     intercept,
     iscardinal,

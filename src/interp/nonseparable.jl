@@ -13,6 +13,100 @@
 
 # FIXME: if axes are aligned, use separable interpolation.
 
+"""
+
+```julia
+TwoDimensionalTransformInterpolator(rows, cols, ker1, ker2, R)
+```
+
+yields a linear mapping which interpolate its input of size `cols` to produce
+an output of size `rows` by 2-dimensional interpolation with kernels `ker1` and
+`ker2` along each dimension and applying the affine coordinate transform
+specified by `R`.
+
+As a shortcut:
+
+```julia
+TwoDimensionalTransformInterpolator(rows, cols, ker, R)
+```
+
+is equivallent to `TwoDimensionalTransformInterpolator(rows,cols,ker,ker,R)`
+that is the same kernel is used along all dimensions.
+
+"""
+
+struct TwoDimensionalTransformInterpolator{T<:AbstractFloat,
+                                           K1<:Kernel{T},
+                                           K2<:Kernel{T}} <: LinearMapping
+    rows::NTuple{2,Int}
+    cols::NTuple{2,Int}
+    ker1::K1
+    ker2::K2
+    R::AffineTransform2D{T}
+end
+
+function TwoDimensionalTransformInterpolator(rows::NTuple{2,Int},
+                                             cols::NTuple{2,Int},
+                                             ker::Kernel, R::AffineTransform2D)
+    TwoDimensionalTransformInterpolator(rows, cols, ker, ker, R)
+end
+
+function TwoDimensionalTransformInterpolator(rows::NTuple{2,Int},
+                                             cols::NTuple{2,Int},
+                                             ker1::Kernel{T1},
+                                             ker2::Kernel{T2},
+                                             R::AffineTransform2D{Tr}) where {T1,T2,Tr}
+    T = promote_type(T1, T2, Tr)
+    TwoDimensionalTransformInterpolator(rows, cols,
+                                        convert(Kernel{T}, ker1),
+                                        convert(Kernel{T}, ker2),
+                                        convert(AffineTransform2D{T}, R))
+end
+
+# TODO: Replace assertions by error messages.
+input_size(A::TwoDimensionalTransformInterpolator) = A.cols
+output_size(A::TwoDimensionalTransformInterpolator) = A.rows
+
+function vcreate(::Type{Direct}, A::TwoDimensionalTransformInterpolator{T},
+                 x::AbstractArray{T,2}, scratch::Bool = false) where {T}
+    @assert !Base.has_offset_axes(x)
+    @assert size(x) == A.cols
+    Array{T,2}(undef, A.rows)
+end
+
+function vcreate(::Type{Adjoint}, A::TwoDimensionalTransformInterpolator{T},
+                 x::AbstractArray{T,2}, scratch::Bool = false) where {T}
+    @assert !Base.has_offset_axes(x)
+    @assert size(x) == A.rows
+    Array{T,2}(undef, A.cols)
+end
+
+function apply!(α::Real,
+                ::Type{Direct},
+                A::TwoDimensionalTransformInterpolator{T},
+                x::AbstractArray{T,2},
+                β::Real,
+                y::AbstractArray{T,2},) where {T}
+    @assert !Base.has_offset_axes(x, y)
+    @assert size(x) == A.cols
+    @assert size(y) == A.rows
+    apply!(α, Direct, A.ker1, A.ker2, A.R, x, β, y)
+end
+
+function apply!(α::Real,
+                ::Type{Adjoint},
+                A::TwoDimensionalTransformInterpolator{T},
+                x::AbstractArray{T,2},
+                β::Real,
+                y::AbstractArray{T,2},) where {T}
+    @assert !Base.has_offset_axes(x, y)
+    @assert size(x) == A.rows
+    @assert size(y) == A.cols
+    apply!(α, Adjoint, A.ker1, A.ker2, A.R, x, β, y)
+end
+
+# TODO: Simplify signatures below.
+
 # Provide default Direct operation.
 function apply!(dst::AbstractArray{T,2},
                 ker::Kernel{T,S,<:Boundaries},
