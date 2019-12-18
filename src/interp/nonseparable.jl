@@ -85,6 +85,7 @@ function apply!(α::Real,
                 ::Type{Direct},
                 A::TwoDimensionalTransformInterpolator{T},
                 x::AbstractArray{T,2},
+                scratch::Bool,
                 β::Real,
                 y::AbstractArray{T,2},) where {T}
     @assert !Base.has_offset_axes(x, y)
@@ -97,6 +98,7 @@ function apply!(α::Real,
                 ::Type{Adjoint},
                 A::TwoDimensionalTransformInterpolator{T},
                 x::AbstractArray{T,2},
+                scratch::Bool,
                 β::Real,
                 y::AbstractArray{T,2},) where {T}
     @assert !Base.has_offset_axes(x, y)
@@ -105,20 +107,18 @@ function apply!(α::Real,
     apply!(α, Adjoint, A.ker1, A.ker2, A.R, x, β, y)
 end
 
-# TODO: Simplify signatures below.
-
 # Provide default Direct operation.
 function apply!(dst::AbstractArray{T,2},
-                ker::Kernel{T,S,<:Boundaries},
+                ker::Kernel{T},
                 R::AffineTransform2D{T},
-                src::AbstractArray{T,2}) where {T,S}
+                src::AbstractArray{T,2}) where {T}
     apply!(dst, Direct, ker, R, src)
 end
 function apply!(dst::AbstractArray{T,2},
-                ker1::Kernel{T,S1,<:Boundaries},
-                ker2::Kernel{T,S2,<:Boundaries},
+                ker1::Kernel{T},
+                ker2::Kernel{T},
                 R::AffineTransform2D{T},
-                src::AbstractArray{T,2}) where {T,S1,S2}
+                src::AbstractArray{T,2}) where {T}
     return apply!(dst, Direct, ker1, ker2, R, src)
 end
 
@@ -126,36 +126,35 @@ end
 # Provide default α=1 and β=0 factors.
 function apply!(dst::AbstractArray{T,2},
                 ::Type{P},
-                ker::Kernel{T,S,<:Boundaries},
+                ker::Kernel{T},
                 R::AffineTransform2D{T},
-                src::AbstractArray{T,2}) where {P<:Operations,T,S}
+                src::AbstractArray{T,2}) where {P<:Operations,T}
     return apply!(1, P, ker, R, src, 0, dst)
 end
 function apply!(dst::AbstractArray{T,2},
                 ::Type{P},
-                ker1::Kernel{T,S1,<:Boundaries},
-                ker2::Kernel{T,S2,<:Boundaries},
+                ker1::Kernel{T},
+                ker2::Kernel{T},
                 R::AffineTransform2D{T},
-                src::AbstractArray{T,2}) where {P<:Operations,T,S1,S2}
+                src::AbstractArray{T,2}) where {P<:Operations,T}
     return apply!(1, P, ker1, ker2, R, src, 0, dst)
 end
 
 # Provide default pair of kernels (ker1,ker2) = ker.
 function apply!(α::Real,
                 ::Type{P},
-                ker::Kernel{T,S,<:Boundaries},
+                ker::Kernel{T},
                 R::AffineTransform2D{T},
                 src::AbstractArray{T,2},
                 β::Real,
-                dst::AbstractArray{T,2}) where {P<:Operations,
-                                                T<:AbstractFloat,S}
+                dst::AbstractArray{T,2}) where {P<:Operations,T}
     return apply!(α, P, ker, ker, R, src, β, dst)
 end
 
 @generated function apply!(α::Real,
                            ::Type{Direct},
-                           ker1::Kernel{T,S1,<:Boundaries},
-                           ker2::Kernel{T,S2,<:Boundaries},
+                           ker1::Kernel{T,S1},
+                           ker2::Kernel{T,S2},
                            R::AffineTransform2D{T},
                            src::AbstractArray{T,2},
                            β::Real,
@@ -209,8 +208,8 @@ end
 
 @generated function apply!(α::Real,
                            ::Type{Adjoint},
-                           ker1::Kernel{T,S1,<:Boundaries},
-                           ker2::Kernel{T,S2,<:Boundaries},
+                           ker1::Kernel{T,S1},
+                           ker2::Kernel{T,S2},
                            R::AffineTransform2D{T},
                            src::AbstractArray{T,2},
                            β::Real,
