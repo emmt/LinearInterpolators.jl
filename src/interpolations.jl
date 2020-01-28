@@ -33,7 +33,8 @@ using TwoDimensional.AffineTransforms
 using TwoDimensional: AffineTransform2D
 
 using LazyAlgebra
-import LazyAlgebra: apply, apply!, vcreate, output_size, input_size
+import LazyAlgebra: apply, apply!, vcreate, output_size, input_size,
+    coefficients
 
 """
 
@@ -181,7 +182,6 @@ where `R` is an `AffineTransform2D` and `P` is `Direct` (the default) or
 
 """ apply
 
-function coefficients end
 function rows end
 function columns end
 function fit end
