@@ -14,12 +14,13 @@
 # All code is in a module to "hide" private methods.
 module UnidimensionalInterpolators
 
-using ...Kernels
-using ...Interpolations
-import ...Interpolations.Meta
+using InterpolationKernels
 
 using LazyAlgebra
 import LazyAlgebra: apply, apply!, vcreate
+
+using ...Interpolations
+import ...Interpolations.Meta
 
 #------------------------------------------------------------------------------
 # Out-of place versions (coordinates cannot be a function).

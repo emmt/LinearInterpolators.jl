@@ -54,11 +54,9 @@ export
     nameof,
     rotate
 
+using InterpolationKernels
 using TwoDimensional.AffineTransforms
 using TwoDimensional.Suffixed: AffineTransform2D
-
-include("kernels.jl")
-using .Kernels
 
 include("interpolations.jl")
 using .Interpolations

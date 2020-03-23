@@ -38,23 +38,31 @@ that the result depends linearly on the input.
 
 ## Installation
 
-[LazyAlgebra](https://github.com/emmt/LazyAlgebra.jl) is a prerequisite for
-LinearInterpolators.  See [Documentation of
+[LazyAlgebra](https://github.com/emmt/LazyAlgebra.jl) and
+[InterpolationKernels](https://github.com/emmt/InterpolationKernels.jl) are
+prerequisites for LinearInterpolators.  These two packages can be installed by
+Julia's package manager.  See [Documentation of
 LazyAlgebra](https://emmt.github.io/LazyAlgebra.jl/dev/install/) for installing
-this package.
+this package.  For
+[InterpolationKernels](https://github.com/emmt/InterpolationKernels.jl), you
+just have to type:
+
+```julia
+pkg> add https://github.com/emmt/InterpolationKernels.jl
+```
 
 LinearInterpolators is not yet an [official Julia package][julia-url] so you
 have to clone the repository.  In Julia, hit the `]` key to switch to the
 package manager REPL (you should get a `... pkg>` prompt) and type:
 
 ```julia
-pkg> add https://github.com/emmt/LinearInterpolators.jl.git
+pkg> add https://github.com/emmt/LinearInterpolators.jl
 ```
 
 if you use HTTPS, or:
 
 ```julia
-pkg> add git@github.com:emmt/LinearInterpolators.jl.git
+pkg> add git@github.com:emmt/LinearInterpolators.jl
 ```
 
 if you use SSH.

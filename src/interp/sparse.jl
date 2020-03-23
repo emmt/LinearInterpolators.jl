@@ -19,16 +19,16 @@ export
     SparseInterpolator,
     SparseUnidimensionalInterpolator
 
+using InterpolationKernels
+using LazyAlgebra
+
 import Base: axes
 import SparseArrays: sparse
+import LazyAlgebra: apply, apply!, vcreate, output_size, input_size
 
-using ...Kernels
 using ...Interpolations
 import ...Interpolations: Meta, coefficients, columns, rows,
     fit, regularize, regularize!
-
-using LazyAlgebra
-import LazyAlgebra: apply, apply!, vcreate, output_size, input_size
 
 struct SparseInterpolator{T<:AbstractFloat,S,N} <: LinearMapping
     C::Vector{T}

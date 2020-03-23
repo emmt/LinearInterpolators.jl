@@ -17,12 +17,12 @@ module TabulatedInterpolators
 export
     TabulatedInterpolator
 
-using ...Kernels
-using ...Interpolations
-import ...Interpolations.Meta
-
+using InterpolationKernels
 using LazyAlgebra
 import LazyAlgebra: vcreate, apply!, apply
+
+using ...Interpolations
+import ...Interpolations.Meta
 
 struct TabulatedInterpolator{T<:AbstractFloat,S,D} <: LinearMapping
     nrows::Int     # length of output dimension
