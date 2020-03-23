@@ -14,8 +14,6 @@
 
 module Kernels
 
-import Base: convert
-
 export
     Boundaries,
     CardinalCubicSpline,
@@ -45,9 +43,9 @@ export
     isnormalized,
     brief
 
+import Base: convert, adjoint
 using Printf
 using InteractiveUtils # for subtypes
-import Base: adjoint
 
 #------------------------------------------------------------------------------
 # EXTRAPOLATION METHODS
@@ -1376,7 +1374,7 @@ for K in subtypes(Kernel)
                 T, S, B, newT<:AbstractFloat, newB<:Boundaries
             } = convert($K{newT,S,newB}, ker)
 
-            Base.convert(::Type{$K{T,S,B}}, ker::$K{T,S,B}) where {T,S,B} = ker
+            convert(::Type{$K{T,S,B}}, ker::$K{T,S,B}) where {T,S,B} = ker
         end
     else
         @eval begin
@@ -1388,7 +1386,7 @@ for K in subtypes(Kernel)
                 T, B, newT<:AbstractFloat, newB<:Boundaries
             } = convert($K{newT,newB}, ker)
 
-            Base.convert(::Type{$K{T,B}}, ker::$K{T,B}) where {T,B} = ker
+            convert(::Type{$K{T,B}}, ker::$K{T,B}) where {T,B} = ker
         end
     end
 
