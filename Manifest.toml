@@ -5,7 +5,7 @@ uuid = "621f4979-c628-5d54-868e-fcf4e3e8185c"
 version = "0.5.0"
 
 [[ArrayTools]]
-git-tree-sha1 = "f576422adfd33eba481591297ea42c1ec3fb7a63"
+git-tree-sha1 = "f5a7734e20351b07458b890520f0214de92e7e22"
 repo-rev = "master"
 repo-url = "https://github.com/emmt/ArrayTools.jl"
 uuid = "1dc0ca97-c5ce-4e77-ac6d-c576ac9d7f27"
@@ -15,16 +15,16 @@ version = "0.1.0"
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[BinaryProvider]]
-deps = ["Libdl", "SHA"]
-git-tree-sha1 = "5b08ed6036d9d3f0ee6369410b830f8873d4024c"
+deps = ["Libdl", "Logging", "SHA"]
+git-tree-sha1 = "ecdec412a9abc8db54c0efc5548c64dfce072058"
 uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
-version = "0.5.8"
+version = "0.5.10"
 
 [[Conda]]
 deps = ["JSON", "VersionParsing"]
-git-tree-sha1 = "9a11d428dcdc425072af4aea19ab1e8c3e01c032"
+git-tree-sha1 = "7a58bb32ce5d85f8bf7559aa7c2842f9aecf52fc"
 uuid = "8f4d0f93-b110-5947-807f-2305c1781a2d"
-version = "1.3.0"
+version = "1.4.1"
 
 [[Dates]]
 deps = ["Printf"]
@@ -44,6 +44,14 @@ version = "1.1.0"
 deps = ["LinearAlgebra", "Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
+[[InterpolationKernels]]
+deps = ["InteractiveUtils", "Printf"]
+git-tree-sha1 = "8b7aed15cd10ddbec883976175dbea21bc0ae6f0"
+repo-rev = "master"
+repo-url = "https://github.com/emmt/InterpolationKernels.jl"
+uuid = "16730964-a2ec-11e9-36fa-47a4f82bfac6"
+version = "0.1.0"
+
 [[JSON]]
 deps = ["Dates", "Mmap", "Parsers", "Unicode"]
 git-tree-sha1 = "b34d7cef7b337321e97d22242c3c2b91f476748e"
@@ -52,7 +60,7 @@ version = "0.21.0"
 
 [[LazyAlgebra]]
 deps = ["AbstractFFTs", "ArrayTools", "FFTW", "LinearAlgebra", "Printf", "SparseArrays"]
-git-tree-sha1 = "ab14301cc58caa63e6dda9f30b9fe7801151bcaf"
+git-tree-sha1 = "558cef1e8f80abaf2ed93f8dd1ef59e295edce72"
 repo-rev = "master"
 repo-url = "https://github.com/emmt/LazyAlgebra.jl"
 uuid = "aeaa251e-9d76-11e9-311b-83636bf44738"
@@ -80,9 +88,9 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[Parsers]]
 deps = ["Dates", "Test"]
-git-tree-sha1 = "0139ba59ce9bc680e2925aec5b7db79065d60556"
+git-tree-sha1 = "f0abb338b4d00306500056a3fd44c221b8473ef2"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "0.3.10"
+version = "1.0.4"
 
 [[Pkg]]
 deps = ["Dates", "LibGit2", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
