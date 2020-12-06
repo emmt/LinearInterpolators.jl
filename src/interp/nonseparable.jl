@@ -69,15 +69,13 @@ output_size(A::TwoDimensionalTransformInterpolator) = A.rows
 
 function vcreate(::Type{Direct}, A::TwoDimensionalTransformInterpolator{T},
                  x::AbstractArray{T,2}, scratch::Bool = false) where {T}
-    @assert !Base.has_offset_axes(x)
-    @assert size(x) == A.cols
+    # Checking x is done by apply!
     Array{T,2}(undef, A.rows)
 end
 
 function vcreate(::Type{Adjoint}, A::TwoDimensionalTransformInterpolator{T},
                  x::AbstractArray{T,2}, scratch::Bool = false) where {T}
-    @assert !Base.has_offset_axes(x)
-    @assert size(x) == A.rows
+    # Checking x is done by apply!
     Array{T,2}(undef, A.cols)
 end
 
