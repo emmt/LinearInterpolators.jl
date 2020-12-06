@@ -19,6 +19,7 @@ export
 
 using InterpolationKernels
 using LazyAlgebra
+using LazyAlgebra.LazyAlgebraLowLevel
 import LazyAlgebra: vcreate, apply!, apply
 
 using ...Interpolations
@@ -218,8 +219,8 @@ function vcreate(::Type{P},
                  A::TabulatedInterpolator{R,S,Nothing},
                  src::AbstractArray{T,N},
                  scratch::Bool=false) where {P<:Operations,
-                                                 R<:AbstractFloat,S,
-                                                 T<:RorC{R},N}
+                                             R<:AbstractFloat,S,
+                                             T<:RorC{R},N}
     error("dimension to interpolate must be provided")
 end
 
@@ -228,8 +229,8 @@ function vcreate(::Type{P},
                  d::Integer,
                  src::AbstractArray{T,N},
                  scratch::Bool=false) where {P<:Operations,
-                                                 R<:AbstractFloat,S,
-                                                 T<:RorC{R},N}
+                                             R<:AbstractFloat,S,
+                                             T<:RorC{R},N}
     __vcreate(P, A, convert(Int, d), src)
 end
 
@@ -275,8 +276,8 @@ function vcreate(::Type{P},
                  A::TabulatedInterpolator{R,S,Int},
                  src::AbstractArray{T,N},
                  scratch::Bool=false) where {P<:Operations,
-                                                 R<:AbstractFloat,S,
-                                                 T<:RorC{R},N}
+                                             R<:AbstractFloat,S,
+                                             T<:RorC{R},N}
     __vcreate(P, A, A.d, src)
 end
 

@@ -33,6 +33,7 @@ using TwoDimensional.AffineTransforms
 using TwoDimensional: AffineTransform2D
 
 using LazyAlgebra
+using LazyAlgebra.LazyAlgebraLowLevel
 import LazyAlgebra: apply, apply!, vcreate, output_size, input_size,
     coefficients
 

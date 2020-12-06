@@ -17,6 +17,7 @@ module UnidimensionalInterpolators
 using InterpolationKernels
 
 using LazyAlgebra
+using LazyAlgebra.LazyAlgebraLowLevel
 import LazyAlgebra: apply, apply!, vcreate
 
 using ...Interpolations

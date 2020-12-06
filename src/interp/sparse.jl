@@ -20,11 +20,13 @@ export
     SparseUnidimensionalInterpolator
 
 using InterpolationKernels
+
 using LazyAlgebra
+using LazyAlgebra.LazyAlgebraLowLevel
+import LazyAlgebra: apply, apply!, vcreate, output_size, input_size
 
 import Base: axes
 import SparseArrays: sparse
-import LazyAlgebra: apply, apply!, vcreate, output_size, input_size
 
 using ...Interpolations
 import ...Interpolations: Meta, coefficients, columns, rows,
