@@ -19,7 +19,7 @@ export
 
 using InterpolationKernels
 using LazyAlgebra
-using LazyAlgebra.LazyAlgebraLowLevel
+using LazyAlgebra.Foundations
 import LazyAlgebra: vcreate, apply!, apply
 
 using ...Interpolations

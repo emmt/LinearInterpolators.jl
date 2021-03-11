@@ -76,8 +76,8 @@ if you use SSH.
 [license-url]: ./LICENSE.md
 [license-img]: http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat
 
-[travis-img]: https://travis-ci.com/emmt/LinearInterpolators.jl.svg?branch=master
-[travis-url]: https://travis-ci.com/emmt/LinearInterpolators.jl
+[travis-img]: https://travis-ci.org/emmt/LinearInterpolators.jl.svg?branch=master
+[travis-url]: https://travis-ci.org/emmt/LinearInterpolators.jl
 
 [appveyor-img]: https://ci.appveyor.com/api/projects/status/github/emmt/LinearInterpolators.jl?branch=master
 [appveyor-url]: https://ci.appveyor.com/project/emmt/LinearInterpolators-jl/branch/master

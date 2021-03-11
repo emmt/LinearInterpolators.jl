@@ -22,7 +22,7 @@ export
 using InterpolationKernels
 
 using LazyAlgebra
-using LazyAlgebra.LazyAlgebraLowLevel
+using LazyAlgebra.Foundations
 import LazyAlgebra: apply, apply!, vcreate, output_size, input_size
 
 import Base: axes

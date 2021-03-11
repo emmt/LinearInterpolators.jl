@@ -15,6 +15,7 @@ TwoDimensional = "1907e7ba-7586-4310-a2ba-dd01462aeb50"
 
 [compat]
 julia = "1.0"
+LazyAlgebra = "0.2"
 
 [extras]
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
