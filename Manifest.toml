@@ -1,3 +1,5 @@
+# This file is machine-generated - editing it directly is not advised
+
 [[AbstractFFTs]]
 deps = ["LinearAlgebra"]
 git-tree-sha1 = "051c95d6836228d120f5f4b984dd5aba1624f716"
@@ -5,11 +7,9 @@ uuid = "621f4979-c628-5d54-868e-fcf4e3e8185c"
 version = "0.5.0"
 
 [[ArrayTools]]
-git-tree-sha1 = "f5a7734e20351b07458b890520f0214de92e7e22"
-repo-rev = "master"
-repo-url = "https://github.com/emmt/ArrayTools.jl"
+git-tree-sha1 = "133bc65cb1241014956be71aaae9bb309519a1a3"
 uuid = "1dc0ca97-c5ce-4e77-ac6d-c576ac9d7f27"
-version = "0.1.0"
+version = "0.2.1"
 
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
@@ -31,7 +31,7 @@ deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 
 [[Distributed]]
-deps = ["LinearAlgebra", "Random", "Serialization", "Sockets"]
+deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[FFTW]]
@@ -41,16 +41,16 @@ uuid = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 version = "1.1.0"
 
 [[InteractiveUtils]]
-deps = ["LinearAlgebra", "Markdown"]
+deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
 [[InterpolationKernels]]
 deps = ["InteractiveUtils", "Printf"]
-git-tree-sha1 = "8b7aed15cd10ddbec883976175dbea21bc0ae6f0"
-repo-rev = "master"
+git-tree-sha1 = "d1f05a33bf7b65e5c7c0800893e66b02c264af91"
+repo-rev = "v0.1"
 repo-url = "https://github.com/emmt/InterpolationKernels.jl"
 uuid = "16730964-a2ec-11e9-36fa-47a4f82bfac6"
-version = "0.1.0"
+version = "0.1.1"
 
 [[JSON]]
 deps = ["Dates", "Mmap", "Parsers", "Unicode"]
@@ -59,14 +59,13 @@ uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.21.0"
 
 [[LazyAlgebra]]
-deps = ["AbstractFFTs", "ArrayTools", "FFTW", "LinearAlgebra", "Printf", "SparseArrays"]
-git-tree-sha1 = "558cef1e8f80abaf2ed93f8dd1ef59e295edce72"
-repo-rev = "master"
-repo-url = "https://github.com/emmt/LazyAlgebra.jl"
+deps = ["AbstractFFTs", "ArrayTools", "FFTW", "LinearAlgebra", "MayOptimize", "Printf", "SparseArrays", "StructuredArrays", "ZippedArrays"]
+git-tree-sha1 = "0a8a430c1cc9cde44bb39f2be9820ca36cc28e2f"
 uuid = "aeaa251e-9d76-11e9-311b-83636bf44738"
-version = "0.1.0"
+version = "0.2.0"
 
 [[LibGit2]]
+deps = ["Printf"]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [[Libdl]]
@@ -83,6 +82,11 @@ uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 deps = ["Base64"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
+[[MayOptimize]]
+git-tree-sha1 = "fe09f3b0cf4ee8d99e1052dd8dc872813ee4bbbc"
+uuid = "049513e6-5a5e-4281-9d48-334ebac8954e"
+version = "0.2.0"
+
 [[Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
@@ -93,7 +97,7 @@ uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 version = "1.0.4"
 
 [[Pkg]]
-deps = ["Dates", "LibGit2", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
+deps = ["Dates", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "UUIDs"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
 [[Printf]]
@@ -127,20 +131,23 @@ uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
 deps = ["LinearAlgebra", "Random"]
 uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
+[[StructuredArrays]]
+git-tree-sha1 = "0cc8436a17791431675eb229b5b16175b001055b"
+uuid = "2e8cd123-6858-488d-b42d-068777248635"
+version = "0.2.2"
+
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[TwoDimensional]]
 deps = ["LinearAlgebra"]
-git-tree-sha1 = "7adc387b2db1a79cd9eaa30b9f74aa157d08db66"
-repo-rev = "master"
-repo-url = "https://github.com/emmt/TwoDimensional.jl"
+git-tree-sha1 = "11e927e476d669e3039c26bc629cacfbeb4bbf36"
 uuid = "1907e7ba-7586-4310-a2ba-dd01462aeb50"
-version = "0.1.0"
+version = "0.2.1"
 
 [[UUIDs]]
-deps = ["Random"]
+deps = ["Random", "SHA"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [[Unicode]]
@@ -150,3 +157,8 @@ uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
 git-tree-sha1 = "80229be1f670524750d905f8fc8148e5a8c4537f"
 uuid = "81def892-9a0e-5fdd-b105-ffc91e053289"
 version = "1.2.0"
+
+[[ZippedArrays]]
+git-tree-sha1 = "0fe5b07a9b0bd9d56bcf0f013e603b9abd1aa033"
+uuid = "8051824b-fc5e-4603-89c4-0e6ea551cb88"
+version = "0.1.1"

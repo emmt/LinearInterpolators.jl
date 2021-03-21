@@ -14,11 +14,11 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 TwoDimensional = "1907e7ba-7586-4310-a2ba-dd01462aeb50"
 
 [compat]
-julia = "1.0"
-LazyAlgebra = "0.2"
-InterpolationKernels = "0.1"
 ArrayTools = "0.2"
+InterpolationKernels = "0.1"
+LazyAlgebra = "0.2"
 TwoDimensional = "0.2"
+julia = "1.0"
 
 [extras]
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
