@@ -9,7 +9,7 @@
 # This file is part of the LinearInterpolators package licensed under the MIT
 # "Expat" License.
 #
-# Copyright (C) 2016-2018, Éric Thiébaut.
+# Copyright (C) 2016-2021, Éric Thiébaut.
 #
 
 module Interpolations
@@ -36,15 +36,6 @@ using LazyAlgebra
 using LazyAlgebra.Foundations
 import LazyAlgebra: apply, apply!, vcreate, output_size, input_size,
     coefficients
-
-"""
-
-`support(A)` yields the size of the support of the interpolation kernel.
-Argument can be an interpolation kernel, an interpolation method or an
-interpolator.
-
-"""
-support(::Kernel{T,S,B}) where {T,S,B} = S
 
 """
 
@@ -163,8 +154,8 @@ the interpolation.
 
 The apply the adjoint and/or linearly combine the result of the interpolation
 and the contents of the destination array, the same methods as for
-unidimensional interpolation are supported, it is sufficient to replace `ker,x`
-by `ker1,x1,[ker2=ker1,]x2`.
+unidimensional interpolation are supported, it is sufficient to replace
+arguments `ker,x` by `ker1,x1,[ker2=ker1,]x2`.
 
 
 ## Nonseparable multi-dimensional interpolation

@@ -1,3 +1,4 @@
+
 #
 # interp/nonseparable.jl --
 #
@@ -8,7 +9,7 @@
 # This file is part of the LinearInterpolators package licensed under the MIT
 # "Expat" License.
 #
-# Copyright (C) 2016-2018, Éric Thiébaut.
+# Copyright (C) 2016-2021, Éric Thiébaut.
 #
 
 # FIXME: if axes are aligned, use separable interpolation.
@@ -30,7 +31,7 @@ As a shortcut:
 TwoDimensionalTransformInterpolator(rows, cols, ker, R)
 ```
 
-is equivallent to `TwoDimensionalTransformInterpolator(rows,cols,ker,ker,R)`
+is equivalent to `TwoDimensionalTransformInterpolator(rows,cols,ker,ker,R)`
 that is the same kernel is used along all dimensions.
 
 """
@@ -38,21 +39,21 @@ that is the same kernel is used along all dimensions.
 struct TwoDimensionalTransformInterpolator{T<:AbstractFloat,
                                            K1<:Kernel{T},
                                            K2<:Kernel{T}} <: LinearMapping
-    rows::NTuple{2,Int}
-    cols::NTuple{2,Int}
+    rows::Dims{2}
+    cols::Dims{2}
     ker1::K1
     ker2::K2
     R::AffineTransform2D{T}
 end
 
-function TwoDimensionalTransformInterpolator(rows::NTuple{2,Int},
-                                             cols::NTuple{2,Int},
+function TwoDimensionalTransformInterpolator(rows::Dims{2},
+                                             cols::Dims{2},
                                              ker::Kernel, R::AffineTransform2D)
     TwoDimensionalTransformInterpolator(rows, cols, ker, ker, R)
 end
 
-function TwoDimensionalTransformInterpolator(rows::NTuple{2,Int},
-                                             cols::NTuple{2,Int},
+function TwoDimensionalTransformInterpolator(rows::Dims{2},
+                                             cols::Dims{2},
                                              ker1::Kernel{T1},
                                              ker2::Kernel{T2},
                                              R::AffineTransform2D{Tr}) where {T1,T2,Tr}

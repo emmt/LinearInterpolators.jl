@@ -9,7 +9,7 @@
 # "Expat" License.
 #
 # Copyright (C) 2015-2016, Éric Thiébaut, Jonathan Léger & Matthew Ozon.
-# Copyright (C) 2016-2018, Éric Thiébaut.
+# Copyright (C) 2016-2021, Éric Thiébaut.
 #
 
 # All code is in a module to "hide" private methods.
@@ -37,10 +37,10 @@ struct SparseInterpolator{T<:AbstractFloat,S,N} <: LinearMapping
     J::Vector{Int}
     nrows::Int
     ncols::Int
-    dims::NTuple{N,Int} # dimensions of result
+    dims::Dims{N} # dimensions of result
     function SparseInterpolator{T,S,N}(C::Vector{T},
                                        J::Vector{Int},
-                                       dims::NTuple{N,Int},
+                                       dims::Dims{N},
                                        ncols::Int) where {T,S,N}
         @assert S ≥ 1
         @assert minimum(dims) ≥ 1
@@ -114,7 +114,7 @@ function SparseInterpolator(::Type{T}, ker::Kernel,
     return SparseInterpolator(T(ker), args...)
 end
 
-function SparseInterpolator(ker::Kernel{T,S,<:Boundaries},
+function SparseInterpolator(ker::Kernel{T,S},
                             pos::AbstractArray{<:Real,N},
                             grd::AbstractRange) where {T<:AbstractFloat,S,N}
 
@@ -127,13 +127,13 @@ function SparseInterpolator(ker::Kernel{T,S,<:Boundaries},
                        CartesianIndices(axes(pos)), length(grd))
 end
 
-function SparseInterpolator(ker::Kernel{T,S,<:Boundaries},
+function SparseInterpolator(ker::Kernel{T,S},
                             pos::AbstractArray{<:Real,N},
                             len::Integer) where {T<:AbstractFloat,S,N}
     SparseInterpolator(ker, i -> T(pos[i]), CartesianIndices(axes(pos)), len)
 end
 
-function SparseInterpolator(ker::Kernel{T,S,<:Boundaries},
+function SparseInterpolator(ker::Kernel{T,S},
                             pos::Function,
                             R::CartesianIndices{N},
                             ncols::Integer) where {T<:AbstractFloat,S,N}
@@ -143,7 +143,7 @@ end
 
 @generated function _sparsecoefs(R::CartesianIndices{N},
                                  ncols::Int,
-                                 ker::Kernel{T,S,<:Boundaries},
+                                 ker::Kernel{T,S},
                                  pos::Function) where {T,S,N}
 
     _J = Meta.make_varlist(:_j, S)
@@ -566,10 +566,10 @@ function SparseUnidimensionalInterpolator(ker::Kernel, d::Integer,
     return SparseUnidimensionalInterpolator(ker, d, pos, 1:Int(len))
 end
 
-function SparseUnidimensionalInterpolator(ker::Kernel{T,S,B}, d::Integer,
+function SparseUnidimensionalInterpolator(ker::Kernel{T,S}, d::Integer,
                                           pos::AbstractVector{<:Real},
-                                          grd::AbstractRange) where {T<:AbstractFloat,
-                                                             S,B}
+                                          grd::AbstractRange
+                                          ) where {T<:AbstractFloat,S}
     d ≥ 1 || throw(ArgumentError("invalid dimension of interpolation"))
     nrows = length(pos)
     ncols = length(grd)

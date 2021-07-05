@@ -8,13 +8,13 @@
 # This file is part of the LinearInterpolators package licensed under the MIT
 # "Expat" License.
 #
-# Copyright (C) 2016-2018, Éric Thiébaut.
+# Copyright (C) 2016-2021, Éric Thiébaut.
 #
 
 # FIXME: use a table for the innermost dimensions!
 
 function apply!(dst::AbstractArray{T,2},
-                ker::Kernel{T,S,<:Boundaries},
+                ker::Kernel{T,S},
                 x1::AbstractVector{T},
                 x2::AbstractVector{T},
                 src::AbstractArray{T,2}) where {T,S}
@@ -23,7 +23,7 @@ end
 
 function apply!(dst::AbstractArray{T,2},
                 ::Type{P},
-                ker::Kernel{T,S,<:Boundaries},
+                ker::Kernel{T,S},
                 x1::AbstractVector{T},
                 x2::AbstractVector{T},
                 src::AbstractArray{T,2}) where {P<:Union{Direct,Adjoint},T,S}
@@ -31,9 +31,9 @@ function apply!(dst::AbstractArray{T,2},
 end
 
 function apply!(dst::AbstractArray{T,2},
-                ker1::Kernel{T,S1,<:Boundaries},
+                ker1::Kernel{T,S1},
                 x1::AbstractVector{T},
-                ker2::Kernel{T,S2,<:Boundaries},
+                ker2::Kernel{T,S2},
                 x2::AbstractVector{T},
                 src::AbstractArray{T,2}) where {T,S1,S2}
     return apply!(1, Direct, ker1, x1, ker2, x2, src, 0, dst)
@@ -41,9 +41,9 @@ end
 
 function apply!(dst::AbstractArray{T,2},
                 ::Type{P},
-                ker1::Kernel{T,S1,<:Boundaries},
+                ker1::Kernel{T,S1},
                 x1::AbstractVector{T},
-                ker2::Kernel{T,S2,<:Boundaries},
+                ker2::Kernel{T,S2},
                 x2::AbstractVector{T},
                 src::AbstractArray{T,2}) where {P<:Union{Direct,Adjoint},
                                                 T,S1,S2}
@@ -55,7 +55,7 @@ end
 
 @generated function apply!(α::Real,
                            ::Type{Direct},
-                           ker1::Kernel{T,S1,<:Boundaries},
+                           ker1::Kernel{T,S1},
                            x1::AbstractVector{T},
                            ker2::Kernel{T,S2},
                            x2::AbstractVector{T},
@@ -110,9 +110,9 @@ end
 
 @generated function apply!(α::Real,
                            ::Type{Adjoint},
-                           ker1::Kernel{T,S1,<:Boundaries},
+                           ker1::Kernel{T,S1},
                            x1::AbstractVector{T},
-                           ker2::Kernel{T,S2,<:Boundaries},
+                           ker2::Kernel{T,S2},
                            x2::AbstractVector{T},
                            src::AbstractArray{T,2},
                            β::Real,

@@ -8,7 +8,7 @@
 # This file is part of the LinearInterpolators package licensed under the MIT
 # "Expat" License.
 #
-# Copyright (C) 2016-2018, Éric Thiébaut.
+# Copyright (C) 2016-2021, Éric Thiébaut.
 #
 
 # All code is in a module to "hide" private methods.
@@ -26,19 +26,19 @@ import ...Interpolations.Meta
 #------------------------------------------------------------------------------
 # Out-of place versions (coordinates cannot be a function).
 
-function apply(ker::Kernel{T,S,<:Boundaries},
+function apply(ker::Kernel{T,S},
                x::AbstractArray{T,N},
                src::AbstractVector{T}) where {T,S,N}
     return apply(Direct, ker, x, src)
 end
 
-function apply(::Type{Direct}, ker::Kernel{T,S,<:Boundaries},
+function apply(::Type{Direct}, ker::Kernel{T,S},
                x::AbstractArray{T,N},
                src::AbstractVector{T}) where {T,S,N}
     return apply!(Array{T}(undef, size(x)), Direct, ker, x, src)
 end
 
-function apply(::Type{Adjoint}, ker::Kernel{T,S,<:Boundaries},
+function apply(::Type{Adjoint}, ker::Kernel{T,S},
                x::AbstractArray{T,N},
                src::AbstractArray{T,N}, len::Integer) where {T,S,N}
     return apply!(Array{T}(undef, len), Adjoint, ker, x, src)
@@ -48,7 +48,7 @@ end
 # In-place wrappers.
 
 function apply!(dst::AbstractArray{T,N},
-                ker::Kernel{T,S,<:Boundaries},
+                ker::Kernel{T,S},
                 x::Union{Function,AbstractArray{T,N}},
                 src::AbstractVector{T}) where {T,S,N}
     apply!(1, Direct, ker, x, src, 0, dst)
@@ -56,7 +56,7 @@ end
 
 function apply!(dst::AbstractArray{T,N},
                 ::Type{Direct},
-                ker::Kernel{T,S,<:Boundaries},
+                ker::Kernel{T,S},
                 x::Union{Function,AbstractArray{T,N}},
                 src::AbstractVector{T}) where {T,S,N}
     apply!(1, Direct, ker, x, src, 0, dst)
@@ -64,7 +64,7 @@ end
 
 function apply!(dst::AbstractVector{T},
                 ::Type{Adjoint},
-                ker::Kernel{T,S,<:Boundaries},
+                ker::Kernel{T,S},
                 x::Union{Function,AbstractArray{T,N}},
                 src::AbstractArray{T,N}) where {T,S,N}
     apply!(1, Adjoint, ker, x, src, 0, dst)
@@ -83,7 +83,7 @@ end
 
 @generated function apply!(α::Real,
                            ::Type{Direct},
-                           ker::Kernel{T,S,<:Boundaries},
+                           ker::Kernel{T,S},
                            x::AbstractArray{T,N},
                            src::AbstractVector{T},
                            β::Real,
@@ -125,7 +125,7 @@ end
 
 @generated function apply!(α::Real,
                            ::Type{Direct},
-                           ker::Kernel{T,S,<:Boundaries},
+                           ker::Kernel{T,S},
                            f::Function,
                            src::AbstractVector{T},
                            β::Real,
@@ -175,7 +175,7 @@ end
 
 @generated function apply!(α::Real,
                            ::Type{Adjoint},
-                           ker::Kernel{T,S,<:Boundaries},
+                           ker::Kernel{T,S},
                            x::AbstractArray{T,N},
                            src::AbstractArray{T,N},
                            β::Real,
@@ -205,7 +205,7 @@ end
 
 @generated function apply!(α::Real,
                            ::Type{Adjoint},
-                           ker::Kernel{T,S,<:Boundaries},
+                           ker::Kernel{T,S},
                            f::Function,
                            src::AbstractArray{T,N},
                            β::Real,

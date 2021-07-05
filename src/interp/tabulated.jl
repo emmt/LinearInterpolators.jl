@@ -106,27 +106,24 @@ end
 
 # This one forces the kernel to have the requested precision.
 function TabulatedInterpolator(::Type{T},
-                               d::D,
-                               ker::Kernel{K,S,B},
-                               args...) where {T<:AbstractFloat,
-                                               D<:Union{Nothing,Int},K,S,B}
+                               d::Union{Nothing,Int},
+                               ker::Kernel,
+                               args...) where {T<:AbstractFloat}
     TabulatedInterpolator(T, d, T(ker), args...)
 end
 
-function TabulatedInterpolator(d::D,
-                               ker::Kernel{T,S},
+function TabulatedInterpolator(d::Union{Nothing,Int},
+                               ker::Kernel{T},
                                pos::Function,
                                nrows::Integer,
-                               ncols::Integer) where {D<:Union{Nothing,Int},T,S}
+                               ncols::Integer) where {T}
     TabulatedInterpolator(float(T), d, ker, pos, nrows, ncols)
 end
 
-function TabulatedInterpolator(d::D,
-                               ker::Kernel{Tk,S},
+function TabulatedInterpolator(d::Union{Nothing,Int},
+                               ker::Kernel{Tk},
                                x::AbstractVector{Tx},
-                               ncols::Integer) where {D<:Union{Nothing,Int},
-                                                      Tk<:AbstractFloat,S,
-                                                      Tx<:Real}
+                               ncols::Integer) where {Tk,Tx}
     TabulatedInterpolator(float(promote_type(Tk, Tx)), d, ker, x, ncols)
 end
 
