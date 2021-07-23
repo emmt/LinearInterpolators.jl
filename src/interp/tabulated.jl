@@ -43,9 +43,7 @@ coefficients(A::TabulatedInterpolator) = A.W
 columns(A::TabulatedInterpolator) = A.J
 
 """
-```julia
-TabulatedInterpolator([T,] [d = nothing,] ker, pos, nrows, ncols)
-```
+    TabulatedInterpolator([T,] [d = nothing,] ker, pos, nrows, ncols)
 
 yields a linear map to interpolate with kernel `ker` along a dimension of
 length `ncols` to produce a dimension of length `nrows`.  The function `pos(i)`
@@ -57,9 +55,7 @@ specified each time the operator is applied (see below).
 
 The positions to interpolate can also be specified by a vector `x` as in:
 
-```julia
-TabulatedInterpolator([T,] [d = nothing,] ker, x, ncols)
-```
+    TabulatedInterpolator([T,] [d = nothing,] ker, x, ncols)
 
 to produce an interpolator whose output dimension is `nrows = length(x)`.  Here
 `x` can be an abstract vector.
@@ -70,9 +66,7 @@ the arguments `ker` and, if specified, `x`.
 
 The tabulated operator, say `A`, can be applied to an argument `x`:
 
-```julia
-apply!(α, P::Operations, A, [d,] x, scratch, β, y) -> y
-```
+    apply!(α, P::Operations, A, [d,] x, scratch, β, y) -> y
 
 to overwrite `y` with `α*P(A)⋅x + β*y`.  If `x` and `y` are multi-dimensional,
 the dimension `d` to interpolate must be specified.

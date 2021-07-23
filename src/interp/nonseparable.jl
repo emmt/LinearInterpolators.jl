@@ -15,10 +15,7 @@
 # FIXME: if axes are aligned, use separable interpolation.
 
 """
-
-```julia
-TwoDimensionalTransformInterpolator(rows, cols, ker1, ker2, R)
-```
+    TwoDimensionalTransformInterpolator(rows, cols, ker1, ker2, R)
 
 yields a linear mapping which interpolate its input of size `cols` to produce
 an output of size `rows` by 2-dimensional interpolation with kernels `ker1` and
@@ -27,14 +24,12 @@ specified by `R`.
 
 As a shortcut:
 
-```julia
-TwoDimensionalTransformInterpolator(rows, cols, ker, R)
-```
+    TwoDimensionalTransformInterpolator(rows, cols, ker, R)
 
 is equivalent to `TwoDimensionalTransformInterpolator(rows,cols,ker,ker,R)`
 that is the same kernel is used along all dimensions.
 
-"""
+""" TwoDimensionalTransformInterpolator
 
 struct TwoDimensionalTransformInterpolator{T<:AbstractFloat,
                                            K1<:Kernel{T},

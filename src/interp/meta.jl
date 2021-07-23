@@ -48,9 +48,7 @@ const Arg = Union{Number,Symbol,Expr}
 #end
 
 """
-```julia
-generate_getcoefs(n, j, w, ker, lim, pos)
-```
+    generate_getcoefs(n, j, w, ker, lim, pos)
 
 generates the code for getting the interpolation coefficients.  Here `n` is the
 size of `ker` the interpolation kernel, `j` and `w` are symbols or strings used
@@ -60,16 +58,12 @@ which store the interpolation kernel and the limits along the dimension of
 interpolation, `pos` is a symbol or an expression which gives the position to
 interpolate.  For instance:
 
-```julia
-generate_getcoefs(2, :i, :c, :kr, :lm, :(x[i]))
--> :((i_1, i_2, c_1, c_2) = getcoefs(kr, lm, x[i]))
-```
+    generate_getcoefs(2, :i, :c, :kr, :lm, :(x[i]))
+        -> :((i_1, i_2, c_1, c_2) = getcoefs(kr, lm, x[i]))
 
 Another possibility is:
 
-```julia
-generate_getcoefs(J, W, ker, lim, pos)
-```
+    generate_getcoefs(J, W, ker, lim, pos)
 
 where `J` and `W` are vectors of length `n`, the size of `ker` the
 interpolation kernel, with the symbolic names of the local variables to store
@@ -93,9 +87,7 @@ function generate_getcoefs(J::AbstractVector{Symbol},
 end
 
 """
-```julia
-make_varlist(pfx, n)
-```
+    make_varlist(pfx, n)
 
 generates a list of symbols to be used as variable names.  Here `pfx` is a
 symbol or a string used as a prefix and `n` is the number of variables or a
@@ -110,9 +102,7 @@ make_varlist(pfx::Union{AbstractString,Symbol}, I::UnitRange{<:Integer}) =
 
 
 """
-```julia
-generate_sum(ex)
-```
+    generate_sum(ex)
 
 generates an expression whose result is the sum of the elements of the vector
 `ex` which are symbols (being interpreted as the name of variables) or
@@ -125,9 +115,7 @@ generate_sum(ex::Union{AbstractVector,Tuple{Vararg{Arg}}}) =
 
 
 """
-```julia
-group_expressions(ex...) -> code
-```
+    group_expressions(ex...) -> code
 
 generates a single expression from all expressions given in argument.  The
 result may be the same as the input if it is a single expression or a block of
@@ -136,23 +124,19 @@ expressions if several expressions are specified.
 To insert the result as a block of statements (like a `begin` ... `end` block)
 in a quoted expression, write something like:
 
-```julia
-quote
-    some_pre_code
-    \$code
-    some_post_code
-end
-```
+    quote
+        some_pre_code
+        \$code
+        some_post_code
+    end
 
 To strip the surrounding `begin` ... `end` keywords, write instead:
 
-```julia
-quote
-    some_pre_code
-    \$(code.args...)
-    some_post_code
-end
-```
+    quote
+        some_pre_code
+        \$(code.args...)
+        some_post_code
+    end
 
 """
 group_expressions(args::Expr...) = group_expressions(args)

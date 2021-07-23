@@ -83,15 +83,9 @@ sparse(A::SparseInterpolator) =
     sparse(rows(A), columns(A), coefficients(A), A.nrows, A.ncols)
 
 """
-# Sparse linear interpolator
+    A = SparseInterpolator([T=eltype(ker),] ker, pos, grd)
 
-A sparse linear interpolator is created by:
-
-```julia
-A = SparseInterpolator([T=eltype(ker),], ker, pos, grd)
-```
-
-which yields a linear interpolator suitable for interpolating with the kernel
+yields a sparse linear interpolator suitable for interpolating with kernel
 `ker` a function sampled on the grid `grd` at positions `pos`.  Optional
 argument `T` is the floating-point type of the coefficients of the operator
 `A`.  Call `eltype(A)` to query the type of the coefficients of the sparse
@@ -101,9 +95,7 @@ Then `y = apply(A, x)` or `y = A(x)` or `y = A*x` yields the interpolated
 values for interpolation weights `x`.  The shape of `y` is the same as that of
 `pos`.  Formally, this amounts to computing:
 
-```julia
-y[i] = sum_j ker((pos[i] - grd[j])/step(grd))*x[j]
-```
+    y[i] = sum_j ker((pos[i] - grd[j])/step(grd))*x[j]
 
 with `step(grd)` the (constant) step size between the nodes of the grid `grd`
 and `grd[j]` the `j`-th position of the grid.
@@ -364,16 +356,14 @@ const RGL_EPS = 1e-9
 const RGL_MU = 0.0
 
 """
-```julia
-fit(A, y[, w][; epsilon=1e-9, mu=0.0]) -> x
-```
+    fit(A, y [, w]; epsilon=1e-9, mu=0.0) -> x
 
 performs a linear fit of `y` by the model `A*x` with `A` a linear interpolator.
 The returned value `x` minimizes:
 
     sum(w.*(A*x - y).^2)
 
-where `w` are some weights.  If `w` is not specified, all weights are assumed
+where `w` are given weights.  If `w` is not specified, all weights are assumed
 to be equal to one; otherwise `w` must be an array of nonnegative values and of
 same size as `y`.
 
@@ -435,16 +425,19 @@ regularizes the symmetric matrix `A` to produce the matrix:
     R = A + ρ*(ϵ*I + μ*D'*D)
 
 where `I` is the identity, `D` is a finite difference operator and `ρ` is the
-maximum diagonal element of `A`.  The in-place version:
-
-    regularize!(A, ϵ, μ) -> A
-
-stores the regularized matrix in `A` (and returns it).
+maximum diagonal element of `A`.
 
 """
 regularize(A::AbstractArray{T,2}, args...) where {T<:AbstractFloat} =
     regularize!(copyto!(Array{T}(undef, size(A)), A), args...)
 
+"""
+    regularize!(A, ϵ, μ) -> A
+
+stores the regularized matrix in `A` (and returns it).  This is the in-place
+version of [`LinearInterpolators.SparseInterpolators.regularize`].
+
+"""
 function regularize!(A::AbstractArray{T,2},
                      eps::Real = RGL_EPS,
                      mu::Real = RGL_MU) where {T<:AbstractFloat}
@@ -492,8 +485,6 @@ function regularize!(A::AbstractArray{T,2},
     return A
 end
 
-@doc @doc(regularize) regularize!
-
 #------------------------------------------------------------------------------
 
 # Parameter `T` is the floating-point type of the coefficients, parameter `S`
@@ -519,39 +510,32 @@ Base.size(A::SparseUnidimensionalInterpolator, i::Integer) =
      i == 2 ? A.ncols : error("out of bounds dimension"))
 
 """
+    SparseUnidimensionalInterpolator([T=eltype(ker),] ker, d, pos, grd)
 
-```julia
-SparseUnidimensionalInterpolator([T=eltype(ker),], ker, d, pos, grd)
-```
-
-yields a linear map which interpolates `d`-th dimension of an array with
-kernel `ker` at positions `pos` along the dimension of interpolation `d`
-and assuming the input array has grid coordinates `grd` along the dimension
-of interpolation `d`.  Argument `pos` is a vector of positions, argument
-`grd` may be a range or the length of the dimension of interpolation.
-Optional argument `T` is the floating-point type of the coefficients of the
-operator.
+yields a linear mapping which interpolates the `d`-th dimension of an array
+with kernel `ker` at positions `pos` along the dimension of interpolation `d`
+and assuming the input array has grid coordinates `grd` along the the `d`-th
+dimension of interpolation.  Argument `pos` is a vector of positions, argument
+`grd` may be a range or the length of the dimension of interpolation.  Optional
+argument `T` is the floating-point type of the coefficients of the operator.
 
 This kind of interpolator is suitable for separable multi-dimensional
-interpolation with precomputed interpolation coefficients.  Having
-precomputed coefficients is mostly interesting when the operator is to be
-applied multiple times (for instance in iterative methods).  Otherwise,
-separable operators which compute the coefficients *on the fly* may be
-preferable.
+interpolation with precomputed interpolation coefficients.  Having precomputed
+coefficients is mostly interesting when the operator is to be applied multiple
+times (for instance in iterative methods).  Otherwise, separable operators
+which compute the coefficients *on the fly* may be preferable.
 
-A combination of instances of `SparseUnidimensionalInterpolator` can be
-built to achieve sperable multi-dimensional interpolation.  For example:
+A combination of instances of `SparseUnidimensionalInterpolator` can be built
+to achieve sperable multi-dimensional interpolation.  For example:
 
-```julia
-using LinearInterpolators
-ker = CatmullRomSpline()
-n1, n2 = 70, 50
-x1 = linspace(1, 70, 201)
-x2 = linspace(1, 50, 201)
-A1 = SparseUnidimensionalInterpolator(ker, 1, x1, 1:n1)
-A2 = SparseUnidimensionalInterpolator(ker, 2, x2, 1:n2)
-A = A1*A2
-```
+    using LinearInterpolators
+    ker = CatmullRomSpline()
+    n1, n2 = 70, 50
+    x1 = linspace(1, 70, 201)
+    x2 = linspace(1, 50, 201)
+    A1 = SparseUnidimensionalInterpolator(ker, 1, x1, 1:n1)
+    A2 = SparseUnidimensionalInterpolator(ker, 2, x2, 1:n2)
+    A = A1*A2
 
 """
 function SparseUnidimensionalInterpolator(::Type{T}, ker::Kernel,

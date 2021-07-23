@@ -1,4 +1,4 @@
-# Notes About Interpolation
+# Notes about interpolation
 
 ## Definitions
 

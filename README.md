@@ -4,15 +4,15 @@
 |:--------------------------------|:--------------------------------|:----------------------------------------------------------------|:--------------------------------------------------------------------|
 | [![][doc-dev-img]][doc-dev-url] | [![][license-img]][license-url] | [![][travis-img]][travis-url] [![][appveyor-img]][appveyor-url] | [![][coveralls-img]][coveralls-url] [![][codecov-img]][codecov-url] |
 
-The **LinearInterpolators** package provides many linear interpolation methods
-for [**Julia**][julia-url]. These interpolations are *linear* in the sense
+The `LinearInterpolators` package provides many linear interpolation methods
+for [Julia][julia-url].  These interpolations are *linear* in the sense
 that the result depends linearly on the input.
 
 
 ## Features
 
 * Separable interpolations are supported for arrays of any dimensionality.
-  Interpolation kernel can be different along each interpolated dimension.
+  Interpolation kernels can be different along each interpolated dimension.
 
 * For 2D arrays, interpolations may be separable or not (*e.g.* to apply an
   image rotation).
@@ -20,13 +20,14 @@ that the result depends linearly on the input.
 * Undimensional interpolations may be used to produce multi-dimensional
   results.
 
-* Many interpolation kernels are provided (B-splines of degree 0 to 3, cardinal
-  cubic splines, Catmull-Rom spline, Mitchell & Netravali spline, Lanczos
-  resampling kernels of arbitrary size, *etc.*).  These interpolation
-  kernels may be used as regular functions or to define *interpolators*.
+* Many interpolation kernels are provided by the package
+  [`InterpolationKernels`](https://github.com/emmt/InterpolationKernels.jl)
+  (B-splines of degree 0 to 3, cardinal cubic splines, Catmull-Rom spline,
+  Mitchell & Netravali spline, Lanczos resampling kernels of arbitrary size,
+  *etc.*).
 
 * **Interpolators** are linear maps such as the ones defined by the
-  [LazyAlgebra](https://github.com/emmt/LazyAlgebra.jl) framework.
+  [`LazyAlgebra`](https://github.com/emmt/LazyAlgebra.jl) framework.
 
   - Applying the adjoint of interpolators is fully supported.  This can be
     exploited for iterative fitting of data given an interpolated model.
@@ -38,13 +39,13 @@ that the result depends linearly on the input.
 
 ## Installation
 
-The easiest way to install `InterpolationKernels` is via Julia registry
+The easiest way to install `LinearInterpolators` is via Julia registry
 [`EmmtRegistry`](https://github.com/emmt/EmmtRegistry):
 
 ```julia
 using Pkg
 pkg"registry add https://github.com/emmt/EmmtRegistry"
-pkg"add InterpolationKernels"
+pkg"add LinearInterpolators"
 ```
 
 [doc-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
@@ -68,4 +69,4 @@ pkg"add InterpolationKernels"
 [codecov-img]: http://codecov.io/github/emmt/LinearInterpolators.jl/coverage.svg?branch=master
 [codecov-url]: http://codecov.io/github/emmt/LinearInterpolators.jl?branch=master
 
-[julia-url]: https://pkg.julialang.org/
+[julia-url]: https://julialang.org/
