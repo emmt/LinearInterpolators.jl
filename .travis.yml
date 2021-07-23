@@ -51,3 +51,13 @@ script:
                             Pkg.build(pkgname; verbose = true);
                         end;
                         Pkg.test(coverage=true)'
+
+after_success:
+  - julia --project -e 'import Pkg;
+                        Pkg.add("Coverage");
+                        using Coverage;
+                        Codecov.submit(process_folder())'
+  - julia --project -e 'import Pkg;
+                        Pkg.add("Coverage");
+                        using Coverage;
+                        Coveralls.submit(process_folder())'
