@@ -1,6 +1,4 @@
-#isdefined(:LinearInterpolators) || include("../src/LinearInterpolators.jl")
-
-module LinearInterpolatorsInterpolationsTests
+module TestingLinearInterpolatorsInterpolations
 
 using LazyAlgebra, TwoDimensional
 
@@ -63,8 +61,7 @@ t = range(1, stop=length(xsub), length=length(x));
 end
 
 @testset "SparseInterpolators" begin
-    for K in kernels,
-        C in conditions
+    for K in kernels, C in conditions
         tol = isa(K, RectangularSpline) ? 0.02 : 0.006
         ker = C(K)
         S = SparseInterpolator(ker, t, length(xsub))
@@ -73,6 +70,9 @@ end
         @test distance(S(ysub), T(ysub)) ≤ 1e-15
         @test distance(S(ysub), y) ≤ tol
         @test distance(S(ysub), apply(ker,t,ysub)) ≤ 1e-15
+    end
+    let ker = kernels[1], T = Float32
+        @test_deprecated SparseInterpolator(T, ker, t, length(xsub))
     end
 end
 

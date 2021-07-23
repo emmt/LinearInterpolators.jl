@@ -25,14 +25,19 @@ using LazyAlgebra
 using LazyAlgebra.Foundations
 import LazyAlgebra: apply, apply!, vcreate, output_size, input_size
 
-import Base: axes
+import Base: axes, eltype, size
 import SparseArrays: sparse
 
 using ...Interpolations
 import ...Interpolations: Meta, coefficients, columns, rows,
     fit, regularize, regularize!
 
-struct SparseInterpolator{T<:AbstractFloat,S,N} <: LinearMapping
+abstract type AbstractSparseInterpolator{T<:AbstractFloat} <: LinearMapping end
+
+eltype(A::AbstractSparseInterpolator) = eltype(typeof(A))
+eltype(::Type{<:AbstractSparseInterpolator{T}}) where {T} = T
+
+struct SparseInterpolator{T<:AbstractFloat,S,N} <: AbstractSparseInterpolator{T}
     C::Vector{T}
     J::Vector{Int}
     nrows::Int
@@ -55,7 +60,6 @@ end
 # Interpolator can be used as a function.
 (A::SparseInterpolator)(x::AbstractVector) = apply(A, x)
 
-Base.eltype(::SparseInterpolator{T,S,N}) where {T,S,N} = T
 output_size(A::SparseInterpolator) = A.dims
 input_size(A::SparseInterpolator) = (A.ncols,)
 width(A::SparseInterpolator{T,S,N}) where {T,S,N} = S
@@ -83,11 +87,11 @@ sparse(A::SparseInterpolator) =
     sparse(rows(A), columns(A), coefficients(A), A.nrows, A.ncols)
 
 """
-    A = SparseInterpolator([T=eltype(ker),] ker, pos, grd)
+    A = SparseInterpolator{T=eltype(ker)}(ker, pos, grd)
 
 yields a sparse linear interpolator suitable for interpolating with kernel
 `ker` a function sampled on the grid `grd` at positions `pos`.  Optional
-argument `T` is the floating-point type of the coefficients of the operator
+parameter `T` is the floating-point type of the coefficients of the operator
 `A`.  Call `eltype(A)` to query the type of the coefficients of the sparse
 interpolator `A`.
 
@@ -101,42 +105,40 @@ with `step(grd)` the (constant) step size between the nodes of the grid `grd`
 and `grd[j]` the `j`-th position of the grid.
 
 """
-function SparseInterpolator(::Type{T}, ker::Kernel,
-                            args...) where {T<:AbstractFloat}
-    return SparseInterpolator(T(ker), args...)
+SparseInterpolator(ker::Kernel{T}, args...) where {T<:AbstractFloat} =
+    SparseInterpolator{T}(ker, args...)
+
+@deprecate SparseInterpolator(T::Type{<:AbstractFloat}, ker::Kernel, args...) SparseInterpolator{T}(ker, args...)
+
+SparseInterpolator{T}(ker::Kernel, args...) where {T<:AbstractFloat} =
+    SparseInterpolator{T}(T(ker), args...)
+
+function SparseInterpolator{T}(ker::Kernel{T},
+                               pos::AbstractArray{<:Real},
+                               grd::AbstractRange) where {T<:AbstractFloat}
+    SparseInterpolator{T}(ker, fractional_index(T, pos, grd),
+                          CartesianIndices(axes(pos)), length(grd))
 end
 
-function SparseInterpolator(ker::Kernel{T,S},
-                            pos::AbstractArray{<:Real,N},
-                            grd::AbstractRange) where {T<:AbstractFloat,S,N}
-
-    # Parameters to convert the interpolated position into a frational grid
-    # index. FIXME: Use the central position of the grid to minimize the error.
-    delta = T(step(grd))
-    alpha = one(T)/delta
-    beta = T(first(grd)) - delta
-    SparseInterpolator(ker, i -> (T(pos[i]) - beta)*alpha,
-                       CartesianIndices(axes(pos)), length(grd))
+function SparseInterpolator{T}(ker::Kernel{T},
+                               pos::AbstractArray{<:Real},
+                               len::Integer) where {T<:AbstractFloat}
+    SparseInterpolator(ker, fractional_index(T, pos),
+                       CartesianIndices(axes(pos)), len)
 end
 
-function SparseInterpolator(ker::Kernel{T,S},
-                            pos::AbstractArray{<:Real,N},
-                            len::Integer) where {T<:AbstractFloat,S,N}
-    SparseInterpolator(ker, i -> T(pos[i]), CartesianIndices(axes(pos)), len)
-end
-
-function SparseInterpolator(ker::Kernel{T,S},
-                            pos::Function,
-                            R::CartesianIndices{N},
-                            ncols::Integer) where {T<:AbstractFloat,S,N}
-    C, J = _sparsecoefs(R, Int(ncols), ker, pos)
+function SparseInterpolator{T}(ker::Kernel{T,S},
+                               f::Function,
+                               R::CartesianIndices{N},
+                               ncols::Integer) where {T<:AbstractFloat,S,N}
+    C, J = _sparsecoefs(R, Int(ncols), ker, f)
     return SparseInterpolator{T,S,N}(C, J, size(R), ncols)
 end
 
 @generated function _sparsecoefs(R::CartesianIndices{N},
                                  ncols::Int,
                                  ker::Kernel{T,S},
-                                 pos::Function) where {T,S,N}
+                                 f::Function) where {T,S,N}
 
     _J = Meta.make_varlist(:_j, S)
     _C = Meta.make_varlist(:_c, S)
@@ -151,7 +153,7 @@ end
         C = Array{T}(undef, nvals)
         k = 0
         @inbounds for i in R
-            x = convert(T, pos(i))
+            x = convert(T, f(i))
             $(code...)
             k += S
         end
@@ -485,12 +487,29 @@ function regularize!(A::AbstractArray{T,2},
     return A
 end
 
+# Yields a function that takes an index and returns the corresponding
+# interpolation position as fractional index into the source array.
+function fractional_index(T::Type{<:AbstractFloat},
+                          pos::AbstractArray{<:Real},
+                          grd::AbstractRange)
+    # Use the central position of the grid to minimize rounding errors.
+    c = (convert(T, first(grd)) + convert(T, last(grd)))/2
+    q = 1/convert(T, step(grd))
+    r = convert(T, 1 + length(grd))/2
+    return i -> q*(convert(T, pos[i]) - c) + r
+end
+
+function fractional_index(T::Type{<:AbstractFloat},
+                          pos::AbstractArray{<:Real})
+    return i -> T(pos[i])
+end
+
 #------------------------------------------------------------------------------
 
 # Parameter `T` is the floating-point type of the coefficients, parameter `S`
 # is the size of the kernel (number of nodes to combine for a single
 # interpolator) and parameter `D` is the dimension of interpolation.
-struct SparseUnidimensionalInterpolator{T<:AbstractFloat,S,D} <: LinearMapping
+struct SparseUnidimensionalInterpolator{T<:AbstractFloat,S,D} <: AbstractSparseInterpolator{T}
     nrows::Int     # number of rows
     ncols::Int     # number of columns
     C::Vector{T}   # coefficients along the dimension of interpolation
@@ -500,24 +519,23 @@ end
 (A::SparseUnidimensionalInterpolator)(x) = apply(A, x)
 
 interp_dim(::SparseUnidimensionalInterpolator{T,S,D}) where {T,S,D} = D
-Base.eltype(::SparseUnidimensionalInterpolator{T,S,D}) where {T,S,D} = T
 
 coefficients(A::SparseUnidimensionalInterpolator) = A.C
 columns(A::SparseUnidimensionalInterpolator) = A.J
-Base.size(A::SparseUnidimensionalInterpolator) = (A.nrows, A.ncols)
-Base.size(A::SparseUnidimensionalInterpolator, i::Integer) =
+size(A::SparseUnidimensionalInterpolator) = (A.nrows, A.ncols)
+size(A::SparseUnidimensionalInterpolator, i::Integer) =
     (i == 1 ? A.nrows :
      i == 2 ? A.ncols : error("out of bounds dimension"))
 
 """
-    SparseUnidimensionalInterpolator([T=eltype(ker),] ker, d, pos, grd)
+    SparseUnidimensionalInterpolator{T=eltype(ker)}(ker, d, pos, grd)
 
 yields a linear mapping which interpolates the `d`-th dimension of an array
 with kernel `ker` at positions `pos` along the dimension of interpolation `d`
 and assuming the input array has grid coordinates `grd` along the the `d`-th
 dimension of interpolation.  Argument `pos` is a vector of positions, argument
 `grd` may be a range or the length of the dimension of interpolation.  Optional
-argument `T` is the floating-point type of the coefficients of the operator.
+parameter `T` is the floating-point type of the coefficients of the operator.
 
 This kind of interpolator is suitable for separable multi-dimensional
 interpolation with precomputed interpolation coefficients.  Having precomputed
@@ -538,33 +556,42 @@ to achieve sperable multi-dimensional interpolation.  For example:
     A = A1*A2
 
 """
-function SparseUnidimensionalInterpolator(::Type{T}, ker::Kernel,
-                                          args...) where {T<:AbstractFloat}
-    return SparseUnidimensionalInterpolator(T(ker), args...)
-end
+SparseUnidimensionalInterpolator(ker::Kernel{T}, args...) where {T<:AbstractFloat} =
+    SparseUnidimensionalInterpolator{T}(ker, args...)
 
-function SparseUnidimensionalInterpolator(ker::Kernel, d::Integer,
-                                          pos::AbstractVector{<:Real},
-                                          len::Integer)
+@deprecate SparseUnidimensionalInterpolator(T::Type{<:AbstractFloat}, ker::Kernel, args...) SparseUnidimensionalInterpolator{T}(ker, args...)
+
+SparseUnidimensionalInterpolator{T}(ker::Kernel, args...) where {T<:AbstractFloat} =
+    SparseUnidimensionalInterpolator{T}(T(ker), args...)
+
+function SparseUnidimensionalInterpolator{T}(ker::Kernel{T},
+                                             d::Integer,
+                                             pos::AbstractVector{<:Real},
+                                             len::Integer) where {T<:AbstractFloat}
     len ≥ 1 || throw(ArgumentError("invalid dimension length"))
-    return SparseUnidimensionalInterpolator(ker, d, pos, 1:Int(len))
+    return SparseUnidimensionalInterpolator{T}(ker, d, pos, 1:Int(len))
 end
 
-function SparseUnidimensionalInterpolator(ker::Kernel{T,S}, d::Integer,
-                                          pos::AbstractVector{<:Real},
-                                          grd::AbstractRange
-                                          ) where {T<:AbstractFloat,S}
-    d ≥ 1 || throw(ArgumentError("invalid dimension of interpolation"))
+# FIXME: not type-stable
+function SparseUnidimensionalInterpolator{T}(ker::Kernel{T,S},
+                                             d::Integer,
+                                             pos::AbstractVector{<:Real},
+                                             grd::AbstractRange
+                                             ) where {T<:AbstractFloat,S}
+     SparseUnidimensionalInterpolator{T,S,Int(d)}(ker, pos, grd)
+end
+
+function SparseUnidimensionalInterpolator{T,S,D}(ker::Kernel{T,S},
+                                                 pos::AbstractVector{<:Real},
+                                                 grd::AbstractRange
+                                                 ) where {D,T<:AbstractFloat,S}
+    isa(D, Int) || throw(ArgumentError("invalid type for dimension of interpolation"))
+    D ≥ 1 || throw(ArgumentError("invalid dimension of interpolation"))
     nrows = length(pos)
     ncols = length(grd)
-    c = (convert(T, first(grd)) + convert(T, last(grd)))/2
-    q = 1/convert(T, step(grd))
-    r = convert(T, 1 + length(grd))/2
     C, J = _sparsecoefs(CartesianIndices((nrows,)), ncols, ker,
-                        i -> q*(convert(T, pos[i]) - c) + r)
-    D = Int(d)
+                        fractional_index(T, pos, grd))
     return SparseUnidimensionalInterpolator{T,S,D}(nrows, ncols, C, J)
-
 end
 
 function vcreate(::Type{Direct},
