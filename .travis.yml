@@ -38,9 +38,12 @@ jobs:
         - julia --project=docs/ docs/make.jl
       after_success: skip
 
-script:
+# Things needed by all scripts (testing and building doc.).
+before_script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia ci_prep.jl
+
+script:
   - julia --project --check-bounds=yes --color=yes -e '
         pkgname = "LinearInterpolators";
         using Pkg;
