@@ -1,9 +1,10 @@
-isdefined(:LinearInterpolators) || include("../src/LinearInterpolators.jl")
+module DemonstratingLinearInterpolatorsInterpolations
 
-module LinearInterpolatorsInterpolationsDemos
-
+using Printf
 using LazyAlgebra
-using LinearInterpolators.Kernels
+using LazyAlgebra: Direct, Adjoint
+using LinearInterpolators
+using InterpolationKernels
 using LinearInterpolators.Interpolations
 
 using PyCall
@@ -12,13 +13,12 @@ using LaTeXStrings
 import PyPlot
 const plt = PyPlot
 
-
 function rundemos(::Type{T} = Float64) where {T<:AbstractFloat}
 
     z = T[0.5, 0.3, 0.1, 0.0, -0.2, -0.7, -0.7, 0.0, 1.7, 1.9, 2.1]
 
     # 1-D example
-    t = linspace(-3,14,2000);
+    t = range(-3, 14, length=2000);
     I0 = SparseInterpolator(RectangularSpline(T, Flat), t, length(z))
     I1 = SparseInterpolator(LinearSpline(T, Flat), t, length(z))
     I2 = SparseInterpolator(CatmullRomSpline(T, SafeFlat), t, length(z))
@@ -38,7 +38,7 @@ function rundemos(::Type{T} = Float64) where {T<:AbstractFloat}
     plt.title("Interpolations with Cardinal Kernels")
 
     # Interpolation + smoothing
-    t = linspace(-3,14,2000);
+    t = range(-3, 14, length=2000);
     I5 = SparseInterpolator(QuadraticSpline(T), t, length(z))
     I6 = SparseInterpolator(CubicSpline(T, Flat), t, length(z))
     I7 = SparseInterpolator(MitchellNetravaliSpline(T, Flat), t, length(z))
@@ -61,7 +61,7 @@ function rundemos(::Type{T} = Float64) where {T<:AbstractFloat}
     println("max. error 2: ", maximum(abs.(I2(z) - S2*z)))
 
     # 2-D example
-    t = reshape(linspace(-3,14,20*21), (20,21));
+    t = reshape(range(-3, 14, length=20*21), (20,21));
     I = SparseInterpolator(CatmullRomSpline(T, Flat), t, length(z))
     plt.figure(3)
     plt.clf()
