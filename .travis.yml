@@ -31,20 +31,27 @@ coveralls: true
 
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia -e 'using Pkg, LibGit2;
-              user_regs = joinpath(DEPOT_PATH[1],"registries");
-              mkpath(user_regs);
-              Base.shred!(LibGit2.CachedCredentials()) do creds
-                  for (reg, url) in (
-                      "General" => "https://github.com/JuliaRegistries/General.git",
-                      "EmmtRegistry" => "https://github.com/emmt/EmmtRegistry")
-                      path = joinpath(user_regs, reg);
-                      LibGit2.with(Pkg.GitTools.clone(
-                          url, path;
-                          header = "registry $reg from $(repr(url))",
-                          credentials = creds)) do repo end
-                  end
-              end'
+  - julia -e '
+    using Pkg;
+    if VERSION < v"1.1";
+        using LibGit2;
+        user_regs = joinpath(DEPOT_PATH[1],"registries");
+        mkpath(user_regs);
+        Base.shred!(LibGit2.CachedCredentials()) do creds
+            for (reg, url) in (
+                "General" => "https://github.com/JuliaRegistries/General.git",
+                "EmmtRegistry" => "https://github.com/emmt/EmmtRegistry")
+                path = joinpath(user_regs, reg);
+                LibGit2.with(Pkg.GitTools.clone(
+                    url, path;
+                    header = "registry $reg from $(repr(url))",
+                    credentials = creds)) do repo end
+            end
+        end
+    else
+        Pkg.Registry.add("General");
+        Pkg.Registry.add(RegistrySpec(url="https://github.com/emmt/EmmtRegistry"));
+    end'
   - julia -e 'using Pkg; Pkg.build(); Pkg.test("LinearInterpolators"; coverage=true)'
 
 jobs:
