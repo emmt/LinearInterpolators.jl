@@ -8,13 +8,15 @@ os:
   - osx
 
 julia:
-  - 1.0
-  - 1.1
-  - 1.2
-  - 1.3
-  - 1.4
-  - 1.5
-  - nightly
+  - 1.6
+# - 1.0
+# - 1.1
+# - 1.2
+# - 1.3
+# - 1.4
+# - 1.5
+# - 1.6
+# - nightly
 
 matrix:
   allow_failures:
@@ -27,15 +29,33 @@ codecov: true
 
 coveralls: true
 
-#jobs:
-#  include:
-#    - stage: "Documentation"
-#      julia: 1.0
-#      os: linux
-#      script:
-#        - julia --project=docs/ -e 'using Pkg;
-#                                    Pkg.develop(PackageSpec(path=pwd()));
-#                                    Pkg.build("LinearInterpolators");
-#                                    Pkg.instantiate()'
-#        - julia --project=docs/ docs/make.jl
-#      after_success: skip
+script:
+  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+  - julia -e 'using Pkg, LibGit2;
+              user_regs = joinpath(DEPOT_PATH[1],"registries");
+              mkpath(user_regs);
+              Base.shred!(LibGit2.CachedCredentials()) do creds
+                  for (reg, url) in (
+                      "General" => "https://github.com/JuliaRegistries/General.git",
+                      "EmmtRegistry" => "https://github.com/emmt/EmmtRegistry")
+                      path = joinpath(user_regs, reg);
+                      LibGit2.with(Pkg.GitTools.clone(
+                          url, path;
+                          header = "registry $reg from $(repr(url))",
+                          credentials = creds)) do repo end
+                  end
+              end'
+  - julia -e 'using Pkg; Pkg.build(); Pkg.test("LinearInterpolators"; coverage=true)'
+
+jobs:
+  include:
+    - stage: "Documentation"
+      julia: 1.6
+      os: linux
+      script:
+        - julia --project=docs/ -e 'using Pkg;
+                                    Pkg.develop(PackageSpec(path=pwd()));
+                                    Pkg.build("LinearInterpolators");
+                                    Pkg.instantiate()'
+        - julia --project=docs/ docs/make.jl
+      after_success: skip
