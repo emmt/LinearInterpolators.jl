@@ -8,6 +8,8 @@ The `LinearInterpolators` package provides many linear interpolation methods
 for [Julia][julia-url].  These interpolations are *linear* in the sense
 that the result depends linearly on the input.
 
+The documentation for the master version is [here][doc-dev-url].
+
 
 ## Features
 
