@@ -1,6 +1,5 @@
-
 #
-# interp/nonseparable.jl --
+# nonseparable.jl --
 #
 # Non-separable multidimensional interpolation.
 #

@@ -28,8 +28,10 @@ import LazyAlgebra: apply, apply!, vcreate, output_size, input_size
 import Base: axes, eltype, size
 import SparseArrays: sparse
 
-using ...Interpolations
-import ...Interpolations: Meta, coefficients, columns, rows,
+using ..LinearInterpolators
+using ..LinearInterpolators: limits, getcoefs
+import ..LinearInterpolators.Meta
+import ..LinearInterpolators: coefficients, columns, rows,
     fit, regularize, regularize!
 
 abstract type AbstractSparseInterpolator{T<:AbstractFloat} <: LinearMapping end

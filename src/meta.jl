@@ -1,5 +1,5 @@
 #
-# interp/meta.jl --
+# meta.jl --
 #
 # Functions to generate code for interpolation methods.
 #
@@ -8,7 +8,7 @@
 # This file is part of the LinearInterpolators package licensed under the MIT
 # "Expat" License.
 #
-# Copyright (C) 2016-2018, Éric Thiébaut.
+# Copyright (C) 2016-2021, Éric Thiébaut.
 #
 
 module Meta

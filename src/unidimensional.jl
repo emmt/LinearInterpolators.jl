@@ -1,5 +1,5 @@
 #
-# interp/unidimensional.jl --
+# unidimensional.jl --
 #
 # Unidimensional interpolation (the result may however be multi-dimensional).
 #
@@ -20,11 +20,14 @@ using LazyAlgebra
 using LazyAlgebra.Foundations
 import LazyAlgebra: apply, apply!, vcreate
 
-using ...Interpolations
-import ...Interpolations.Meta
+using ..LinearInterpolators
+using ..LinearInterpolators: limits, getcoefs
+import ..LinearInterpolators.Meta
 
 #------------------------------------------------------------------------------
 # Out-of place versions (coordinates cannot be a function).
+
+# FIXME: this is type-piracy
 
 function apply(ker::Kernel{T,S},
                x::AbstractArray{T,N},

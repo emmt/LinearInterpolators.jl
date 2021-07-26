@@ -1,5 +1,5 @@
 #
-# interp/tabulated.jl -
+# tabulated.jl -
 #
 # Implement unidimensional interpolation operator using precomputed indices and
 # coefficients.
@@ -22,8 +22,9 @@ using LazyAlgebra
 using LazyAlgebra.Foundations
 import LazyAlgebra: vcreate, apply!, apply
 
-using ...Interpolations
-import ...Interpolations.Meta
+using ..LinearInterpolators
+using ..LinearInterpolators: limits, getcoefs
+import ..LinearInterpolators.Meta
 
 struct TabulatedInterpolator{T<:AbstractFloat,S,D} <: LinearMapping
     nrows::Int     # length of output dimension

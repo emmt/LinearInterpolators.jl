@@ -1,5 +1,5 @@
 #
-# interp/separable.jl --
+# separable.jl --
 #
 # Separable Multidimensional interpolation.
 #
