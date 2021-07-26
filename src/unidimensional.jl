@@ -78,7 +78,8 @@ end
 
 function __generate_interp(n::Integer, ker::Symbol, lim::Meta.Arg,
                            pos::Meta.Arg, arr::Symbol)
-    J, W = Meta.make_varlist(:_j, n), Meta.make_varlist(:_w, n)
+    J = [Symbol(:j_,s) for s in 1:n]
+    W = [Symbol(:w_,s) for s in 1:n]
     code = Meta.generate_getcoefs(J, W, ker, lim, pos)
     expr = Meta.generate_interp_expr(arr, J, W)
     return (code, expr)
@@ -171,7 +172,8 @@ end
 
 function __generate_interp_adj(n::Integer, ker::Symbol, lim::Meta.Arg,
                                pos::Meta.Arg, dst::Symbol, val::Symbol)
-    J, W = Meta.make_varlist(:_j, n), Meta.make_varlist(:_w, n)
+    J = [Symbol(:j_,s) for s in 1:n]
+    W = [Symbol(:w_,s) for s in 1:n]
     return (Meta.generate_getcoefs(J, W, ker, lim, pos),
             [:($dst[$(J[i])] += $(W[i])*$val) for i in 1:n]...)
 end

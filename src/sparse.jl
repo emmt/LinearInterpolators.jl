@@ -142,11 +142,11 @@ end
                                  ker::Kernel{T,S},
                                  f::Function) where {T,S,N}
 
-    _J = Meta.make_varlist(:_j, S)
-    _C = Meta.make_varlist(:_c, S)
-    code = (Meta.generate_getcoefs(_J, _C, :ker, :lim, :x),
-            [:( J[k+$s] = $(_J[s]) ) for s in 1:S]...,
-            [:( C[k+$s] = $(_C[s]) ) for s in 1:S]...)
+    J_ = [Symbol(:j_,s) for s in 1:S]
+    C_ = [Symbol(:c_,s) for s in 1:S]
+    code = (Meta.generate_getcoefs(J_, C_, :ker, :lim, :x),
+            [:( J[k+$s] = $(J_[s]) ) for s in 1:S]...,
+            [:( C[k+$s] = $(C_[s]) ) for s in 1:S]...)
 
     quote
         lim = limits(ker, ncols)

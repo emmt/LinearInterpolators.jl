@@ -138,10 +138,11 @@ TabulatedInterpolator(d::Integer, ker::Kernel, args...) =
                                  X::AbstractVector,
                                  nrows::Int,
                                  ncols::Int) where {T,S}
-    _J, _W = Meta.make_varlist(:_j, S), Meta.make_varlist(:_w, S)
-    code = (Meta.generate_getcoefs(_J, _W, :ker, :lim, :x),
-            [:( J[$s,i] = $(_J[s]) ) for s in 1:S]...,
-            [:( W[$s,i] = $(_W[s]) ) for s in 1:S]...)
+    J_ = [Symbol(:j_,s) for s in 1:S]
+    W_ = [Symbol(:w_,s) for s in 1:S]
+    code = (Meta.generate_getcoefs(J_, W_, :ker, :lim, :x),
+            [:( J[$s,i] = $(J_[s]) ) for s in 1:S]...,
+            [:( W[$s,i] = $(W_[s]) ) for s in 1:S]...)
     quote
         J = Array{Int}(undef, S, nrows)
         W = Array{T}(undef, S, nrows)
@@ -158,10 +159,11 @@ end
                                  pos::Function,
                                  nrows::Int,
                                  ncols::Int) where {T,S}
-    _J, _W = Meta.make_varlist(:_j, S), Meta.make_varlist(:_w, S)
-    code = (Meta.generate_getcoefs(_J, _W, :ker, :lim, :x),
-            [:( J[$s,i] = $(_J[s]) ) for s in 1:S]...,
-            [:( W[$s,i] = $(_W[s]) ) for s in 1:S]...)
+    J_ = [Symbol(:j_,s) for s in 1:S]
+    W_ = [Symbol(:w_,s) for s in 1:S]
+    code = (Meta.generate_getcoefs(J_, W_, :ker, :lim, :x),
+            [:( J[$s,i] = $(J_[s]) ) for s in 1:S]...,
+            [:( W[$s,i] = $(W_[s]) ) for s in 1:S]...)
     quote
         J = Array{Int}(undef, S, nrows)
         W = Array{T}(undef, S, nrows)

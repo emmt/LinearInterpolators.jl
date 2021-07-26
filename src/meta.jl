@@ -74,8 +74,8 @@ function generate_getcoefs(n::Integer,
                            j::Union{AbstractString,Symbol},
                            w::Union{AbstractString,Symbol},
                            ker::Symbol, lim::Symbol, pos::Arg)
-    return generate_getcoefs(make_varlist(j, n),
-                             make_varlist(w, n), ker, lim, pos)
+    return generate_getcoefs([Symbol(j,"_",s) for s in 1:n],
+                             [Symbol(w,"_",s) for s in 1:n], ker, lim, pos)
 end
 
 function generate_getcoefs(J::AbstractVector{Symbol},
@@ -85,21 +85,6 @@ function generate_getcoefs(J::AbstractVector{Symbol},
     vars =  Expr(:tuple, J..., W...)
     return :($vars = getcoefs($ker, $lim, $pos))
 end
-
-"""
-    make_varlist(pfx, n)
-
-generates a list of symbols to be used as variable names.  Here `pfx` is a
-symbol or a string used as a prefix and `n` is the number of variables or a
-range of indices.  The generated names vahe the form "pfx_i" with `i` an
-integer index.
-
-"""
-make_varlist(pfx::Union{AbstractString,Symbol}, n::Integer) =
-    make_varlist(pfx, 1:n)
-make_varlist(pfx::Union{AbstractString,Symbol}, I::UnitRange{<:Integer}) =
-    [Symbol(pfx,:_,i) for i in I]
-
 
 """
     generate_sum(ex)

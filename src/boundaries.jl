@@ -21,7 +21,6 @@ first(B::Limits) = 1
 last(B::Limits) = B.len
 clamp(i, B::Limits) = clamp(i, first(B), last(B))
 
-
 """
 
 All interpolation limits inherit from the abstract type `Limits{T}` where `T`
@@ -66,7 +65,7 @@ end
                              lim::FlatLimits{T}, x::T) where {T,S}
 
     c = ((S + 1) >> 1)
-    J = Meta.make_varlist(:j, S)
+    J = [Symbol(:j_,i) for i in 1:S]
     setindices = ([:(  $(J[i]) = $(J[c]) - $(c - i)  ) for i in 1:c-1]...,
                   [:(  $(J[i]) = $(J[c]) + $(i - c)  ) for i in c+1:S]...)
     clampindices = [:( $(J[i]) = clamp($(J[i]), lim) ) for i in 1:S]
@@ -91,7 +90,8 @@ end
 @generated function getcoefs(ker::Kernel{T,S,SafeFlat},
                              lim::SafeFlatLimits{T}, x::T) where {S,T}
 
-    J, W = Meta.make_varlist(:j, S), Meta.make_varlist(:w, S)
+    J = [Symbol(:j_,i) for i in 1:S]
+    W = [Symbol(:w_,i) for i in 1:S]
     sameindices = [:(  $(J[i]) = j                   ) for i in 1:S]
     beyondfirst = (:(  j = first(lim)                ),
                    sameindices...,
