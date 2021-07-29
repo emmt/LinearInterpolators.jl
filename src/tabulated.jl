@@ -147,9 +147,15 @@ TabulatedInterpolator(d::Integer, ker::Kernel, args...) =
         J = Array{Int}(undef, S, nrows)
         W = Array{T}(undef, S, nrows)
         lim = limits(ker, ncols)
-        @inbounds for i in 1:nrows
-            x = convert(T, X[i])
-            $(code...)
+        # The following assertion is to cope with
+        # https://github.com/JuliaLang/julia/issues/40276
+        if size(J,1) == S && size(W,1) == S
+            @inbounds for i in 1:nrows
+                x = convert(T, X[i])
+                $(code...)
+            end
+        else
+            throw_unexpected_stride()
         end
         return J, W
     end
@@ -168,13 +174,22 @@ end
         J = Array{Int}(undef, S, nrows)
         W = Array{T}(undef, S, nrows)
         lim = limits(ker, ncols)
-        @inbounds for i in 1:nrows
-            x = convert(T, pos(i))
-            $(code...)
+        # The following assertion is to cope with
+        # https://github.com/JuliaLang/julia/issues/40276
+        if size(J,1) == S && size(W,1) == S
+            @inbounds for i in 1:nrows
+                x = convert(T, pos(i))
+                $(code...)
+            end
+        else
+            throw_unexpected_stride()
         end
         return J, W
     end
 end
+
+throw_unexpected_stride() =
+    throw(AssertionError("unexpected stride"))
 
 # Source and destination arrays may have elements which are either reals or
 # complexes.
@@ -386,34 +401,40 @@ function __direct!(α::R,
                    dst::AbstractArray{T,N}) where {R<:AbstractFloat,S,D,
                                                    T<:RorC{R},N}
     J, W = A.J, A.W
-    # We already know that α != 0.
-    if α == 1 && β == 0
-        @inbounds for ipost in Ipost, ipre in Ipre, i in 1:nrows
-            a = zero(T)
-            @simd for s in 1:S
-                j, w = J[s,i], W[s,i]
-                a += src[ipre,j,ipost]*w
+    # The following assertion is to cope with
+    # https://github.com/JuliaLang/julia/issues/40276
+    if size(J,1) == S && size(W,1) == S
+        # We already know that α != 0.
+        if α == 1 && β == 0
+            @inbounds for ipost in Ipost, ipre in Ipre, i in 1:nrows
+                a = zero(T)
+                @simd for s in 1:S
+                    j, w = J[s,i], W[s,i]
+                    a += src[ipre,j,ipost]*w
+                end
+                dst[ipre,i,ipost] = a
             end
-            dst[ipre,i,ipost] = a
-        end
-    elseif β == 0
-        @inbounds for ipost in Ipost, ipre in Ipre, i in 1:nrows
-            a = zero(T)
-            @simd for s in 1:S
-                j, w = J[s,i], W[s,i]
-                a += src[ipre,j,ipost]*w
+        elseif β == 0
+            @inbounds for ipost in Ipost, ipre in Ipre, i in 1:nrows
+                a = zero(T)
+                @simd for s in 1:S
+                    j, w = J[s,i], W[s,i]
+                    a += src[ipre,j,ipost]*w
+                end
+                dst[ipre,i,ipost] = α*a
             end
-            dst[ipre,i,ipost] = α*a
+        else
+            @inbounds for ipost in Ipost, ipre in Ipre, i in 1:nrows
+                a = zero(T)
+                @simd for s in 1:S
+                    j, w = J[s,i], W[s,i]
+                    a += src[ipre,j,ipost]*w
+                end
+                dst[ipre,i,ipost] = α*a + β*dst[ipre,i,ipost]
+            end
         end
     else
-        @inbounds for ipost in Ipost, ipre in Ipre, i in 1:nrows
-            a = zero(T)
-            @simd for s in 1:S
-                j, w = J[s,i], W[s,i]
-                a += src[ipre,j,ipost]*w
-            end
-            dst[ipre,i,ipost] = α*a + β*dst[ipre,i,ipost]
-        end
+        throw_unexpected_stride()
     end
 end
 
@@ -426,27 +447,33 @@ function __adjoint!(α::R,
                     dst::AbstractArray{T,N}) where {R<:AbstractFloat,S,D,
                                                     T<:RorC{R},N}
     J, W = A.J, A.W
-    # We already know that α != 0.
-    if α == 1
-        @inbounds for ipost in Ipost, ipre in Ipre, i in 1:nrows
-            x = src[ipre,i,ipost]
-            if x != zero(T)
-                @simd for s in 1:S
-                    j, w = J[s,i], W[s,i]
-                    dst[ipre,j,ipost] += w*x
+    # The following assertion is to cope with
+    # https://github.com/JuliaLang/julia/issues/40276
+    if size(J,1) == S && size(W,1) == S
+        # We already know that α != 0.
+        if α == 1
+            @inbounds for ipost in Ipost, ipre in Ipre, i in 1:nrows
+                x = src[ipre,i,ipost]
+                if x != zero(T)
+                    @simd for s in 1:S
+                        j, w = J[s,i], W[s,i]
+                        dst[ipre,j,ipost] += w*x
+                    end
+                end
+            end
+        else
+            @inbounds for ipost in Ipost, ipre in Ipre, i in 1:nrows
+                x = α*src[ipre,i,ipost]
+                if x != zero(T)
+                    @simd for s in 1:S
+                        j, w = J[s,i], W[s,i]
+                        dst[ipre,j,ipost] += w*x
+                    end
                 end
             end
         end
     else
-        @inbounds for ipost in Ipost, ipre in Ipre, i in 1:nrows
-            x = α*src[ipre,i,ipost]
-            if x != zero(T)
-                @simd for s in 1:S
-                    j, w = J[s,i], W[s,i]
-                    dst[ipre,j,ipost] += w*x
-                end
-            end
-        end
+        throw_unexpected_stride()
     end
 end
 
