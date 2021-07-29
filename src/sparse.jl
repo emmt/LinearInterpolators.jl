@@ -92,14 +92,14 @@ sparse(A::SparseInterpolator) =
     A = SparseInterpolator{T=eltype(ker)}(ker, pos, grd)
 
 yields a sparse linear interpolator suitable for interpolating with kernel
-`ker` a function sampled on the grid `grd` at positions `pos`.  Optional
+`ker` at positions `pos` a function sampled on the grid `grd`.  Optional
 parameter `T` is the floating-point type of the coefficients of the operator
 `A`.  Call `eltype(A)` to query the type of the coefficients of the sparse
 interpolator `A`.
 
-Then `y = apply(A, x)` or `y = A(x)` or `y = A*x` yields the interpolated
-values for interpolation weights `x`.  The shape of `y` is the same as that of
-`pos`.  Formally, this amounts to computing:
+Then `y = apply(A, x)` or `y = A(x)` or `y = A*x` yield the result of
+interpolation array `x`.  The shape of `y` is the same as that of `pos`.
+Formally, this amounts to computing:
 
     y[i] = sum_j ker((pos[i] - grd[j])/step(grd))*x[j]
 
@@ -653,17 +653,17 @@ function apply!(α::Real, ::Type{Direct},
     else
         C = coefficients(A)
         J = columns(A)
-        Ifast = CartesianIndices(xdims[1:D-1])
-        Islow = CartesianIndices(xdims[D+1:N])
+        I_pre = CartesianIndices(xdims[1:D-1])
+        I_post = CartesianIndices(xdims[D+1:N])
         T = promote_type(Ta,Tx)
         alpha = convert(T, α)
         if β == 0
             _apply_direct!(T, Val{S}, C, J, alpha, x, y,
-                           Ifast, nrows, Islow)
+                           I_pre, nrows, I_post)
         else
             beta = convert(Ty, β)
             _apply_direct!(T, Val{S}, C, J, alpha, x, beta, y,
-                           Ifast, nrows, Islow)
+                           I_pre, nrows, I_post)
         end
     end
     return y
@@ -719,21 +719,21 @@ function _apply_direct!(::Type{T},
                         α::AbstractFloat,
                         x::AbstractArray{<:Real,N},
                         y::AbstractArray{<:AbstractFloat,N},
-                        Ifast::CartesianIndices{Nfast},
+                        I_pre::CartesianIndices{N_pre},
                         len::Int,
-                        Islow::CartesianIndices{Nslow}
-                        ) where {T<:AbstractFloat,S,N,Nslow,Nfast}
-    @assert N == Nslow + Nfast + 1
-    @inbounds for islow in Islow
-        for ifast in Ifast
+                        I_post::CartesianIndices{N_post}
+                        ) where {T<:AbstractFloat,S,N,N_post,N_pre}
+    @assert N == N_post + N_pre + 1
+    @inbounds for i_post in I_post
+        for i_pre in I_pre
             k0 = 0
             for i in 1:len
                 sum = zero(T)
                 @simd for s in 1:S
                     k = k0 + s
-                    sum += C[k]*x[ifast,J[k],islow]
+                    sum += C[k]*x[i_pre,J[k],i_post]
                 end
-                y[ifast,i,islow] = α*sum
+                y[i_pre,i,i_post] = α*sum
                 k0 += S
             end
         end
@@ -748,21 +748,21 @@ function _apply_direct!(::Type{T},
                         x::AbstractArray{<:Real,N},
                         β::AbstractFloat,
                         y::AbstractArray{<:AbstractFloat,N},
-                        Ifast::CartesianIndices{Nfast},
+                        I_pre::CartesianIndices{N_pre},
                         len::Int,
-                        Islow::CartesianIndices{Nslow}
-                        ) where {T<:AbstractFloat,S,N,Nslow,Nfast}
-    @assert N == Nslow + Nfast + 1
-    @inbounds for islow in Islow
-        for ifast in Ifast
+                        I_post::CartesianIndices{N_post}
+                        ) where {T<:AbstractFloat,S,N,N_post,N_pre}
+    @assert N == N_post + N_pre + 1
+    @inbounds for i_post in I_post
+        for i_pre in I_pre
             k0 = 0
             for i in 1:len
                 sum = zero(T)
                 @simd for s in 1:S
                     k = k0 + s
-                    sum += C[k]*x[ifast,J[k],islow]
+                    sum += C[k]*x[i_pre,J[k],i_post]
                 end
-                y[ifast,i,islow] = α*sum + β*y[ifast,i,islow]
+                y[i_pre,i,i_post] = α*sum + β*y[i_pre,i,i_post]
                 k0 += S
             end
         end
@@ -775,19 +775,19 @@ function _apply_adjoint!(::Type{Val{S}},
                          α::AbstractFloat,
                          x::AbstractArray{<:Real,N},
                          y::AbstractArray{<:AbstractFloat,N},
-                         Ifast::CartesianIndices{Nfast},
+                         I_pre::CartesianIndices{N_pre},
                          len::Int,
-                         Islow::CartesianIndices{Nslow}
-                         ) where {S,N,Nslow,Nfast}
-    @assert N == Nslow + Nfast + 1
-    @inbounds for islow in Islow
-        for ifast in Ifast
+                         I_post::CartesianIndices{N_post}
+                         ) where {S,N,N_post,N_pre}
+    @assert N == N_post + N_pre + 1
+    @inbounds for i_post in I_post
+        for i_pre in I_pre
             k0 = 0
             for i in 1:len
-                c = α*x[ifast,i,islow]
+                c = α*x[i_pre,i,i_post]
                 @simd for s in 1:S
                     k = k0 + s
-                    y[ifast,J[k],islow] += C[k]*c
+                    y[i_pre,J[k],i_post] += C[k]*c
                 end
                 k0 += S
             end

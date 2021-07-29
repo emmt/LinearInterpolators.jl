@@ -394,9 +394,9 @@ end
 function __direct!(α::R,
                    A::TabulatedInterpolator{R,S,D},
                    src::AbstractArray{T,N},
-                   Ipre::CartesianIndices,
+                   I_pre::CartesianIndices,
                    nrows::Int,
-                   Ipost::CartesianIndices,
+                   I_post::CartesianIndices,
                    β::R,
                    dst::AbstractArray{T,N}) where {R<:AbstractFloat,S,D,
                                                    T<:RorC{R},N}
@@ -406,31 +406,31 @@ function __direct!(α::R,
     if size(J,1) == S && size(W,1) == S
         # We already know that α != 0.
         if α == 1 && β == 0
-            @inbounds for ipost in Ipost, ipre in Ipre, i in 1:nrows
+            @inbounds for i_post in I_post, i_pre in I_pre, i in 1:nrows
                 a = zero(T)
                 @simd for s in 1:S
                     j, w = J[s,i], W[s,i]
-                    a += src[ipre,j,ipost]*w
+                    a += src[i_pre,j,i_post]*w
                 end
-                dst[ipre,i,ipost] = a
+                dst[i_pre,i,i_post] = a
             end
         elseif β == 0
-            @inbounds for ipost in Ipost, ipre in Ipre, i in 1:nrows
+            @inbounds for i_post in I_post, i_pre in I_pre, i in 1:nrows
                 a = zero(T)
                 @simd for s in 1:S
                     j, w = J[s,i], W[s,i]
-                    a += src[ipre,j,ipost]*w
+                    a += src[i_pre,j,i_post]*w
                 end
-                dst[ipre,i,ipost] = α*a
+                dst[i_pre,i,i_post] = α*a
             end
         else
-            @inbounds for ipost in Ipost, ipre in Ipre, i in 1:nrows
+            @inbounds for i_post in I_post, i_pre in I_pre, i in 1:nrows
                 a = zero(T)
                 @simd for s in 1:S
                     j, w = J[s,i], W[s,i]
-                    a += src[ipre,j,ipost]*w
+                    a += src[i_pre,j,i_post]*w
                 end
-                dst[ipre,i,ipost] = α*a + β*dst[ipre,i,ipost]
+                dst[i_pre,i,i_post] = α*a + β*dst[i_pre,i,i_post]
             end
         end
     else
@@ -441,9 +441,9 @@ end
 function __adjoint!(α::R,
                     A::TabulatedInterpolator{R,S,D},
                     src::AbstractArray{T,N},
-                    Ipre::CartesianIndices,
+                    I_pre::CartesianIndices,
                     nrows::Int,
-                    Ipost::CartesianIndices,
+                    I_post::CartesianIndices,
                     dst::AbstractArray{T,N}) where {R<:AbstractFloat,S,D,
                                                     T<:RorC{R},N}
     J, W = A.J, A.W
@@ -452,22 +452,22 @@ function __adjoint!(α::R,
     if size(J,1) == S && size(W,1) == S
         # We already know that α != 0.
         if α == 1
-            @inbounds for ipost in Ipost, ipre in Ipre, i in 1:nrows
-                x = src[ipre,i,ipost]
+            @inbounds for i_post in I_post, i_pre in I_pre, i in 1:nrows
+                x = src[i_pre,i,i_post]
                 if x != zero(T)
                     @simd for s in 1:S
                         j, w = J[s,i], W[s,i]
-                        dst[ipre,j,ipost] += w*x
+                        dst[i_pre,j,i_post] += w*x
                     end
                 end
             end
         else
-            @inbounds for ipost in Ipost, ipre in Ipre, i in 1:nrows
-                x = α*src[ipre,i,ipost]
+            @inbounds for i_post in I_post, i_pre in I_pre, i in 1:nrows
+                x = α*src[i_pre,i,i_post]
                 if x != zero(T)
                     @simd for s in 1:S
                         j, w = J[s,i], W[s,i]
-                        dst[ipre,j,ipost] += w*x
+                        dst[i_pre,j,i_post] += w*x
                     end
                 end
             end
