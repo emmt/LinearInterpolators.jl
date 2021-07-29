@@ -125,8 +125,8 @@ end
 function SparseInterpolator{T}(ker::Kernel{T},
                                pos::AbstractArray{<:Real},
                                len::Integer) where {T<:AbstractFloat}
-    SparseInterpolator(ker, fractional_index(T, pos),
-                       CartesianIndices(axes(pos)), len)
+    SparseInterpolator{T}(ker, fractional_index(T, pos),
+                          CartesianIndices(axes(pos)), len)
 end
 
 function SparseInterpolator{T}(ker::Kernel{T,S},
