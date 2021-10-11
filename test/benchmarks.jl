@@ -24,8 +24,8 @@ n1, n2 = 300, 200
 m1, m2 =  43,  29
 y = randn(n1, n2)
 ker = CatmullRomSpline()
-A1 = SparseUnidimensionalInterpolator(ker, 1, 1:n1, range(1,n1,length=m1))
-A2 = SparseUnidimensionalInterpolator(ker, 2, 1:n2, range(1,n2,length=m2))
+A1 = SparseSeparableInterpolator(ker, 1, 1:n1, range(1,n1,length=m1))
+A2 = SparseSeparableInterpolator(ker, 2, 1:n2, range(1,n2,length=m2))
 H = A1*A2
 
 function LazyAlgebra.vcreate(::Type{LazyAlgebra.Direct},

@@ -1,5 +1,5 @@
 #
-# unidimensional.jl --
+# interpolate.jl --
 #
 # Unidimensional interpolation (the result may however be multi-dimensional).
 #
@@ -11,66 +11,78 @@
 # Copyright (C) 2016-2021, Éric Thiébaut.
 #
 
-# All code is in a module to "hide" private methods.
-module UnidimensionalInterpolators
+"""
+    interpolate([P=Direct,] ker, x, src) -> dst
 
-using InterpolationKernels
+interpolates source array `src` at positions `x` with interpolation kernel
+`ker` and yiedls the result as `dst`.
 
-using LazyAlgebra
-using LazyAlgebra.Foundations
-import LazyAlgebra: apply, apply!, vcreate
+Interpolation is equivalent to applying a linear mapping.  Optional argument
+`P` can be `Direct` or `Adjoint` to respectively compute the interpolation or
+to apply the adjoint of the linear mapping implementing the interpolation.
 
-using ..LinearInterpolators
-using ..LinearInterpolators: limits, getcoefs
-import ..LinearInterpolators.Meta
+"""
+interpolate
+
+"""
+    interpolate!(dst, [P=Direct,] ker, x, src) -> dst
+
+overwrites `dst` with the result of interpolating the source array `src` at
+positions `x` with interpolation kernel `ker`.
+
+Optional argument `P` can be `Direct` or `Adjoint`, see [`interpolate`](@ref) for
+details.
+
+"""
+interpolate!
 
 #------------------------------------------------------------------------------
 # Out-of place versions (coordinates cannot be a function).
 
 # FIXME: this is type-piracy
 
-function apply(ker::Kernel{T,S},
+function interpolate(ker::Kernel{T,S},
                x::AbstractArray{T,N},
                src::AbstractVector{T}) where {T,S,N}
-    return apply(Direct, ker, x, src)
+    return interpolate(Direct, ker, x, src)
 end
 
-function apply(::Type{Direct}, ker::Kernel{T,S},
+function interpolate(::Type{Direct}, ker::Kernel{T,S},
                x::AbstractArray{T,N},
                src::AbstractVector{T}) where {T,S,N}
-    return apply!(Array{T}(undef, size(x)), Direct, ker, x, src)
+    return interpolate!(Array{T}(undef, size(x)), Direct, ker, x, src)
 end
 
-function apply(::Type{Adjoint}, ker::Kernel{T,S},
+function interpolate(::Type{Adjoint}, ker::Kernel{T,S},
                x::AbstractArray{T,N},
                src::AbstractArray{T,N}, len::Integer) where {T,S,N}
-    return apply!(Array{T}(undef, len), Adjoint, ker, x, src)
+    return interpolate!(Array{T}(undef, len), Adjoint, ker, x, src)
 end
 
 #------------------------------------------------------------------------------
 # In-place wrappers.
 
-function apply!(dst::AbstractArray{T,N},
+function interpolate!(dst::AbstractArray{T,N},
                 ker::Kernel{T,S},
                 x::Union{Function,AbstractArray{T,N}},
                 src::AbstractVector{T}) where {T,S,N}
-    apply!(1, Direct, ker, x, src, 0, dst)
+    interpolate!(1, Direct, ker, x, src, 0, dst)
 end
 
-function apply!(dst::AbstractArray{T,N},
+function interpolate!(dst::AbstractArray{T,N},
                 ::Type{Direct},
                 ker::Kernel{T,S},
                 x::Union{Function,AbstractArray{T,N}},
                 src::AbstractVector{T}) where {T,S,N}
-    apply!(1, Direct, ker, x, src, 0, dst)
+    interpolate!(1, Direct, ker, x, src, 0, dst)
 end
 
-function apply!(dst::AbstractVector{T},
+function interpolate!(dst::AbstractVector{T},
                 ::Type{Adjoint},
                 ker::Kernel{T,S},
                 x::Union{Function,AbstractArray{T,N}},
                 src::AbstractArray{T,N}) where {T,S,N}
-    apply!(1, Adjoint, ker, x, src, 0, dst)
+    interpolate!(1, Adjoint, ker, x, src, 0, dst)
 end
 
 #------------------------------------------------------------------------------
@@ -85,7 +97,7 @@ function __generate_interp(n::Integer, ker::Symbol, lim::Meta.Arg,
     return (code, expr)
 end
 
-@generated function apply!(α::Real,
+@generated function interpolate!(α::Real,
                            ::Type{Direct},
                            ker::Kernel{T,S},
                            x::AbstractArray{T,N},
@@ -127,7 +139,7 @@ end
     end
 end
 
-@generated function apply!(α::Real,
+@generated function interpolate!(α::Real,
                            ::Type{Direct},
                            ker::Kernel{T,S},
                            f::Function,
@@ -178,7 +190,7 @@ function __generate_interp_adj(n::Integer, ker::Symbol, lim::Meta.Arg,
             [:($dst[$(J[i])] += $(W[i])*$val) for i in 1:n]...)
 end
 
-@generated function apply!(α::Real,
+@generated function interpolate!(α::Real,
                            ::Type{Adjoint},
                            ker::Kernel{T,S},
                            x::AbstractArray{T,N},
@@ -208,13 +220,13 @@ end
     end
 end
 
-@generated function apply!(α::Real,
-                           ::Type{Adjoint},
-                           ker::Kernel{T,S},
-                           f::Function,
-                           src::AbstractArray{T,N},
-                           β::Real,
-                           dst::AbstractVector{T}) where {T,S,N}
+@generated function interpolate!(α::Real,
+                                 ::Type{Adjoint},
+                                 ker::Kernel{T,S},
+                                 f::Function,
+                                 src::AbstractArray{T,N},
+                                 β::Real,
+                                 dst::AbstractVector{T}) where {T,S,N}
     code = __generate_interp_adj(S, :ker, :lim, :pos, :dst, :val)
     quote
         vscale!(dst, β)
