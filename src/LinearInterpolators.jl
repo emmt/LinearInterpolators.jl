@@ -48,7 +48,6 @@ export
     intercept,
     iscardinal,
     isnormalized,
-    jacobian,
     nameof,
     rotate
 
