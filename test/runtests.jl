@@ -17,12 +17,19 @@ using Statistics: mean
     @test out[x .== 2.5][1] == 0.5
 
     out2 = similar(out)
+    apply!(out2, ker, x, src)
+    @test out2 == out
+
     apply!(2, Direct, ker, x, src, 0, out2) # α=2 β=0
     @test out2 == 2*out
 
     out2[:] .= 1
     @inferred apply!(1, Direct, ker, x, src, 2, out2) # α=1 β=2
     @test out2 == out .+ 2
+
+    out2[:] .= 3
+    @inferred apply!(0, Direct, ker, x, src, 2, out2) # α=0 β=2
+    @test all(==(6), out2)
 
     adj = @inferred apply(Adjoint, ker, x, out, length(src))
     adj2 = similar(adj)
@@ -32,6 +39,10 @@ using Statistics: mean
     adj2[:] .= 1
     @inferred apply!(1, Adjoint, ker, x, out, 2, adj2) # α=1 β=2
     @test adj2 == adj .+ 2
+
+    adj2[:] .= 3
+    @inferred apply!(0, Adjoint, ker, x, out, 2, adj2) # α=0 β=2
+    @test all(==(6), adj2)
 end
 
 distance(a::Real, b::Real) = abs(a - b)
