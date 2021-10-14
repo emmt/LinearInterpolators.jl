@@ -29,47 +29,49 @@ import ..LinearInterpolators.Meta
 
 # FIXME: this is type-piracy
 
-function apply(ker::Kernel{T,S},
-               x::AbstractArray{T,N},
-               src::AbstractVector{T}) where {T,S,N}
+function apply(ker::Kernel,
+               x::AbstractArray,
+               src::AbstractVector)
     return apply(Direct, ker, x, src)
 end
 
-function apply(::Type{Direct}, ker::Kernel{T,S},
-               x::AbstractArray{T,N},
-               src::AbstractVector{T}) where {T,S,N}
-    return apply!(Array{T}(undef, size(x)), Direct, ker, x, src)
+function apply(::Type{Direct}, ker::Kernel{Tk,S},
+               x::AbstractArray{Tx},
+               src::AbstractVector{Ts}) where {Tk,Tx,Ts,S}
+    Td = promote_type(Tk, Tx, Ts)
+    return apply!(Array{Td}(undef, size(x)), Direct, ker, x, src)
 end
 
-function apply(::Type{Adjoint}, ker::Kernel{T,S},
-               x::AbstractArray{T,N},
-               src::AbstractArray{T,N}, len::Integer) where {T,S,N}
-    return apply!(Array{T}(undef, len), Adjoint, ker, x, src)
+function apply(::Type{Adjoint}, ker::Kernel{Tk,S},
+               x::AbstractArray{Tx,N},
+               src::AbstractArray{Ts,N}, len::Integer) where {Tk,Tx,Ts,S,N}
+    Td = promote_type(Tk, Tx, Ts)
+    return apply!(Array{Td}(undef, len), Adjoint, ker, x, src)
 end
 
 #------------------------------------------------------------------------------
 # In-place wrappers.
 
-function apply!(dst::AbstractArray{T,N},
-                ker::Kernel{T,S},
-                x::Union{Function,AbstractArray{T,N}},
-                src::AbstractVector{T}) where {T,S,N}
+function apply!(dst::AbstractArray{Td,N},
+                ker::Kernel,
+                x::Union{Function,AbstractArray{Tx,N}},
+                src::AbstractVector) where {Td,Tx,N}
     apply!(1, Direct, ker, x, src, 0, dst)
 end
 
-function apply!(dst::AbstractArray{T,N},
+function apply!(dst::AbstractArray{Td,N},
                 ::Type{Direct},
-                ker::Kernel{T,S},
-                x::Union{Function,AbstractArray{T,N}},
-                src::AbstractVector{T}) where {T,S,N}
+                ker::Kernel,
+                x::Union{Function,AbstractArray{Tx,N}},
+                src::AbstractVector) where {Td,Tx,N}
     apply!(1, Direct, ker, x, src, 0, dst)
 end
 
-function apply!(dst::AbstractVector{T},
+function apply!(dst::AbstractVector,
                 ::Type{Adjoint},
-                ker::Kernel{T,S},
-                x::Union{Function,AbstractArray{T,N}},
-                src::AbstractArray{T,N}) where {T,S,N}
+                ker::Kernel,
+                x::Union{Function,AbstractArray{Tx,N}},
+                src::AbstractArray{Ts,N}) where {Ts,Tx,N}
     apply!(1, Adjoint, ker, x, src, 0, dst)
 end
 
@@ -87,11 +89,11 @@ end
 
 @generated function apply!(α::Real,
                            ::Type{Direct},
-                           ker::Kernel{T,S},
-                           x::AbstractArray{T,N},
-                           src::AbstractVector{T},
+                           ker::Kernel{Tk,S},
+                           x::AbstractArray{Tx,N},
+                           src::AbstractVector{Ts},
                            β::Real,
-                           dst::AbstractArray{T,N}) where {T,S,N}
+                           dst::AbstractArray{Td,N}) where {Tk,Tx,Ts,Td,S,N}
     code, expr = __generate_interp(S, :ker, :lim, :pos, :src)
     quote
         @assert size(dst) == size(x)
@@ -106,7 +108,7 @@ end
                     dst[i] = $expr
                 end
             else
-                alpha = convert(T, α)
+                alpha = convert(Td, α)
                 @inbounds for i in eachindex(dst, x)
                     pos = x[i]
                     $code
@@ -115,8 +117,8 @@ end
 
             end
         else
-            alpha = convert(T, α)
-            beta = convert(T, β)
+            alpha = convert(Td, α)
+            beta = convert(Td, β)
             @inbounds for i in eachindex(dst, x)
                 pos = x[i]
                 $code
@@ -129,11 +131,11 @@ end
 
 @generated function apply!(α::Real,
                            ::Type{Direct},
-                           ker::Kernel{T,S},
+                           ker::Kernel{Tk,S},
                            f::Function,
-                           src::AbstractVector{T},
+                           src::AbstractVector{Ts},
                            β::Real,
-                           dst::AbstractArray{T,N}) where {T,S,N}
+                           dst::AbstractArray{Td,N}) where {Tk,Ts,Td,S,N}
     code, expr = __generate_interp(S, :ker, :lim, :pos, :src)
     quote
         lim = limits(ker, length(src))
@@ -142,23 +144,23 @@ end
         elseif β == 0
             if α == 1
                 @inbounds for i in eachindex(dst)
-                    pos = f(i) :: T
+                    pos = f(i) :: Td
                     $code
                     dst[i] = $expr
                 end
             else
                 alpha = convert(T, α)
                 @inbounds for i in eachindex(dst)
-                    x = f(i) :: T
+                    x = f(i) :: Td
                     $code
                     dst[i] = $expr*alpha
                 end
             end
         else
-            alpha = convert(T, α)
-            beta = convert(T, β)
+            alpha = convert(Td, α)
+            beta = convert(Td, β)
             @inbounds for i in eachindex(dst)
-                x = f(i) :: T
+                x = f(i) :: Td
                 $code
                 dst[i] = $expr*alpha + beta*dst[i]
             end
@@ -180,11 +182,11 @@ end
 
 @generated function apply!(α::Real,
                            ::Type{Adjoint},
-                           ker::Kernel{T,S},
-                           x::AbstractArray{T,N},
-                           src::AbstractArray{T,N},
+                           ker::Kernel{Tk,S},
+                           x::AbstractArray{Tx,N},
+                           src::AbstractArray{Ts,N},
                            β::Real,
-                           dst::AbstractVector{T}) where {T,S,N}
+                           dst::AbstractVector{Td}) where {Tk,Tx,Ts,Td,S,N}
     code = __generate_interp_adj(S, :ker, :lim, :pos, :dst, :val)
     quote
         @assert size(src) == size(x)
@@ -197,7 +199,7 @@ end
                 $(code...)
         end
         elseif α != 0
-            alpha = convert(T, α)
+            alpha = convert(Td, α)
             @inbounds for i in eachindex(src, x)
                 pos = x[i]
                 val = alpha*src[i]
@@ -210,25 +212,25 @@ end
 
 @generated function apply!(α::Real,
                            ::Type{Adjoint},
-                           ker::Kernel{T,S},
+                           ker::Kernel{Tk,S},
                            f::Function,
-                           src::AbstractArray{T,N},
+                           src::AbstractArray{Ts,N},
                            β::Real,
-                           dst::AbstractVector{T}) where {T,S,N}
+                           dst::AbstractVector{Td}) where {Tk,Ts,Td,S,N}
     code = __generate_interp_adj(S, :ker, :lim, :pos, :dst, :val)
     quote
         vscale!(dst, β)
         lim = limits(ker, length(dst))
         if α == 1
             @inbounds for i in eachindex(src)
-                pos = f(i) :: T
+                pos = f(i) :: Td
                 val = src[i]
                 $(code...)
             end
         elseif α != 0
-            alpha = convert(T, α)
+            alpha = convert(Td, α)
             @inbounds for i in eachindex(src)
-                pos = f(i) :: T
+                pos = f(i) :: Td
                 val = alpha*src[i]
                 $(code...)
             end

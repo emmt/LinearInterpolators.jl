@@ -3,10 +3,36 @@ module TestingLinearInterpolatorsInterpolations
 using LazyAlgebra, TwoDimensional
 
 using LinearInterpolators
+import LinearInterpolators: Adjoint, Direct
 
 using Printf
-using Test
+using Test: @test, @testset, @test_deprecated, @inferred
 using Statistics: mean
+
+@testset "Unidimensional" begin
+    ker = @inferred LinearSpline(Float32)
+    src = [0, 0, 1, 0, 0] # Vector{Int}
+    x = LinRange(-1,7,81) # Float64
+    out = @inferred apply(ker, x, src) # different eltypes
+    @test out[x .== 2.5][1] == 0.5
+
+    out2 = similar(out)
+    apply!(2, Direct, ker, x, src, 0, out2) # α=2 β=0
+    @test out2 == 2*out
+
+    out2[:] .= 1
+    @inferred apply!(1, Direct, ker, x, src, 2, out2) # α=1 β=2
+    @test out2 == out .+ 2
+
+    adj = @inferred apply(Adjoint, ker, x, out, length(src))
+    adj2 = similar(adj)
+    @inferred apply!(2, Adjoint, ker, x, out, 0, adj2) # α=2 β=0
+    @test adj2 == 2*adj
+
+    adj2[:] .= 1
+    @inferred apply!(1, Adjoint, ker, x, out, 2, adj2) # α=1 β=2
+    @test adj2 == adj .+ 2
+end
 
 distance(a::Real, b::Real) = abs(a - b)
 
@@ -47,7 +73,8 @@ t = range(1, stop=length(xsub), length=length(x));
         C in conditions
         tol = isa(K, RectangularSpline) ? 0.02 : 0.006
         ker = C(K)
-        T = TabulatedInterpolator(ker, t, length(xsub))
+        T = @inferred TabulatedInterpolator(ker, t, length(xsub))
+        @inferred T(ysub)
         @test distance(T(ysub), T*ysub) ≤ 0
         err = distance(T*ysub, y)
         if VERBOSE
@@ -64,8 +91,10 @@ end
     for K in kernels, C in conditions
         tol = isa(K, RectangularSpline) ? 0.02 : 0.006
         ker = C(K)
-        S = SparseInterpolator(ker, t, length(xsub))
-        T = TabulatedInterpolator(ker, t, length(xsub))
+        S = @inferred SparseInterpolator(ker, t, length(xsub))
+        T = @inferred TabulatedInterpolator(ker, t, length(xsub))
+        @inferred S(ysub)
+        @inferred T(ysub)
         @test distance(S(ysub), S*ysub) ≤ 1e-15
         @test distance(S(ysub), T(ysub)) ≤ 1e-15
         @test distance(S(ysub), y) ≤ tol
@@ -86,7 +115,7 @@ end
     R = c + rotate(AffineTransform2D{Float64}() - c, 0.2)
 
     for ker1 in kerlist, ker2 in kerlist
-        A = TwoDimensionalTransformInterpolator(rows, cols, ker1, ker2, R)
+        A = @inferred TwoDimensionalTransformInterpolator(rows, cols, ker1, ker2, R)
         x = randn(cols)
         y = randn(rows)
         #x0 = randn(cols)

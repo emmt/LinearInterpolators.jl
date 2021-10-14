@@ -11,6 +11,7 @@
 # Copyright (C) 2016-2021, Éric Thiébaut.
 #
 
+
 eltype(B::Limits) = eltype(typeof(B))
 eltype(::Type{<:Limits{T}}) where {T} = T
 length(B::Limits) = B.len
@@ -53,16 +54,16 @@ by `lim`.
 
 # Specialized code for S = 1 (i.e., take nearest neighbor).
 @inline function getcoefs(ker::Kernel{T,1,Flat},
-                          lim::FlatLimits{T}, x::T) where {T}
+                          lim::FlatLimits{T}, x) where {T}
     r = round(x)
     j1 = clamp(trunc(Int, r), lim)
-    w1 = getweights(ker, x - r)
+    w1 = getweights(ker, T(x - r))
     return j1, w1
 end
 
 # For S > 1, code is automatically generated.
 @generated function getcoefs(ker::Kernel{T,S,Flat},
-                             lim::FlatLimits{T}, x::T) where {T,S}
+                             lim::FlatLimits{T}, x) where {T,S}
 
     c = ((S + 1) >> 1)
     J = [Symbol(:j_,i) for i in 1:S]
@@ -83,7 +84,7 @@ end
         if $(J[1]) < first(lim) || $(J[S]) > last(lim)
             $(clampindices...)
         end
-        return ($(J...), getweights(ker, x - f)...)
+        return ($(J...), getweights(ker, T(x - f))...)
     end
 end
 
