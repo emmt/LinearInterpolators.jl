@@ -23,12 +23,13 @@ last(B::Limits) = B.len
 clamp(i, B::Limits) = clamp(i, first(B), last(B))
 
 """
-
+    limits
 All interpolation limits inherit from the abstract type `Limits{T}` where `T`
 is the floating-point type.  Interpolation limits are the combination of an
 extrapolation method and the length of the dimension to interpolate.
 
-""" limits
+"""
+limits
 
 limits(::Kernel{T,S,Flat}, len::Integer) where {T,S} =
     FlatLimits{T}(len)
@@ -50,7 +51,8 @@ yields the indexes of the neighbors and the corresponding interpolation weights
 for interpolating at position `x` by kernel `ker` with the limits implemented
 by `lim`.
 
-""" getcoefs
+"""
+getcoefs
 
 # Specialized code for S = 1 (i.e., take nearest neighbor).
 @inline function getcoefs(ker::Kernel{T,1,Flat},

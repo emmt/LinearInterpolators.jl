@@ -11,7 +11,12 @@
 # Copyright (C) 2016-2021, Éric Thiébaut.
 #
 
+"""
+    Limits{T<:AbstractFloat}
+Abstract type for defining boundary conditions.
+"""
 abstract type Limits{T<:AbstractFloat} end # FIXME: add parameter S
+
 
 """
 
