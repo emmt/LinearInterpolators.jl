@@ -508,9 +508,13 @@ end
 
 #------------------------------------------------------------------------------
 
-# Parameter `T` is the floating-point type of the coefficients, parameter `S`
-# is the size of the kernel (number of nodes to combine for a single
-# interpolator) and parameter `D` is the dimension of interpolation.
+"""
+    SparseUnidimensionalInterpolator{T<:AbstractFloat,S,D} <: AbstractSparseInterpolator{T}
+* `T` is the floating-point type of the coefficients,
+* `S` is the size of the kernel
+  (number of nodes to combine for a single interpolator)
+* `D` is the dimension of interpolation.
+"""
 struct SparseUnidimensionalInterpolator{T<:AbstractFloat,S,D} <: AbstractSparseInterpolator{T}
     nrows::Int     # number of rows
     ncols::Int     # number of columns
