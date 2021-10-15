@@ -12,8 +12,6 @@ module LinearInterpolators
 export
     # Re-exports from TwoDimensional:
     AffineTransform2D,
-    intercept,
-    jacobian,
     rotate,
 
     # Re-exports from InterpolationKernels:
