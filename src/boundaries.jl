@@ -49,11 +49,28 @@ yields the indexes of the neighbors and the corresponding interpolation weights
 for interpolating at position `x` by kernel `ker` with the limits implemented
 by `lim`.
 
+If `x` is not a scalar of the same floating-point type, say `T`, as the kernel
+`ker`, it is converted to `T` by calling
+[`LinearInterpolators.convert_coordinate(T,x)`](@ref).  This latter method may
+be extended for non-standard numerical types of `x`.
+
 """ getcoefs
+
+# The following is ugly (too specific) but necessary to avoid ambiguities.
+for (B,L) in ((:Flat,     :FlatLimits),
+              (:SafeFlat, :SafeFlatLimits),)
+    @eval begin
+        @inline function getcoefs(ker::Kernel{T,S,$B},
+                                  lim::$L{T},
+                                  x) where {T<:AbstractFloat,S}
+            getcoefs(ker, lim, convert_coordinate(T, x)::T)
+        end
+    end
+end
 
 # Specialized code for S = 1 (i.e., take nearest neighbor).
 @inline function getcoefs(ker::Kernel{T,1,Flat},
-                          lim::FlatLimits{T}, x::T) where {T}
+                          lim::FlatLimits{T}, x::T) where {T<:AbstractFloat}
     r = round(x)
     j1 = clamp(trunc(Int, r), lim)
     w1 = getweights(ker, x - r)
@@ -62,7 +79,7 @@ end
 
 # For S > 1, code is automatically generated.
 @generated function getcoefs(ker::Kernel{T,S,Flat},
-                             lim::FlatLimits{T}, x::T) where {T,S}
+                             lim::FlatLimits{T}, x::T) where {T<:AbstractFloat,S}
 
     c = ((S + 1) >> 1)
     J = [Symbol(:j_,i) for i in 1:S]
@@ -88,7 +105,7 @@ end
 end
 
 @generated function getcoefs(ker::Kernel{T,S,SafeFlat},
-                             lim::SafeFlatLimits{T}, x::T) where {S,T}
+                             lim::SafeFlatLimits{T}, x::T) where {T<:AbstractFloat,S}
 
     J = [Symbol(:j_,i) for i in 1:S]
     W = [Symbol(:w_,i) for i in 1:S]
@@ -129,3 +146,14 @@ end
         return ($(J...), $(W...))
     end
 end
+
+
+"""
+    LinearInterpolators.convert_coordinate(T, c) -> x::T
+
+yields interpolation coordinate `c` to floating-point type `T`.  The default
+behavior is to yield `convert(T,c)` but this method may be extended to cope
+with non-standard numeric types.
+
+"""
+convert_coordinate(T::Type{<:AbstractFloat}, c::Number) = convert(T, c)
