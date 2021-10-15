@@ -1,12 +1,15 @@
 module TestingLinearInterpolatorsInterpolations
 
-using LazyAlgebra, TwoDimensional
+using TwoDimensional
+
+using LazyAlgebra
+using LazyAlgebra: Adjoint, Direct
 
 using LinearInterpolators
-import LinearInterpolators: Adjoint, Direct
+using LinearInterpolators: getcoefs, limits
 
 using Printf
-using Test: @test, @testset, @test_deprecated, @inferred
+using Test
 using Statistics: mean
 
 @testset "Unidimensional" begin
@@ -38,7 +41,7 @@ using Statistics: mean
 
     adj2[:] .= 1
     @inferred apply!(1, Adjoint, ker, x, out, 2, adj2) # α=1 β=2
-    @test adj2 == adj .+ 2
+    @test adj2 ≈ adj .+ 2
 
     adj2[:] .= 3
     @inferred apply!(0, Adjoint, ker, x, out, 2, adj2) # α=0 β=2
@@ -63,6 +66,13 @@ shortname(::Type{T}) where {T} = shortname(string(T))
 shortname(str::AbstractString) =
     shortname(match(r"([_A-Za-z][_A-Za-z0-9]*)([({]|$)", str))
 
+struct CustomCoordinate{T<:Real}
+    val::T
+end
+
+LinearInterpolators.convert_coordinate(T::Type, c::CustomCoordinate) =
+    convert(T, c.val)
+
 kernels = (RectangularSpline(), LinearSpline(), QuadraticSpline(),
            CubicSpline(), CatmullRomSpline(), KeysSpline(-0.4),
            MitchellNetravaliSpline(), LanczosKernel(4), LanczosKernel(6))
@@ -76,6 +86,16 @@ xsub = x[1:sub:end];
 y = cos.(2 .* x .* (x .+ 2));
 ysub = y[1:sub:end];
 t = range(1, stop=length(xsub), length=length(x));
+
+@testset "`getcoefs` method" begin
+    T = Float64
+    ker = CatmullRomSpline(T)
+    len = 4
+    lim = limits(ker, len)
+    for x in (0, .1, -1.2)
+        @test getcoefs(ker, lim, x) == getcoefs(ker, lim, CustomCoordinate(x))
+    end
+end
 
 @testset "TabulatedInterpolators" begin
     tol = 1e-14

@@ -109,5 +109,6 @@ include("unidimensional.jl")
 using .UnidimensionalInterpolators
 include("separable.jl")
 include("nonseparable.jl")
+include("init.jl")
 
 end # module
