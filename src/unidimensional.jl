@@ -92,12 +92,12 @@ function __generate_interp(n::Integer, ker::Symbol, lim::Meta.Arg,
     return (code, expr)
 end
 
-@generated function apply!(α::Real,
+@generated function apply!(α::Number,
                            ::Type{Direct},
                            ker::Kernel{<:Any,S},
                            x::AbstractArray{<:Any,N},
                            src::AbstractVector,
-                           β::Real,
+                           β::Number,
                            dst::AbstractArray{<:Any,N}) where {S,N}
     code, expr = __generate_interp(S, :ker, :lim, :pos, :src)
     quote
@@ -134,12 +134,12 @@ end
     end
 end
 
-@generated function apply!(α::Real,
+@generated function apply!(α::Number,
                            ::Type{Direct},
                            ker::Kernel{<:Any,S},
                            f::Function,
                            src::AbstractVector,
-                           β::Real,
+                           β::Number,
                            dst::AbstractArray{<:Any,N}) where {S,N}
     code, expr = __generate_interp(S, :ker, :lim, :pos, :src)
     quote
@@ -185,12 +185,12 @@ function __generate_interp_adj(n::Integer, ker::Symbol, lim::Meta.Arg,
             [:($dst[$(J[i])] += $(W[i])*$val) for i in 1:n]...)
 end
 
-@generated function apply!(α::Real,
+@generated function apply!(α::Number,
                            ::Type{Adjoint},
                            ker::Kernel{<:Any,S},
                            x::AbstractArray{<:Any,N},
                            src::AbstractArray{<:Any,N},
-                           β::Real,
+                           β::Number,
                            dst::AbstractVector) where {S,N}
     code = __generate_interp_adj(S, :ker, :lim, :pos, :dst, :val)
     quote
@@ -215,12 +215,12 @@ end
     end
 end
 
-@generated function apply!(α::Real,
+@generated function apply!(α::Number,
                            ::Type{Adjoint},
                            ker::Kernel{<:Any,S},
                            f::Function,
                            src::AbstractArray{<:Any,N},
-                           β::Real,
+                           β::Number,
                            dst::AbstractVector) where {S,N}
     code = __generate_interp_adj(S, :ker, :lim, :pos, :dst, :val)
     quote
