@@ -208,7 +208,7 @@ end
         if β != 0
             vscale!(dst, β)
         else
-            vfill!(dst, zero(eltype(dst)))
+            vzero!(dst)
         end
         lim = limits(ker, length(dst))
         if α == 1
@@ -241,7 +241,7 @@ end
         if β != 0
             vscale!(dst, β)
         else
-            vfill!(dst, zero(eltype(dst)))
+            vzero!(dst)
         end
         lim = limits(ker, length(dst))
         if α == 1
