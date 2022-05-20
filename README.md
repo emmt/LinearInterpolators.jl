@@ -1,8 +1,10 @@
 # LinearInterpolators
 
-| **Documentation**               | **License**                     | **Build Status**                                                | **Code Coverage**                                                   |
-|:--------------------------------|:--------------------------------|:----------------------------------------------------------------|:--------------------------------------------------------------------|
-| [![][doc-dev-img]][doc-dev-url] | [![][license-img]][license-url] | [![][travis-img]][travis-url] [![][appveyor-img]][appveyor-url] | [![][coveralls-img]][coveralls-url] [![][codecov-img]][codecov-url] |
+[![Doc. Dev][doc-dev-img]][doc-dev-url]
+[![License][license-img]][license-url]
+[![Build Status][github-ci-img]][github-ci-url]
+[![Build Status][appveyor-img]][appveyor-url]
+[![Coverage][codecov-img]][codecov-url]
 
 The `LinearInterpolators` package provides many linear interpolation methods
 for [Julia][julia-url].  These interpolations are *linear* in the sense
@@ -41,12 +43,10 @@ The documentation for the master version is [here][doc-dev-url].
 
 ## Installation
 
-The easiest way to install `LinearInterpolators` is via Julia registry
-[`EmmtRegistry`](https://github.com/emmt/EmmtRegistry):
+The easiest way to install `LinearInterpolators` is via Julia's package manager:
 
 ```julia
 using Pkg
-pkg"registry add https://github.com/emmt/EmmtRegistry"
 pkg"add LinearInterpolators"
 ```
 
@@ -59,14 +59,11 @@ pkg"add LinearInterpolators"
 [license-url]: ./LICENSE.md
 [license-img]: http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat
 
-[travis-img]: https://app.travis-ci.com/github/emmt/LinearInterpolators.jl?branch=master
-[travis-url]: https://app.travis-ci.com/github/emmt/LinearInterpolators.jl
+[github-ci-img]: https://github.com/emmt/LinearInterpolators.jl/actions/workflows/CI.yml/badge.svg?branch=master
+[github-ci-url]: https://github.com/emmt/LinearInterpolators.jl/actions/workflows/CI.yml?query=branch%3Amaster
 
 [appveyor-img]: https://ci.appveyor.com/api/projects/status/github/emmt/LinearInterpolators.jl?branch=master
 [appveyor-url]: https://ci.appveyor.com/project/emmt/LinearInterpolators-jl/branch/master
-
-[coveralls-img]: https://coveralls.io/repos/emmt/LinearInterpolators.jl/badge.svg?branch=master&service=github
-[coveralls-url]: https://coveralls.io/github/emmt/LinearInterpolators.jl?branch=master
 
 [codecov-img]: http://codecov.io/github/emmt/LinearInterpolators.jl/coverage.svg?branch=master
 [codecov-url]: http://codecov.io/github/emmt/LinearInterpolators.jl?branch=master
