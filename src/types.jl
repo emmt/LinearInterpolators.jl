@@ -8,45 +8,46 @@
 # This file is part of the LinearInterpolators package licensed under the MIT
 # "Expat" License.
 #
-# Copyright (C) 2016-2021, Éric Thiébaut.
+# Copyright (C) 2016-2022, Éric Thiébaut.
 #
 
 """
-    Limits{T<:AbstractFloat}
-Abstract type for defining boundary conditions.
-"""
-abstract type Limits{T<:AbstractFloat} end # FIXME: add parameter S
+    AbstractInterpolator{T,M,N}
 
-
-"""
-
-`FlatLimits` are boundary conditions that implies that extrapolated positions
-yield the same value of the interpolated array at the nearest position.
+is the abstract super-type of linear interpolators whose interpolation
+coefficients have type `T` and which interpolates `N`-dimensional arrays to
+produce `M`-dimensional arrays.
 
 """
-struct FlatLimits{T<:AbstractFloat} <: Limits{T}
-    len::Int # length of dimension in interpolated array
-    function FlatLimits{T}(len::Integer) where {T}
-        @assert len ≥ 1
-        new{T}(len)
-    end
-end
+abstract type AbstractInterpolator{T,M,N} <: LazyAlgebra.LinearMapping end
 
 """
+    BoundaryConditions
 
-`SafeFlatLimits` are boundary conditions that implies that extrapolated
-positions yield the same value of the interpolated array at the nearest
-position.  Compared to `FlatLimits`, the operations are "safe" in the sense
-that no `InexactError` get thrown even for very large extrapolation distances.
+abstract super-type of boundary conditions.  Boundary conditions define how
+interpolated arrays are extrapolated.
+
+See [`Flat`](@ref).
 
 """
-struct SafeFlatLimits{T<:AbstractFloat} <: Limits{T}
-    inf::T   # bound for all neighbors before range
-    sup::T   # bound for all neighbors after range
-    len::Int # length of dimension in interpolated array
-    function SafeFlatLimits{T}(inf, sup, len::Integer) where {T}
-        @assert inf < sup
-        @assert len ≥ 1
-        new{T}(inf, sup, len)
-    end
-end
+abstract type BoundaryConditions end
+
+"""
+    Flat()
+
+yields an instance of boundary conditions that assumes that extrapolated
+positions correspond to the nearest position.
+
+See [`AbstractBoundaryConditions`](@ref).
+
+"""
+struct Flat <: BoundaryConditions end
+
+"""
+    UndefinedType
+
+is a type used to represent undefined type in `promote_type`.  It is an
+abstract type so that `isbitstype(UndefinedType)` is false.
+
+"""
+abstract type UndefinedType end
