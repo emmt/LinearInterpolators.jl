@@ -11,41 +11,55 @@ returned index is computed as if given by:
 It is assumed that the range `rng` is not empty.
 
 """
-@inline function compute_indices(bnd::BoundaryConditions,
-                                 off::Real,
-                                 len::Union{Integer,
-                                            AbstractUnitRange{<:Integer}},
-                                 num::Val)
+function compute_indices(bnd::BoundaryConditions,
+                         off::Real,
+                         len::Union{Integer,AbstractUnitRange{<:Integer}},
+                         num::Val)
     return compute_indices(bnd, off, to_unit_range(len), num)
 end
 
-@inline function compute_indices(::Flat,
-                                 off::Real,
-                                 rng::AbstractUnitRange{Int},
-                                 num::Val{N}) where {N}
+@generated function compute_indices(bnd::B,
+                                    off::Real,
+                                    rng::AbstractUnitRange{Int},
+                                    num::Val{N}) where {N,B<:BoundaryConditions}
+    return compute_indices(Expr, B, N)
+end
+
+"""
+    compute_indices(::Type{Expr}, B::Type{<:BoundaryConditions}, N::Int)
+
+yields the code of `compute_indices` method for boundary conditions of type `B`
+and kernels of size `N`.
+
+"""
+compute_indices(::Type{Expr}, ::Type{Flat}, N::Int) = quote
     # We must avoid taking Int(off) if overflows may occur.  Integers up to
     # 1<<25 = 33_554_432 can be exactly represented by IEEE single precision
     # floating-point values (24-bit mantissa).
-    N::Int
+    $(expr_inline())
     i_first = first(rng)
     i_last = last(rng)
     if (i_first - 1 ≤ off)&(off ≤ i_last - N)
         # All indices in bounds, no needs to clamp.
         i_off = Int(off)
-        return ntuple(i -> i_off + i, num)
+        return $(expr_tuple(i -> :(i_off + $i), N))
     elseif off ≤ i_first - N
         # All indices below lower bound.
-        return ntuple(i -> i_first, num)
+        return $(expr_tuple(i -> :i_first, N))
     elseif off ≥ i_last - 1
         # All indices above upper bound.
-        return ntuple(i -> i_last, num)
+        return $(expr_tuple(i -> :i_last, N))
     else
-        # Some indices in bounds but not all, we must clamp and it is probably
-        # safe to trucate to Int.
+        # Some indices in bounds but not all, we must clamp and it is
+        # probably safe to truncate to Int.
         i_off = Int(off)
-        return ntuple(i -> clamp(i_off + i, i_first, i_last), num)
+        return $(expr_tuple(i -> :(clamp(i_off + $i, i_first, i_last)), N))
     end
 end
+
+expr_inline() = Expr(:meta, :inline)
+expr_tuple(f::Function, N::Integer) = expr_tuple(f, Val(Int(N)))
+expr_tuple(f::Function, N::Val) = Expr(:tuple, ntuple(f, N)...)
 
 """
     to_ntuple(::Type{N,T}, x)
