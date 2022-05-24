@@ -1,22 +1,19 @@
 name = "LinearInterpolators"
 uuid = "2fc109c4-9d77-11e9-32ff-e5c650334c16"
 authors = ["Éric Thiébaut <https://github.com/emmt>"]
-version = "0.1.6"
+version = "0.2.0"
 
 [deps]
-ArrayTools = "1dc0ca97-c5ce-4e77-ac6d-c576ac9d7f27"
-InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 InterpolationKernels = "16730964-a2ec-11e9-36fa-47a4f82bfac6"
 LazyAlgebra = "aeaa251e-9d76-11e9-311b-83636bf44738"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
-SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 TwoDimensional = "1907e7ba-7586-4310-a2ba-dd01462aeb50"
+ZippedArrays = "8051824b-fc5e-4603-89c4-0e6ea551cb88"
 
 [compat]
-ArrayTools = "0.2"
-InterpolationKernels = "0.1"
+InterpolationKernels = "0.2"
 LazyAlgebra = "0.2"
 TwoDimensional = "0.2"
 julia = "1.0"
