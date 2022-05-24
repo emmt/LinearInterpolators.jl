@@ -17,7 +17,8 @@ export LazyMultidimInterpolator, SparseMultidimInterpolator
 
 using ..LinearInterpolators
 using ..LinearInterpolators: to_ntuple, to_unit_range, compute_indices,
-    check_axes, check_indices, nth, argument_error, dimension_mismatch
+    check_axes, check_indices, nth, argument_error, dimension_mismatch,
+    expr_inline, expr_tuple
 
 using InterpolationKernels
 using InterpolationKernels: compute_offset_and_weights
@@ -432,8 +433,8 @@ end
     β::Number,
     y::AbstractArray{<:Any,M}) where {
         M,N,S,T<:AbstractMultidimInterpolator{<:Any,M,N,S}}
-    return Meta.generate_apply_direct(
-        collect(S), Val(T <: LazyMultidimInterpolator))
+    return unsafe_apply_direct!(
+        Expr, collect(S), Val(T <: LazyMultidimInterpolator))
 end
 
 function LazyAlgebra.apply!(alpha::Number,
@@ -461,12 +462,9 @@ end
     A::T,
     x::AbstractArray{<:Any,N}) where {
         M,N,S,T<:AbstractMultidimInterpolator{<:Any,M,N,S}}
-    return Meta.generate_apply_adjoint(
-        collect(S), Val(T <: LazyMultidimInterpolator))
+    return unsafe_apply_adjoint!(
+        Expr, collect(S), Val(T <: LazyMultidimInterpolator))
 end
-
-
-module Meta
 
 # Auxiliary functions to generate symbols.
 j_(d::Int) = Symbol(:j_,d)
@@ -511,11 +509,11 @@ function start_block(S::Vector{Int}, lazy::Val{true})
 end
 
 """
-    generate_apply_direct(S, lazy) -> ex
+    unsafe_apply_direct!(::Type{Expr}, S, lazy)
 
-yields the expression for applying a multi-dimensional interpolation operator.
-Argument `S` is the vector of kernel lengths along each dimension.  If `lazy`
-is `Val(true)`, code for the lazy version of the interpolator is generated.
+yields the code of the `unsafe_apply_direct!` method.  Argument `S` is the
+vector of kernel lengths along each dimension.  If `lazy` is `Val(true)`, code
+for the lazy version of the interpolator is generated.
 
 The following pseudo-code implements the factorized form of a 3-D interpolation
 with pre-computed coefficients.  In the lazy version, only the first lines
@@ -541,7 +539,7 @@ end
 ```
 
 """
-function generate_apply_direct(S::Vector{Int}, lazy::Val)
+function unsafe_apply_direct!(::Type{Expr}, S::Vector{Int}, lazy::Val)
     # Extract weights and indices at index i.
     ex = start_block(S, lazy)
 
@@ -570,12 +568,11 @@ function generate_apply_direct(S::Vector{Int}, lazy::Val)
 end
 
 """
-    generate_apply_adjoint(S, lazy) -> ex
+    unsafe_apply_adjoint!(::Type{Expr}, S, lazy) -> ex
 
-yields the expression for applying the adjoint of a multi-dimensional
-interpolation.  Argument `S` is the vector of kernel lengths along each
-dimension.  If `lazy` is `Val(true)`, code for the lazy version of the
-interpolator is generated.
+yields the code of the `unsafe_apply_adjoint!` method.  Argument `S` is the
+vector of kernel lengths along each dimension.  If `lazy` is `Val(true)`, code
+for the lazy version of the interpolator is generated.
 
 The following pseudo-code implements the factorized form of the adjoint
 4-D interpolation (after the destination y has been pre-multiplied by β).
@@ -612,7 +609,7 @@ end
 ```
 
 """
-function generate_apply_adjoint(S::Vector{Int}, lazy::Val)
+function unsafe_apply_adjoint!(::Type{Expr}, S::Vector{Int}, lazy::Val)
     # Extract weights and indices at index i.
     ex = start_block(S, lazy)
 
@@ -648,7 +645,7 @@ function generate_apply_adjoint(S::Vector{Int}, lazy::Val)
         return ex
     end
     return quote
-        #$(Expr(:meta, :inline))
+        #$(expr_inline())
         for i in eachindex(x)
             z = α*x[i]
             if z != zero(z)
@@ -658,7 +655,5 @@ function generate_apply_adjoint(S::Vector{Int}, lazy::Val)
         return nothing
     end
 end
-
-end # module Meta
 
 end # module Multidimensional
