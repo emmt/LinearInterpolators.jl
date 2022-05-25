@@ -130,8 +130,37 @@ with_eltype(::Type{T}, A::AffineTransform{M,N}) where {M,N,T} =
 with_eltype(::Type{T}, ker::Kernel{T}) where {T} = ker
 with_eltype(::Type{T}, ker::Kernel) where {T} = convert(Kernel{T}, ker)
 
+function with_eltype(::Type{NTuple{N,T}},
+                     A::AbstractArray{NTuple{N,T},M}) where {T,M,N}
+    return A
+end
+function with_eltype(::Type{NTuple{N,T}},
+                     A::AbstractArray{NTuple{N,T′},M}) where {T,T′,M,N}
+    B = similar(A, NTuple{N,T})
+    @inbounds @simd for i in eachindex(A, B)
+        B[i] = A[i]
+    end
+    return B
+end
+
+function with_eltype(::Type{Tuple{Vararg{T}}},
+                     A::AbstractArray{NTuple{N,T},M}) where {T,M,N}
+    return A
+end
+function with_eltype(::Type{Tuple{Vararg{T}}},
+                     A::AbstractArray{NTuple{N,T′},M}) where {T,T′,M,N}
+    B = similar(A, NTuple{N,T})
+    @inbounds @simd for i in eachindex(A, B)
+        B[i] = A[i]
+    end
+    return B
+end
+
 Base.eltype(A::AbstractInterpolator) = eltype(typeof(A))
 Base.eltype(::Type{<:AbstractInterpolator{T}}) where {T} = T
+
+Base.convert(::Type{T}, A::T) where {T<:AbstractInterpolator} = A
+Base.convert(::Type{T}, A::AbstractInterpolator) where {T<:AbstractInterpolator} = T(A)
 
 """
     check_axes(A, dims)

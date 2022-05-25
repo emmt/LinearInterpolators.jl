@@ -18,7 +18,7 @@ export LazyMultidimInterpolator, SparseMultidimInterpolator
 using ..LinearInterpolators
 using ..LinearInterpolators: to_ntuple, to_unit_range, compute_indices,
     check_axes, check_indices, nth, argument_error, dimension_mismatch,
-    expr_inline, expr_tuple
+    expr_inline, expr_tuple, with_eltype
 
 using InterpolationKernels
 using InterpolationKernels: compute_offset_and_weights
@@ -89,8 +89,8 @@ struct SparseMultidimInterpolator{T, # type of interpolation weights
                                      # FIXME: In the future, code can be
                                      # generalized to abstract arrays but the
                                      # indexing style must then be determined.
-                                     W<:NTuple{N,Array{<:Tuple{Vararg{T}}}},
-                                     I<:NTuple{N,Array{<:Tuple{Vararg{Int}}}}}
+                                     W<:NTuple{N,Array{<:Tuple{Vararg{T}},M}},
+                                     I<:NTuple{N,Array{<:Tuple{Vararg{Int}},M}}}
         S isa NTuple{N,Int} || error("invalid type parameter S")
         for d in 1:M
             rows[d] > 0 || argument_error(
@@ -277,6 +277,34 @@ function LazyMultidimInterpolator{T,M,N}(
     rows = size(pos)
     S = map(length, ker)
     return LazyMultidimInterpolator{T,M,N,S}(rows, cols, pos, ker, bnd)
+end
+
+# Conversion of element type.
+for type in (:AbstractInterpolator, :AbstractMultidimInterpolator)
+    @eval begin
+        $type{T}(A::SparseMultidimInterpolator) where {T} =
+            SparseMultidimInterpolator{T}(A)
+        $type{T}(A::LazyMultidimInterpolator) where {T} =
+            LazyMultidimInterpolator{T}(A)
+    end
+end
+
+SparseMultidimInterpolator{T}(A::SparseMultidimInterpolator{T}) where {T} = A
+function SparseMultidimInterpolator{T}(
+    A::SparseMultidimInterpolator{T′,M,N,S}) where {T,T′,M,N,S}
+    return SparseMultidimInterpolator{T,M,N,S}(
+        rows(A), cols(A),
+        ntuple(i -> with_eltype(Tuple{Vararg{T}}, A.wgt[i]), Val(N)),
+        A.ind; inbounds=true)
+end
+
+LazyMultidimInterpolator{T}(A::LazyMultidimInterpolator{T}) where {T} = A
+function LazyMultidimInterpolator{T}(
+    A::LazyMultidimInterpolator{T′,M,N,S}) where {T,T′,M,N,S}
+    return LazyMultidimInterpolator{T,M,N,S}(
+        rows(A), cols(A), with_eltype(NTuple{N,T}, A.pos),
+        ntuple(i -> with_eltype(T, A.ker[i]), Val(N)),
+        A.bnd)
 end
 
 # Auxiliary function to determine element type of operator.
