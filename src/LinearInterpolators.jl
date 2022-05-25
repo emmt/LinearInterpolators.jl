@@ -59,12 +59,15 @@ import LazyAlgebra: apply, apply!, vcreate, output_size, input_size,
 import Base: eltype, length, size, first, last, clamp, convert
 
 include("AffineTransforms.jl")
-using .AffineTransforms: AffineTransform, offset
+import .AffineTransforms: AffineTransform, offset
 
 include("types.jl")
 include("utils.jl")
 include("multidimensional.jl")
-using .Multidimensional: LazyMultidimInterpolator, SparseMultidimInterpolator
+import .Multidimensional: LazyMultidimInterpolator, SparseMultidimInterpolator
+
+include("fitting.jl")
+import .Fitting: fit, solve, solve!
 
 include("init.jl")
 
