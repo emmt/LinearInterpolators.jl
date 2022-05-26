@@ -1,11 +1,10 @@
 # User visible changes for LinearInterpolators
 
-
 ## Version 0.1.7
 
 - Extend `getcoefs` to cope with other coordinate types.  The coordinate type
-  is converted on-the-fly if it is not axactly the floating-point type of the
-  kernel.  The method `convert_coordinate` can be specilaized to extend this
+  is converted on-the-fly if it is not exactly the floating-point type of the
+  kernel.  The method `convert_coordinate` can be specialized to extend this
   conversion to non-standard numeric types.  This is automatically done for
   coordinates of type `Unitful.Quantity` when the `Unitful` package is loaded.
 
