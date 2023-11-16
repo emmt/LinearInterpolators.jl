@@ -213,9 +213,9 @@ yields the string `"\$n\$(ordinal_suffix(n))"`.
 
 """
 nth(n::Integer) = string(n)*ordinal_suffix(n)
-# NOTE: `string(n)*ordinal_suffix(n)` is about 3 times faster (76.5ns) than
+# NOTE: `string(n)*ordinal_suffix(n)` is about 3 times faster than
 #       `string(n,ordinal_suffix(n))` or `"$n$(ordinal_suffix(n))"` which are
-#       equally slow (208ns).
+#       equally slow.
 
 """
     ordinal_suffix(n)
@@ -224,8 +224,23 @@ yields the ordinal suffix `"st"`, `"nd"`, `"rd"`, or `"th"` corresponding
 to the value of the integer `n`.
 
 """
-ordinal_suffix(n::Integer) =
-    (d = abs(n)%10) == 1 ? "st" : d == 2 ? "nd" : d == 3 ? "rd" : "th"
+function ordinal_suffix(n::Integer)
+    if n > zero(n)
+        ten = oftype(n, 10)
+        if rem(div(n, ten), ten) != one(n)
+            # Number is positive and the tens digit is not 1.
+            r = rem(n, ten)
+            if r == oftype(r, 1)
+                return "st"
+            elseif r == oftype(r, 2)
+                return "nd"
+            elseif r == oftype(r, 3)
+                return "rd"
+            end
+        end
+    end
+    return "th"
+end
 
 argument_error(msg::String) = throw(ArgumentError(msg))
 @noinline argument_error(args...) = argument_error(string(args...))
