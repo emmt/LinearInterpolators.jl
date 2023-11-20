@@ -1,5 +1,9 @@
 # User visible changes for LinearInterpolators
 
+## Version 0.1.8
+
+- compatibility support for dependency TwoDimensional v0.4
+
 ## Version 0.1.7
 
 - Extend `getcoefs` to cope with other coordinate types.  The coordinate type
