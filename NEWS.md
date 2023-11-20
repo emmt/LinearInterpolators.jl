@@ -2,7 +2,7 @@
 
 ## Version 0.1.8
 
-- compatibility support for dependency TwoDimensional v0.4
+- Extend compatibility to `TwoDimensional` v0.4
 
 ## Version 0.1.7
 
