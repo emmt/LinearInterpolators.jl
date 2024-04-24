@@ -96,9 +96,8 @@ promote_eltype(x) = eltype(x)
 promote_eltype(x...) = promote_type(map(eltype, x)...)
 promote_eltype() = UndefinedType
 
-Base.promote_type(T::Type, ::Type{UndefinedType}) = T
-Base.promote_type(::Type{UndefinedType}, T::Type) = T
-Base.promote_type(::Type{UndefinedType}, ::Type{UndefinedType}) = UndefinedType
+Base.promote_rule(::Type{T}, ::Type{UndefinedType}) where {T} = T
+Base.promote_rule(::Type{UndefinedType}, ::Type{UndefinedType}) = UndefinedType
 
 # FIXME: The `with_eltype` function should be in `ArrayTools` package.
 """
