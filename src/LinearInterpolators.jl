@@ -31,6 +31,7 @@ export
     LanczosKernelPrime,
     MitchellNetravaliSpline,
     MitchellNetravaliSplinePrime,
+
     # Other exports.
     AbstractInterpolator,
     AffineTransform,
@@ -38,14 +39,14 @@ export
     BoundaryConditions,
     Flat,
     LazyMultidimInterpolator,
-    SparseMultidimInterpolator,
+    SparseMultidimInterpolator
     #SparseUnidimInterpolator,
     #LazyUnidimInterpolator,
     #interpolate,
     #interpolate!,
     #boundaries,
-    promote_eltype,
-    with_eltype
+    #promote_eltype,
+    #with_eltype
 
 using InterpolationKernels
 
@@ -63,12 +64,12 @@ import .AffineTransforms: AffineTransform, offset
 
 include("types.jl")
 include("utils.jl")
+include("tools.jl")
+#=
 include("multidimensional.jl")
 import .Multidimensional: LazyMultidimInterpolator, SparseMultidimInterpolator
 
 include("fitting.jl")
 import .Fitting: fit, solve, solve!
-
-include("init.jl")
-
+=#
 end # module

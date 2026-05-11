@@ -198,33 +198,37 @@ function vcreate(::Type{Adjoint},
     return Array{T}(undef, input_size(A))
 end
 
-function apply!(α::Real,
+@generated function direct_sumprod(W, A, J, off::Int, ::Val{S})
+    ex = Expr(:call, :(+), [:(W[off + $k]*A[J[off + $k]]) for k in 1:S]...)
+end
+
+function apply!(α::Number,
                 ::Type{Direct},
-                A::SparseInterpolator{Ta,S,N},
-                x::AbstractVector{Tx},
+                A::SparseInterpolator{Ta,L,1,1,O,S},
+                x::AbstractArray{Tx,Nx},
                 scratch::Bool,
-                β::Real,
-                y::AbstractArray{Ty,N}) where {Ta,Tx<:Real,
+                β::Number,
+                y::AbstractArray{Ty,Ny}) where {Ta,Tx,
                                                Ty<:AbstractFloat,S,N}
     _check(A, y, x)
-    if α == 0
+    if iszero(α)
         vscale!(y, β)
     else
         T = float(promote_type(Ta, Tx))
         alpha = convert(T, α)
         nrows, ncols = A.nrows, A.ncols
-        C, J = coefficients(A), columns(A)
+        W, J = coefficients(A), columns(A)
         k0 = 0
         if β == 0
             @inbounds for i in 1:nrows
-                sum = zero(T)
+                s = sumprod(W, x, J, off::Int, Val(S))
                 @simd for s in 1:S
                     k = k0 + s
                     j = J[k]
                     sum += C[k]*x[j]
                 end
-                y[i] = alpha*sum
-                k0 += S
+                y[i] = axpby(α, s, β, y[i])
+                off += S
             end
         else
             beta = convert(Ty, β)
@@ -272,221 +276,6 @@ function apply!(α::Real,
         end
     end
     return y
-end
-
-"""
-
-`AtWA(A,w)` yields the matrix `A'*W*A` from a sparse linear operator `A` and
-weights `W = diag(w)`.
-
-"""
-function AtWA(A::SparseInterpolator{T,S,N},
-              w::AbstractArray{T,N}) where {T,S,N}
-    ncols = A.ncols
-    AtWA!(Array{T}(undef, ncols, ncols), A, w)
-end
-
-"""
-
-`AtA(A)` yields the matrix `A'*A` from a sparse linear operator `A`.
-
-"""
-function AtA(A::SparseInterpolator{T,S,N}) where {T,S,N}
-    ncols = A.ncols
-    AtA!(Array{T}(undef, ncols, ncols), A)
-end
-
-# Build the `A'*A` matrix from a sparse linear operator `A`.
-function AtA!(dst::AbstractArray{T,2},
-              A::SparseInterpolator{T,S,N}) where {T,S,N}
-    nrows, ncols = A.nrows, A.ncols
-    @assert size(dst) == (ncols, ncols)
-    fill!(dst, zero(T))
-    C, J = coefficients(A), columns(A)
-    k0 = 0
-    @assert length(J) == length(C)
-    @inbounds for i in 1:nrows
-        for s in 1:S
-            k = k0 + s
-            1 ≤ J[k] ≤ ncols || error("corrupted interpolator table")
-        end
-        for s1 in 1:S
-            k1 = k0 + s1
-            j1, c1 = J[k1], C[k1]
-            @simd for s2 in 1:S
-                k2 = k0 + s2
-                j2, c2 = J[k2], C[k2]
-                dst[j1,j2] += c1*c2
-            end
-        end
-        k0 += S
-    end
-    return dst
-end
-
-# Build the `A'*W*A` matrix from a sparse linear operator `A` and weights `W`.
-function AtWA!(dst::AbstractArray{T,2}, A::SparseInterpolator{T,S,N},
-               wgt::AbstractArray{T,N}) where {T,S,N}
-    nrows, ncols = A.nrows, A.ncols
-    @assert size(dst) == (ncols, ncols)
-    @assert size(wgt) == output_size(A)
-    fill!(dst, zero(T))
-    C, J = coefficients(A), columns(A)
-    k0 = 0
-    @assert length(J) == length(C)
-    @inbounds for i in 1:nrows
-        for s in 1:S
-            k = k0 + s
-            1 ≤ J[k] ≤ ncols || error("corrupted interpolator table")
-        end
-        w = wgt[i]
-        for s1 in 1:S
-            k1 = k0 + s1
-            j1 = J[k1]
-            wc1 = w*C[k1]
-            @simd for s2 in 1:S
-                k2 = k0 + s2
-                j2 = J[k2]
-                dst[j1,j2] += C[k2]*wc1
-            end
-        end
-        k0 += S
-    end
-    return dst
-end
-
-# Default regularization levels.
-const RGL_EPS = 1e-9
-const RGL_MU = 0.0
-
-"""
-    fit(A, y [, w]; epsilon=1e-9, mu=0.0) -> x
-
-performs a linear fit of `y` by the model `A*x` with `A` a linear interpolator.
-The returned value `x` minimizes:
-
-    sum(w.*(A*x - y).^2)
-
-where `w` are given weights.  If `w` is not specified, all weights are assumed
-to be equal to one; otherwise `w` must be an array of nonnegative values and of
-same size as `y`.
-
-Keywords `epsilon` and `mu` may be specified to regularize the solution and
-minimize:
-
-    sum(w.*(A*x - y).^2) + rho*(epsilon*norm(x)^2 + mu*norm(D*x)^2)
-
-where `D` is a finite difference operator, `rho` is the maximum diagonal
-element of `A'*diag(w)*A` and `norm` is the Euclidean norm.
-
-"""
-function fit(A::SparseInterpolator{T,S,N},
-             y::AbstractArray{T,N},
-             w::AbstractArray{T,N};
-             epsilon::Real = RGL_EPS,
-             mu::Real = RGL_MU) where {T,S,N}
-    @assert size(y) == output_size(A)
-    @assert size(w) == size(y)
-
-    # Compute RHS vector A'*W*y with W = diag(w).
-    rhs = A'*(w.*y)
-
-    # Compute LHS matrix A'*W*A with W = diag(w).
-    lhs = AtWA(A, w)
-
-    # Regularize a bit.
-    regularize!(lhs, epsilon, mu)
-
-    # Solve the linear equations.
-    cholfact!(lhs,:U,Val{true})\rhs
-end
-
-function fit(A::SparseInterpolator{T,S,N},
-             y::AbstractArray{T,N};
-             epsilon::Real = RGL_EPS,
-             mu::Real = RGL_MU) where {T,S,N}
-    @assert size(y) == output_size(A)
-    @assert size(w) == size(y)
-
-    # Compute RHS vector A'*y.
-    rhs = A'*y
-
-    # Compute LHS matrix A'*W*A with W = diag(w).
-    lhs = AtA(A)
-
-    # Regularize a bit.
-    regularize!(lhs, epsilon, mu)
-
-    # Solve the linear equations.
-    cholfact!(lhs,:U,Val{true})\rhs
-end
-
-"""
-    regularize(A, ϵ, μ) -> R
-
-regularizes the symmetric matrix `A` to produce the matrix:
-
-    R = A + ρ*(ϵ*I + μ*D'*D)
-
-where `I` is the identity, `D` is a finite difference operator and `ρ` is the
-maximum diagonal element of `A`.
-
-"""
-regularize(A::AbstractArray{T,2}, args...) where {T<:AbstractFloat} =
-    regularize!(copyto!(Array{T}(undef, size(A)), A), args...)
-
-"""
-    regularize!(A, ϵ, μ) -> A
-
-stores the regularized matrix in `A` (and returns it).  This is the in-place
-version of [`LinearInterpolators.SparseInterpolators.regularize`].
-
-"""
-function regularize!(A::AbstractArray{T,2},
-                     eps::Real = RGL_EPS,
-                     mu::Real = RGL_MU) where {T<:AbstractFloat}
-    regularize!(A, T(eps), T(mu))
-end
-
-function regularize!(A::AbstractArray{T,2},
-                     eps::T, mu::T) where {T<:AbstractFloat}
-    local rho::T
-    @assert eps ≥ zero(T)
-    @assert mu ≥ zero(T)
-    @assert size(A,1) == size(A,2)
-    n = size(A,1)
-    if eps > zero(T) || mu > zero(T)
-        rho = A[1,1]
-        for j in 2:n
-            d = A[j,j]
-            rho = max(rho, d)
-        end
-        rho > zero(T) || error("we have a problem!")
-    end
-    if eps > zero(T)
-        q = eps*rho
-        for j in 1:n
-            A[j,j] += q
-        end
-    end
-    if mu > zero(T)
-        q = rho*mu
-        if n ≥ 2
-            r = q + q
-            A[1,1] += q
-            A[2,1] -= q
-            for i in 2:n-1
-                A[i-1,i] -= q
-                A[i,  i] += r
-                A[i+1,i] -= q
-            end
-            A[n-1,n] -= q
-            A[n,  n] += q
-        elseif n == 1
-            A[1,1] += q
-        end
-    end
-    return A
 end
 
 # Yields a function that takes an index and returns the corresponding
@@ -657,17 +446,17 @@ function apply!(α::Real, ::Type{Direct},
     else
         C = coefficients(A)
         J = columns(A)
-        I_pre = CartesianIndices(xdims[1:D-1])
-        I_post = CartesianIndices(xdims[D+1:N])
+        I_head = CartesianIndices(xdims[1:D-1])
+        I_tail = CartesianIndices(xdims[D+1:N])
         T = promote_type(Ta,Tx)
         alpha = convert(T, α)
         if β == 0
             _apply_direct!(T, Val{S}, C, J, alpha, x, y,
-                           I_pre, nrows, I_post)
+                           I_head, nrows, I_tail)
         else
             beta = convert(Ty, β)
             _apply_direct!(T, Val{S}, C, J, alpha, x, beta, y,
-                           I_pre, nrows, I_post)
+                           I_head, nrows, I_tail)
         end
     end
     return y
@@ -723,21 +512,21 @@ function _apply_direct!(::Type{T},
                         α::AbstractFloat,
                         x::AbstractArray{<:Real,N},
                         y::AbstractArray{<:AbstractFloat,N},
-                        I_pre::CartesianIndices{N_pre},
+                        I_head::CartesianIndices{N_head},
                         len::Int,
-                        I_post::CartesianIndices{N_post}
-                        ) where {T<:AbstractFloat,S,N,N_post,N_pre}
-    @assert N == N_post + N_pre + 1
-    @inbounds for i_post in I_post
-        for i_pre in I_pre
+                        I_tail::CartesianIndices{N_tail}
+                        ) where {T<:AbstractFloat,S,N,N_tail,N_head}
+    @assert N == N_tail + N_head + 1
+    @inbounds for i_tail in I_tail
+        for i_head in I_head
             k0 = 0
             for i in 1:len
                 sum = zero(T)
                 @simd for s in 1:S
                     k = k0 + s
-                    sum += C[k]*x[i_pre,J[k],i_post]
+                    sum += C[k]*x[i_head,J[k],i_tail]
                 end
-                y[i_pre,i,i_post] = α*sum
+                y[i_head,i,i_tail] = α*sum
                 k0 += S
             end
         end
@@ -752,21 +541,21 @@ function _apply_direct!(::Type{T},
                         x::AbstractArray{<:Real,N},
                         β::AbstractFloat,
                         y::AbstractArray{<:AbstractFloat,N},
-                        I_pre::CartesianIndices{N_pre},
+                        I_head::CartesianIndices{N_head},
                         len::Int,
-                        I_post::CartesianIndices{N_post}
-                        ) where {T<:AbstractFloat,S,N,N_post,N_pre}
-    @assert N == N_post + N_pre + 1
-    @inbounds for i_post in I_post
-        for i_pre in I_pre
+                        I_tail::CartesianIndices{N_tail}
+                        ) where {T<:AbstractFloat,S,N,N_tail,N_head}
+    @assert N == N_tail + N_head + 1
+    @inbounds for i_tail in I_tail
+        for i_head in I_head
             k0 = 0
             for i in 1:len
                 sum = zero(T)
                 @simd for s in 1:S
                     k = k0 + s
-                    sum += C[k]*x[i_pre,J[k],i_post]
+                    sum += C[k]*x[i_head,J[k],i_tail]
                 end
-                y[i_pre,i,i_post] = α*sum + β*y[i_pre,i,i_post]
+                y[i_head,i,i_tail] = α*sum + β*y[i_head,i,i_tail]
                 k0 += S
             end
         end
@@ -779,19 +568,19 @@ function _apply_adjoint!(::Type{Val{S}},
                          α::AbstractFloat,
                          x::AbstractArray{<:Real,N},
                          y::AbstractArray{<:AbstractFloat,N},
-                         I_pre::CartesianIndices{N_pre},
+                         I_head::CartesianIndices{N_head},
                          len::Int,
-                         I_post::CartesianIndices{N_post}
-                         ) where {S,N,N_post,N_pre}
-    @assert N == N_post + N_pre + 1
-    @inbounds for i_post in I_post
-        for i_pre in I_pre
+                         I_tail::CartesianIndices{N_tail}
+                         ) where {S,N,N_tail,N_head}
+    @assert N == N_tail + N_head + 1
+    @inbounds for i_tail in I_tail
+        for i_head in I_head
             k0 = 0
             for i in 1:len
-                c = α*x[i_pre,i,i_post]
+                c = α*x[i_head,i,i_tail]
                 @simd for s in 1:S
                     k = k0 + s
-                    y[i_pre,J[k],i_post] += C[k]*c
+                    y[i_head,J[k],i_tail] += C[k]*c
                 end
                 k0 += S
             end

@@ -1,10 +1,10 @@
 """
     compute_indices(bnd, off, rng, num::Val{N}) -> (j_1, j_2, ..., j_N)
 
-yields the `N`-tuple of interpolation indices for boundary conditions `bnd` at
-offset `off` and along a dimension where indices take values on range `rng`.
-For instance, if `bnd` implements *flat* boundary conditions, then the `k`-th
-returned index is computed as if given by:
+Return the `N`-tuple of interpolation indices for boundary conditions `bnd` at offset `off`
+and along a dimension where indices take values on range `rng`. For instance, if `bnd`
+implements *flat* boundary conditions, then the `k`-th returned index is computed as if
+given by:
 
     j_k = clamp(Int(off) + k, first(rng), last(rng))
 
@@ -28,8 +28,8 @@ end
 """
     compute_indices(::Type{Expr}, B::Type{<:BoundaryConditions}, N::Int)
 
-yields the code of `compute_indices` method for boundary conditions of type `B`
-and kernels of size `N`.
+Return the code of `compute_indices` method for boundary conditions of type `B` and kernels
+of size `N`.
 
 """
 compute_indices(::Type{Expr}, ::Type{Flat}, N::Int) = quote
@@ -162,17 +162,6 @@ Base.convert(::Type{T}, A::T) where {T<:AbstractInterpolator} = A
 Base.convert(::Type{T}, A::AbstractInterpolator) where {T<:AbstractInterpolator} = T(A)
 
 """
-    check_axes(A, dims)
-
-yields whether the axes of array `A` are correct, that is one-based and with
-lengths equal to the size `dims`.
-
-"""
-check_axes(A::AbstractArray, dims::Dims) = false
-check_axes(A::AbstractArray{T,N}, dims::Dims{N}) where {T,N} =
-    axes(A) == map(Base.OneTo, dims)
-
-"""
     check_indices(I, R)
 
 yields whether the indices in array `I` are all in the range `R`.
@@ -208,19 +197,18 @@ end
 """
     nth(n)
 
-yields the string `"\$n\$(ordinal_suffix(n))"`.
+Return the string `"\$n\$(ordinal_suffix(n))"`.
 
 """
 nth(n::Integer) = string(n)*ordinal_suffix(n)
 # NOTE: `string(n)*ordinal_suffix(n)` is about 3 times faster than
-#       `string(n,ordinal_suffix(n))` or `"$n$(ordinal_suffix(n))"` which are
-#       equally slow.
+#       `string(n,ordinal_suffix(n))` or `"$n$(ordinal_suffix(n))"` which are equally slow.
 
 """
     ordinal_suffix(n)
 
-yields the ordinal suffix `"st"`, `"nd"`, `"rd"`, or `"th"` corresponding
-to the value of the integer `n`.
+Return the ordinal suffix `"st"`, `"nd"`, `"rd"`, or `"th"` corresponding to the value of
+the integer `n`.
 
 """
 function ordinal_suffix(n::Integer)
