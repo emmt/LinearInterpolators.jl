@@ -57,6 +57,11 @@ end
 #------------------------------------------------------------------------------
 # In-place wrappers.
 
+"""
+    apply!(dst, ker, x, src)
+Interpolate `src` using kernel `ker` and samples `x`,
+writing result to `dst`.
+"""
 function apply!(dst::AbstractArray{<:Any,N},
                 ker::Kernel,
                 x::Union{Function,AbstractArray{<:Any,N}},
@@ -72,6 +77,11 @@ function apply!(dst::AbstractArray{<:Any,N},
     apply!(1, Direct, ker, x, src, 0, dst)
 end
 
+"""
+    apply!(dst, Adjoint, ker, x, src)
+Adjoint of interpolation using kernel `ker` and samples `x` from `src`,
+writing result to `dst`.
+"""
 function apply!(dst::AbstractVector,
                 ::Type{Adjoint},
                 ker::Kernel,
@@ -195,14 +205,18 @@ end
     code = __generate_interp_adj(S, :ker, :lim, :pos, :dst, :val)
     quote
         @assert size(src) == size(x)
-        vscale!(dst, β)
+        if β != 0
+            vscale!(dst, β)
+        else
+            vzero!(dst)
+        end
         lim = limits(ker, length(dst))
         if α == 1
             @inbounds for i in eachindex(src, x)
                 pos = x[i]
                 val = src[i]
                 $(code...)
-        end
+            end
         elseif α != 0
             alpha = promote_multiplier(α, eltype(ker), eltype(src))
             @inbounds for i in eachindex(src, x)
@@ -224,7 +238,11 @@ end
                            dst::AbstractVector) where {S,N}
     code = __generate_interp_adj(S, :ker, :lim, :pos, :dst, :val)
     quote
-        vscale!(dst, β)
+        if β != 0
+            vscale!(dst, β)
+        else
+            vzero!(dst)
+        end
         lim = limits(ker, length(dst))
         if α == 1
             @inbounds for i in eachindex(src)
